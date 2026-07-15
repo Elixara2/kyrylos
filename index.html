@@ -300,6 +300,28 @@
   .setgrid label{font-size:12.5px;color:var(--dim);display:block;margin-bottom:4px}
   .lvlcard{text-align:center;max-width:340px}
 
+  /* appearance / theme picker */
+  .swatches{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 4px}
+  .sw{width:44px;height:44px;border-radius:12px;cursor:pointer;border:2px solid transparent;position:relative;
+    transition:transform .15s;box-shadow:0 4px 12px rgba(0,0,0,.3);flex:0 0 auto}
+  .sw:active{transform:scale(.92)}
+  .sw.on{border-color:var(--txt);transform:scale(1.08)}
+  .huerange{-webkit-appearance:none;appearance:none;width:100%;height:14px;border-radius:99px;outline:none;cursor:pointer;margin:14px 0 4px;
+    background:linear-gradient(90deg,hsl(0,74%,55%),hsl(60,74%,50%),hsl(120,70%,45%),hsl(180,70%,45%),hsl(240,74%,55%),hsl(300,74%,55%),hsl(360,74%,55%))}
+  .huerange::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;background:#fff;
+    border:3px solid rgba(0,0,0,.25);box-shadow:0 2px 8px rgba(0,0,0,.4);cursor:pointer}
+  .huerange::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:#fff;border:3px solid rgba(0,0,0,.25);cursor:pointer}
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:14px;cursor:pointer;
+    background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .toggle-row b{font-size:14px;display:block}
+  .toggle-row span{font-size:11.5px;color:var(--dim)}
+  .switch{width:48px;height:28px;border-radius:99px;background:var(--panel2);position:relative;flex:0 0 auto;
+    transition:background .25s;border:1px solid var(--line)}
+  .switch>i{position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:50%;background:#fff;
+    transition:transform .25s var(--ease);box-shadow:0 2px 5px rgba(0,0,0,.3)}
+  .switch.on{background:var(--green);border-color:var(--green)}
+  .switch.on>i{transform:translateX(20px)}
+
   #toast{position:fixed;left:50%;bottom:calc(var(--safe-b) + 96px);transform:translateX(-50%) translateY(16px);
     background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 16px;font-size:13.5px;
     opacity:0;transition:.3s;z-index:95;pointer-events:none;white-space:nowrap;max-width:88vw;overflow:hidden;text-overflow:ellipsis}
@@ -367,22 +389,24 @@
   <section class="panel" id="p-work">
     <div class="card">
       <div class="commit-top">
-        <div class="commit-num" id="commitVal">6.0<span>hrs committed today</span></div>
+        <div class="commit-num" id="commitVal">6.0<span>hrs this session</span></div>
         <div class="commit-sub" id="commitProgress">0.0 / 6.0 hrs</div>
       </div>
       <div class="commit-bar" id="commitBarWrap"><i id="commitBar"></i></div>
       <input type="range" class="pro-slider" id="commitSlider" min="0.5" max="12" step="0.5" oninput="setCommittedHours(this.value)">
+      <div class="sub" style="text-align:center;margin-top:10px" id="commitToday">0.0 hrs today across 0 sessions</div>
     </div>
 
     <div class="card">
       <div class="clock">
+        <div class="sub" id="tsStartedLbl">Ready when you are</div>
         <div class="big" id="tsCount">15:00</div>
         <div class="biglbl" id="tsLbl">until next log</div>
       </div>
       <div class="bar"><i id="tsBar"></i></div>
       <div class="worktiles">
         <div class="wtile"><b id="tsBlocksToday">0</b><span>blocks</span></div>
-        <div class="wtile"><b id="tsWorkedToday">0m</b><span>focused</span></div>
+        <div class="wtile"><b id="tsWorkedToday">0m</b><span>this session</span></div>
         <div class="wtile"><b id="tsRestIn">—</b><span>next break</span></div>
       </div>
       <div class="btns">
@@ -390,6 +414,9 @@
         <button onclick="tsOpenLog()">✎ Log now</button>
         <button class="sm ghost" onclick="tsAdjust(-300)">−5m</button>
         <button class="sm ghost" onclick="tsAdjust(300)">+5m</button>
+      </div>
+      <div class="row" style="justify-content:center;margin-top:10px" id="tsClockOutWrap">
+        <button class="sm ghost danger" onclick="tsClockOut()">⏹ Clock out</button>
       </div>
       <div class="sub" style="text-align:center;margin-top:12px" id="tsInfo"></div>
     </div>
@@ -433,7 +460,12 @@
     </div>
 
     <div class="card">
-      <h2>Today's log <span class="sub" id="tsCountLbl"></span></h2>
+      <h2>Today's sessions <span class="sub" id="tsSessionCountLbl"></span></h2>
+      <div class="entries" id="tsSessions"><div class="empty">Clock in to start your first session today.</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Current session's log <span class="sub" id="tsCountLbl"></span></h2>
       <div class="entries" id="tsEntries"><div class="empty">Blocks you log appear here.</div></div>
       <div class="row" style="margin-top:10px">
         <button class="sm ghost" onclick="tsOpenSheet()">Open sheet ↗</button>
@@ -731,6 +763,19 @@
   <div class="modal">
     <h2>Settings</h2>
     <div class="sub" id="syncStatusTxt"></div>
+
+    <div class="sect" style="margin-top:14px">
+      <div class="lbl">Appearance — flow colours</div>
+      <div class="swatches" id="themeSwatches"></div>
+      <div class="huerange-wrap">
+        <input type="range" id="themeHue" class="huerange" min="0" max="360" oninput="setThemeHue(this.value)">
+      </div>
+      <div class="toggle-row" onclick="toggleThemeLive()">
+        <div><b>Live flowing gradient</b><span>Colours drift and breathe on their own</span></div>
+        <div class="switch" id="themeLiveToggle"><i></i></div>
+      </div>
+    </div>
+
     <div class="setgrid">
       <div><label>Morning routine (ASCEND) URL — opens from Today</label>
         <input type="url" id="setAscend" placeholder="http:// or file:// link to ASCEND"></div>
@@ -941,17 +986,68 @@ const DEF_SETTINGS = {
   tsUrl:'https://docs.google.com/spreadsheets/d/1bnDhbDsdre5B4ESEQUG_ZBE1QqSHNISv8PxrAjcDbkM/edit?gid=70101037#gid=70101037',
   tsGid:'70101037', tsCol:'A', tsRow:3, tsInt:15,
   miniEvery:25, miniLen:45, bigEvery:120, bigLen:15, restOn:true,
-  tankMl:1500, rapGoal:60, unit:'kg', dayAName:'Day A', dayBName:'Day B'
+  tankMl:1500, rapGoal:60, unit:'kg', dayAName:'Day A', dayBName:'Day B',
+  theme:{mode:'default', hue:220, live:false}
 };
 let SET = {};
-function loadSettingsCache(){ SET = Object.assign({}, DEF_SETTINGS, kget('settings',{})); }
+function loadSettingsCache(){ SET = Object.assign({}, DEF_SETTINGS, kget('settings',{}));
+  if(!SET.theme) SET.theme=Object.assign({}, DEF_SETTINGS.theme); }
 loadSettingsCache();
+
+/* ================= appearance / flow-colour theme ================= */
+// Same idea as ASCEND's theme picker: swatches + a hue slider + an optional
+// live-flowing animation. Colours are generated (not hand-picked hex) from a
+// formula already verified to keep text readable at every hue: accent1 (used
+// as text on dark panels) stays light enough, accent2 (used as button
+// backgrounds under light text) stays dark enough — both hold WCAG-safe
+// contrast across the full 360° wheel.
+const themeRoot=document.documentElement;
+const THEME_PRESETS=[['default','Default',null],['blue','Blue',215],['teal','Teal',175],['green','Green',145],
+  ['gold','Gold',42],['orange','Orange',22],['red','Red',355],['pink','Pink',330],['purple','Purple',275],['indigo','Indigo',250]];
+function themeHsl(h,s,l){ return 'hsl('+(((h%360)+360)%360).toFixed(0)+','+s+'%,'+l+'%)'; }
+function themeColorsForHue(h){ return [themeHsl(h,78,64), themeHsl(h+30,72,24)]; }
+let themeLiveRAF=null, themeLiveHue=220;
+function stopThemeLive(){ if(themeLiveRAF) cancelAnimationFrame(themeLiveRAF); themeLiveRAF=null; }
+function startThemeLive(){ stopThemeLive();
+  const loop=()=>{ themeLiveHue=(themeLiveHue+0.06)%360;
+    const [a1,a2]=themeColorsForHue(themeLiveHue);
+    themeRoot.style.setProperty('--accent',a1); themeRoot.style.setProperty('--accent2',a2);
+    themeLiveRAF=requestAnimationFrame(loop); };
+  loop();
+}
+function applyTheme(){
+  const t=SET.theme||DEF_SETTINGS.theme;
+  if(t.live){ if(!themeLiveRAF){ themeLiveHue=t.hue||220; startThemeLive(); } return; } // don't restart an already-running drift
+  stopThemeLive();
+  if(t.mode==='hue'){ const [a1,a2]=themeColorsForHue(t.hue||220);
+    themeRoot.style.setProperty('--accent',a1); themeRoot.style.setProperty('--accent2',a2); return; }
+  const preset=THEME_PRESETS.find(p=>p[0]===t.mode);
+  if(preset && preset[2]!=null){ const [a1,a2]=themeColorsForHue(preset[2]);
+    themeRoot.style.setProperty('--accent',a1); themeRoot.style.setProperty('--accent2',a2); }
+  else{ themeRoot.style.removeProperty('--accent'); themeRoot.style.removeProperty('--accent2'); }
+}
+function pickThemeSwatch(mode){ SET.theme=Object.assign({}, SET.theme, {mode, live:false}); kset('settings',SET); applyTheme(); renderThemeUI(); }
+function setThemeHue(h){ SET.theme=Object.assign({}, SET.theme, {mode:'hue', hue:parseInt(h,10)||0});
+  kset('settings',SET); applyTheme(); renderThemeUI(); }
+function toggleThemeLive(){ SET.theme=Object.assign({}, SET.theme, {live:!SET.theme.live}); kset('settings',SET); applyTheme(); renderThemeUI(); }
+function renderThemeUI(){
+  const t=SET.theme||DEF_SETTINGS.theme;
+  const box=$('#themeSwatches'); if(box){ box.innerHTML='';
+    THEME_PRESETS.forEach(([key,name,hue])=>{ const d=document.createElement('div');
+      d.className='sw'+((t.mode===key && !t.live)?' on':''); d.title=name;
+      d.style.background = hue==null ? 'linear-gradient(135deg,#3b82f6,#2563eb)' : 'linear-gradient(135deg,'+themeColorsForHue(hue).join(',')+')';
+      d.onclick=()=>pickThemeSwatch(key); box.appendChild(d); });
+  }
+  const hs=$('#themeHue'); if(hs) hs.value=t.hue||220;
+  const lt=$('#themeLiveToggle'); if(lt) lt.classList.toggle('on', !!t.live);
+}
 function openSettings(){
   $('#setAscend').value=SET.ascendUrl; $('#setLife').value=SET.lifeUrl;
   $('#setTsUrl').value=SET.tsUrl; $('#setTsGid').value=SET.tsGid; $('#setTsCol').value=SET.tsCol;
   $('#setTsRow').value=SET.tsRow; $('#setTank').value=SET.tankMl;
   $('#setRapMin').value=SET.rapGoal; $('#setUnit').value=SET.unit;
   $('#setDayA').value=SET.dayAName; $('#setDayB').value=SET.dayBName;
+  renderThemeUI();
   setSyncUI(hasSrv?'ok':null);
   $('#setScrim').classList.add('show');
 }
@@ -1050,9 +1146,25 @@ function tsSheetLink(){ const id=sheetId(SET.tsUrl); if(!id) return '';
   return 'https://docs.google.com/spreadsheets/d/'+id+'/edit#gid='+SET.tsGid+'&range='+tsCell(); }
 function tsOpenSheet(){ const u=tsSheetLink(); if(u) window.open(u,'_blank'); else toast('Set the time-study sheet URL in settings'); }
 
-/* ---- committed hours (per day) ---- */
-function getCommittedHours(){ return kget('ts:committed:'+todayKey(), 6); }
-function setCommittedHours(h){ kset('ts:committed:'+todayKey(), parseFloat(h)||6); renderWork(); }
+/* ---- committed hours — per SESSION, not per day ---- */
+function getSessionTarget(){ return kget('ts:sessionTarget', 6); }
+function getCommittedHours(){ return (ts.mode!=='idle' && ts.committedHours!=null) ? ts.committedHours : getSessionTarget(); }
+function setCommittedHours(h){
+  const v=parseFloat(h)||6;
+  if(ts.mode!=='idle'){ ts.committedHours=v; tsSave(); }
+  kset('ts:sessionTarget', v); // remembered as the default for your next session too
+  renderWork();
+}
+
+/* ---- sessions: each clock-in/clock-out is its own session; the day can hold several ---- */
+function getTodaySessions(){ return kget('ts:sessions:'+todayKey(), []); }
+function sessionEntries(){
+  const all=getTsEntries();
+  if(ts.mode==='idle' || !ts.sessionStart) return all;
+  return all.filter(x=>x.s>=ts.sessionStart);
+}
+function sessionWorkedMin(){ return sessionEntries().reduce((a,x)=>a+Math.max(0,Math.round((x.e-x.s)/60000)),0); }
+function todayWorkedMin(){ return getTsEntries().reduce((a,x)=>a+Math.max(0,Math.round((x.e-x.s)/60000)),0); }
 
 /* ---- generic slider fill (filled-track look on plain input[type=range]) ---- */
 function styleSlider(el){ if(!el) return; const min=+el.min||0, max=+el.max||100, val=+el.value;
@@ -1061,7 +1173,8 @@ function styleSlider(el){ if(!el) return; const min=+el.min||0, max=+el.max||100
 
 function tsToggle(){
   if(ts.mode==='idle'){
-    ts.mode='working'; ts.sessionStart=ts.sessionStart||Date.now(); ts.blockStart=Date.now();
+    ts.mode='working'; ts.sessionStart=Date.now(); ts.blockStart=Date.now();
+    ts.committedHours=getSessionTarget();
     ts.nextLogAt=Date.now()+SET.tsInt*60000;
     ts.miniNextAt=Date.now()+SET.miniEvery*60000;
     ts.bigNextAt=Date.now()+SET.bigEvery*60000;
@@ -1081,6 +1194,23 @@ function tsToggle(){
   tsSave(); renderWork();
 }
 function tsAdjust(sec){ if(ts.mode!=='working') return; ts.nextLogAt+=sec*1000; tsSave(); renderWork(); }
+
+function tsClockOut(){
+  if(ts.mode==='idle') return;
+  const workedMin=sessionWorkedMin();
+  const sessions=getTodaySessions();
+  sessions.push({start:ts.sessionStart, end:Date.now(), committedHours:ts.committedHours||6, workedMin});
+  kset('ts:sessions:'+todayKey(), sessions);
+  const hitTarget = (ts.committedHours>0) && (workedMin/60 >= ts.committedHours);
+  chimeDone(); buzz([30,60,30,60,80]);
+  addXP(hitTarget?20:10, hitTarget?'session target hit':'session logged');
+  confettiBurst(innerWidth/2, innerHeight*.3, hitTarget?90:45);
+  toast('🏁 Session done — '+(workedMin>=60?(workedMin/60).toFixed(1)+'h':workedMin+'m')+' logged'+(hitTarget?' · target hit! 🎯':''));
+  clearInterval(restTicker);
+  ts={mode:'idle', nextLogAt:0, blockStart:0, sessionStart:0};
+  tsSave();
+  autoFlow(); renderWork(); renderToday();
+}
 
 /* ---- log cadence ---- */
 function setTsInt(min){ SET.tsInt=parseInt(min,10)||15; kset('settings',SET);
@@ -1220,21 +1350,28 @@ function renderWork(){
   $('#tsStartBtn').textContent = ts.mode==='working' ? '⏸ Pause' : ts.mode==='paused' ? '▶ Resume' : '▶ Clock in';
   $('#tsLbl').textContent = ts.mode==='idle' ? 'press clock in when work begins' : ts.mode==='paused' ? 'paused' : 'until next log';
   $('#tsInfo').textContent='Today → column '+tsTodayCol()+' · next cell '+tsCell()+' · every '+SET.tsInt+' min';
-  const e=getTsEntries(), box=$('#tsEntries');
+  $('#tsStartedLbl').textContent = ts.mode!=='idle' && ts.sessionStart ? 'Started '+clock(ts.sessionStart) : 'Ready when you are';
+  $('#tsClockOutWrap').style.display = ts.mode==='idle' ? 'none' : '';
+
+  const e=sessionEntries(), box=$('#tsEntries');
   $('#tsCountLbl').textContent='· '+e.length+' block'+(e.length===1?'':'s');
 
-  // committed-hours card
+  // committed-hours card — scoped to the CURRENT session, not the whole day
   const committed=getCommittedHours();
-  const workedMin = e.reduce((a,x)=>a+Math.max(0,Math.round((x.e-x.s)/60000)),0);
+  const workedMin = sessionWorkedMin();
   const workedHrs=workedMin/60;
-  $('#commitVal').innerHTML=committed.toFixed(1)+'<span>hrs committed today</span>';
+  $('#commitVal').innerHTML=committed.toFixed(1)+'<span>hrs this session</span>';
   $('#commitProgress').textContent=workedHrs.toFixed(1)+' / '+committed.toFixed(1)+' hrs';
   const cpct=committed>0?Math.min(100,workedHrs/committed*100):0;
   $('#commitBar').style.width=cpct+'%';
   $('#commitBarWrap').classList.toggle('met',cpct>=100);
   const cs=$('#commitSlider'); if(document.activeElement!==cs){ cs.value=committed; } styleSlider(cs);
+  const sessions=getTodaySessions();
+  const todayMin=todayWorkedMin();
+  const sessionCountToday=sessions.length + (ts.mode!=='idle'?1:0);
+  $('#commitToday').textContent=(todayMin>=60?(todayMin/60).toFixed(1)+' hrs':todayMin+' min')+' today across '+sessionCountToday+' session'+(sessionCountToday===1?'':'s');
 
-  // momentum tiles
+  // momentum tiles (session-scoped)
   $('#tsBlocksToday').textContent=e.length;
   $('#tsWorkedToday').textContent = workedMin>=60 ? (workedMin/60).toFixed(1)+'h' : workedMin+'m';
   let nextBreakLeft=null, nextBreakKind=null;
@@ -1266,6 +1403,20 @@ function renderWork(){
     d.innerHTML='<div class="t">'+clock(x.s)+' – '+clock(x.e)+' · '+(x.cell||'')+'</div>'+
       (x.text ? '<div class="x">'+esc(x.text)+'</div>' : '<div class="x" style="color:var(--dim)">Logged in sheet</div>');
     box.appendChild(d); });
+
+  // today's sessions — closed ones from the log, plus the live one if a session is active
+  const sesBox=$('#tsSessions');
+  const rows=sessions.map(s=>({ ...s, live:false }));
+  if(ts.mode!=='idle' && ts.sessionStart) rows.push({start:ts.sessionStart, end:null, committedHours:committed, workedMin, live:true});
+  $('#tsSessionCountLbl').textContent = rows.length ? '· '+rows.length+' session'+(rows.length===1?'':'s') : '';
+  sesBox.innerHTML = rows.length ? '' : '<div class="empty">Clock in to start your first session today.</div>';
+  [...rows].reverse().forEach(s=>{
+    const hrs=s.workedMin/60, met=s.committedHours>0 && hrs>=s.committedHours;
+    const d=document.createElement('div'); d.className='entry';
+    d.innerHTML='<div class="t">'+(s.live?'🟢 live · ':'')+clock(s.start)+' – '+(s.end?clock(s.end):'now')+'</div>'+
+      '<div class="x">'+(s.workedMin>=60?hrs.toFixed(1)+'h':s.workedMin+'m')+' of '+(s.committedHours||0).toFixed(1)+'h committed'+(met?' · 🎯 hit':'')+'</div>';
+    sesBox.appendChild(d);
+  });
 }
 setInterval(()=>{
   if(ts.mode==='working'){
@@ -2403,6 +2554,7 @@ function renderTabs(){
 function renderAll(){
   $('#hdrDate').textContent=new Date().toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'});
   loadSettingsCache();
+  applyTheme();
   ensureHabitsSeeded();
   ensureHabitsMigrated();
   renderXPBar();

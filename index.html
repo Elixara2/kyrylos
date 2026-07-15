@@ -76,6 +76,14 @@
   .pad-mic{position:absolute;bottom:10px;right:10px;width:38px;height:38px;border-radius:50%;
     display:flex;align-items:center;justify-content:center;padding:0;font-size:16px;line-height:1;
     background:var(--panel2);border:1px solid var(--line);box-shadow:0 2px 8px rgba(0,0,0,.35);z-index:2}
+  .pad-wrap textarea.expanded{min-height:420px}
+
+  /* draggable studio blocks — hold to lift, drag to reorder */
+  .dragblock{transition:box-shadow .2s,transform .15s;touch-action:pan-y;position:relative}
+  .dragblock.lifted{box-shadow:0 24px 60px rgba(0,0,0,.55);z-index:40;touch-action:none;cursor:grabbing}
+  .expand-toggle{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;padding:0;font-size:15px;line-height:1;
+    background:var(--accent2);border:1px solid var(--accent2);color:#fff;box-shadow:0 3px 10px rgba(0,0,0,.4);z-index:6}
 
   /* tab bar */
   #tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;justify-content:center;
@@ -550,6 +558,7 @@
     </div>
   </section>
   <input type="file" id="beatFile" accept="audio/*" style="display:none" onchange="onBeatFilePicked(event)">
+  <input type="file" id="beatVideoFile" accept="video/*" style="display:none" onchange="onBeatVideoFilePicked(event)">
 
   <!-- ============ DIET ============ -->
   <section class="panel" id="p-diet">
@@ -1702,26 +1711,23 @@ function renameProject(){
   const v=prompt('Rename project:', proj.name); if(v===null||!v.trim()) return;
   proj.name=v.trim(); saveProj(proj); renderRapPanel();
 }
-function parseYT(u){ const m=String(u).match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/); return m?m[1]:(/^[\w-]{11}$/.test(u)?u:null); }
-function promptVideoUrl(){
-  const v=prompt('Paste a video URL — a YouTube link, or a direct video file link:'); if(!v) return;
-  const trimmed=v.trim();
-  const proj=getActiveProj(); if(!proj) return;
-  const id=parseYT(trimmed);
-  if(id){ proj.beatYoutube=id; proj.beatVideoUrl=null; proj.beatFile=null; }
-  else if(/^https?:\/\//i.test(trimmed)){ proj.beatVideoUrl=trimmed; proj.beatYoutube=null; proj.beatFile=null; }
-  else{ toast('Not a recognizable video link'); return; }
-  saveProj(proj); renderRapPanel();
-}
-function removeBeat(){ const proj=getActiveProj(); if(!proj) return; proj.beatFile=null; proj.beatYoutube=null; proj.beatVideoUrl=null; saveProj(proj); renderRapPanel(); }
+function removeBeat(){ const proj=getActiveProj(); if(!proj) return;
+  proj.beatFile=null; proj.beatYoutube=null; proj.beatVideoUrl=null; proj.beatVideo=null;
+  saveProj(proj); renderRapPanel(); }
 function onBeatFilePicked(e){
   const f=e.target.files[0]; if(!f) return;
   const proj=getActiveProj(); if(!proj){ toast('Create a project first'); return; }
   uploadAndAttach(f, f.name, 0, proj, 'beat');
   e.target.value='';
 }
+function onBeatVideoFilePicked(e){
+  const f=e.target.files[0]; if(!f) return;
+  const proj=getActiveProj(); if(!proj){ toast('Create a project first'); return; }
+  uploadAndAttach(f, f.name, 0, proj, 'beatvideo');
+  e.target.value='';
+}
 
-/* ---- generic media upload (beat mp3 + voice memos) via Drive ---- */
+/* ---- generic media upload (beat mp3/video + voice memos) via Drive ---- */
 function uploadAndAttach(blob, filename, durSec, proj, kind){
   if(!hasSrv){
     const url=URL.createObjectURL(blob);
@@ -1729,23 +1735,25 @@ function uploadAndAttach(blob, filename, durSec, proj, kind){
     toast('Saved on this device only — connect cloud sync in Settings to keep it & see it on your other device.');
     return;
   }
-  if(blob.size>20*1024*1024){ toast('File too big (20MB max)'); return; }
+  const capMb = kind==='beatvideo' ? 50 : 20;
+  if(blob.size>capMb*1024*1024){ toast('File too big ('+capMb+'MB max)'); return; }
   const reader=new FileReader();
   toast('Uploading '+filename+'…');
   reader.onload=()=>{
     const b64=reader.result.split(',')[1];
-    apiCall('uploadMedia', {base64:b64, filename:filename, mimeType:blob.type||'audio/mpeg'})
+    apiCall('uploadMedia', {base64:b64, filename:filename, mimeType:blob.type||(kind==='beatvideo'?'video/mp4':'audio/mpeg')})
       .then(res=>{
         if(!res || res.ok===false || !res.id) throw new Error('no id');
         attachMedia(proj, kind, {id:res.id,url:res.url,name:filename,dur:durSec,ts:Date.now()});
-        toast('Saved ✓'); addXP(kind==='recording'?8:5, kind==='recording'?'voice memo saved':'beat attached');
+        toast('Saved ✓'); addXP(kind==='recording'?8:5, kind==='recording'?'voice memo saved':(kind==='beatvideo'?'video attached':'beat attached'));
       })
       .catch(()=>toast('Upload failed — try again'));
   };
   reader.readAsDataURL(blob);
 }
 function attachMedia(proj, kind, media){
-  if(kind==='beat'){ proj.beatFile=media; proj.beatYoutube=null; proj.beatVideoUrl=null; }
+  if(kind==='beat'){ proj.beatFile=media; proj.beatYoutube=null; proj.beatVideoUrl=null; proj.beatVideo=null; }
+  else if(kind==='beatvideo'){ proj.beatVideo=media; proj.beatFile=null; proj.beatYoutube=null; proj.beatVideoUrl=null; }
   else{ proj.recordings=proj.recordings||[]; proj.recordings.push(media); }
   saveProj(proj); renderRapPanel();
 }
@@ -1889,6 +1897,90 @@ function bindRapAutosave(){
 }
 
 function fmtMinLabel(m){ return m<60 ? m+' min' : (m/60).toFixed(1).replace(/\.0$/,'')+' hr'; }
+/* ---- reorderable blocks: long-press to lift, drag to reorder, drop to save ---- */
+const STUDIO_BLOCKS_DEFAULT=['session','video','scribble','bars'];
+function studioBlockOrder(){
+  const saved=kget('studioBlockOrder', null);
+  if(!saved) return STUDIO_BLOCKS_DEFAULT.slice();
+  // tolerate a saved order that's missing/has stale entries (e.g. after an update) —
+  // keep known blocks in their saved relative order, append any new ones at the end
+  const known=saved.filter(b=>STUDIO_BLOCKS_DEFAULT.includes(b));
+  STUDIO_BLOCKS_DEFAULT.forEach(b=>{ if(!known.includes(b)) known.push(b); });
+  return known;
+}
+function saveStudioBlockOrder(order){ kset('studioBlockOrder', order); }
+function isBlockExpanded(block){ return !!(kget('studioPadExpanded',{})||{})[block]; }
+function toggleBlockExpand(block){
+  const map=Object.assign({}, kget('studioPadExpanded',{}));
+  map[block]=!map[block]; kset('studioPadExpanded', map);
+  renderRapPanel();
+}
+let studioPress=null, studioDrag=null;
+function studioBindDrag(){
+  const container=$('#projPanel'); if(!container) return;
+  container.querySelectorAll('.dragblock').forEach(el=>{
+    el.onpointerdown=e=>{
+      if(e.target.closest('textarea,input,button,select,a,video,audio,iframe')) return; // don't hijack normal interaction
+      studioPress={el, x:e.clientX, y:e.clientY, pid:e.pointerId,
+        timer:setTimeout(()=>studioLift(el,e), 500)};
+    };
+    el.onpointermove=e=>{
+      if(studioPress && studioPress.el===el && studioPress.timer){
+        if(Math.abs(e.clientX-studioPress.x)>8 || Math.abs(e.clientY-studioPress.y)>8){
+          clearTimeout(studioPress.timer); studioPress=null; // treat as a scroll/tap, not a hold
+        }
+      }
+      if(studioDrag && studioDrag.el===el) studioDragMove(e);
+    };
+    el.onpointerup=e=>{
+      if(studioPress && studioPress.timer){ clearTimeout(studioPress.timer); studioPress=null; }
+      if(studioDrag && studioDrag.el===el) studioDrop();
+    };
+    el.onpointercancel=()=>{
+      if(studioPress && studioPress.timer){ clearTimeout(studioPress.timer); studioPress=null; }
+      if(studioDrag){ studioDrag.el.classList.remove('lifted'); studioDrag.el.style.transform=''; studioDrag=null; }
+    };
+  });
+}
+function studioLift(el,e){
+  studioPress=null;
+  try{ el.setPointerCapture(e.pointerId); }catch(err){}
+  el.classList.add('lifted');
+  buzz(25); beep([[720,.08]]);
+  studioDrag={el, block:el.dataset.block, startY:e.clientY};
+  if(el.dataset.block==='scribble' || el.dataset.block==='bars'){
+    let btn=el.querySelector('.expand-toggle');
+    if(!btn){ btn=document.createElement('button'); btn.className='expand-toggle'; btn.type='button';
+      el.appendChild(btn); }
+    btn.textContent = isBlockExpanded(el.dataset.block) ? '⤡' : '⤢';
+    btn.onpointerdown=ev=>ev.stopPropagation();
+    btn.onclick=ev=>{ ev.stopPropagation(); toggleBlockExpand(el.dataset.block); };
+  }
+}
+function studioDragMove(e){
+  if(!studioDrag) return;
+  studioDrag.el.style.transform='translateY('+(e.clientY-studioDrag.startY)+'px) scale(1.02)';
+}
+function studioDrop(){
+  if(!studioDrag) return;
+  const {el, block}=studioDrag;
+  el.classList.remove('lifted'); el.style.transform='';
+  const rect=el.getBoundingClientRect(), centerY=rect.top+rect.height/2;
+  const container=$('#projPanel');
+  const order=studioBlockOrder();
+  const others=order.filter(b=>b!==block);
+  let newIndex=0;
+  others.forEach(b=>{
+    const sib=container.querySelector('.dragblock[data-block="'+b+'"]');
+    if(sib){ const r=sib.getBoundingClientRect(); if(r.top+r.height/2 < centerY) newIndex++; }
+  });
+  const newOrder=others.slice(); newOrder.splice(newIndex,0,block);
+  studioDrag=null;
+  const changed = newOrder.join(',')!==order.join(',');
+  if(changed){ saveStudioBlockOrder(newOrder); buzz(15); }
+  renderRapPanel();
+}
+
 function renderRapPanel(){
   const proj=getActiveProj();
   const chips=$('#projChips'); chips.innerHTML='';
@@ -1905,45 +1997,46 @@ function renderRapPanel(){
     ? '<audio controls loop style="width:100%" src="'+esc(proj.beatFile.url)+'"></audio>'+
       '<div class="row" style="margin-top:8px"><span class="sub grow">'+esc(proj.beatFile.name)+' · loops endlessly</span>'+
       '<button class="sm ghost" onclick="removeBeat()">Remove</button></div>'
-    : proj.beatYoutube
-      ? '<div class="ytbox"><iframe src="https://www.youtube.com/embed/'+proj.beatYoutube+'?rel=0&loop=1&playlist='+proj.beatYoutube+'" allow="autoplay; encrypted-media" allowfullscreen></iframe></div>'+
-        '<div class="row" style="margin-top:8px"><span class="sub grow">loops endlessly</span><button class="sm ghost" onclick="removeBeat()">Remove</button></div>'
-      : proj.beatVideoUrl
-        ? '<div class="ytbox"><video src="'+esc(proj.beatVideoUrl)+'" controls loop autoplay muted playsinline></video></div>'+
-          '<div class="row" style="margin-top:8px"><span class="sub grow">loops endlessly</span><button class="sm ghost" onclick="removeBeat()">Remove</button></div>'
-        : '<div class="row">'+
-          '<button onclick="promptVideoUrl()">🎬 Paste video URL</button>'+
-          '<button class="ghost sm" onclick="document.getElementById(\'beatFile\').click()">or attach MP3</button></div>';
+    : proj.beatVideo
+      ? '<div class="ytbox"><video src="'+esc(proj.beatVideo.url)+'" controls loop autoplay muted playsinline></video></div>'+
+        '<div class="row" style="margin-top:8px"><span class="sub grow">'+esc(proj.beatVideo.name)+' · loops endlessly</span><button class="sm ghost" onclick="removeBeat()">Remove</button></div>'
+      : '<div class="row">'+
+        '<button onclick="document.getElementById(\'beatVideoFile\').click()">🎬 Select video</button>'+
+        '<button class="ghost sm" onclick="document.getElementById(\'beatFile\').click()">or select MP3</button></div>';
+
+  const notesExpanded=isBlockExpanded('scribble'), barsExpanded=isBlockExpanded('bars');
+  const blocksHtml={
+    session:
+      '<div class="card rapbanner dragblock" data-block="session">'+
+        '<h2 style="margin:0;cursor:pointer;text-align:center;font-size:16px" onclick="renameProject()">'+esc(proj.name)+'</h2>'+
+        '<div class="row" style="justify-content:space-between;align-items:baseline;margin-top:10px">'+
+          '<span class="sub">Committing to <b id="rapGoalVal" style="color:var(--txt)">'+fmtMinLabel(Math.round(proj.timerGoalSec/60))+'</b></span>'+
+          '<span id="rapTimer" style="font-variant-numeric:tabular-nums;font-weight:700;font-size:14px">'+hms(Math.max(0,proj.timerGoalSec-rt.elapsed))+'</span>'+
+        '</div>'+
+        '<input type="range" class="pro-slider" id="rapGoalSlider" min="5" max="300" step="5" value="'+Math.round(proj.timerGoalSec/60)+'" oninput="setRapGoal(this.value)" style="margin-top:6px">'+
+        '<div class="bar" style="margin-top:8px;height:5px"><i id="rapTimerBar" style="width:'+(100*rt.elapsed/proj.timerGoalSec)+'%"></i></div>'+
+        '<div class="btns" style="margin-top:14px"><button class="primary" id="rapTimerBtn" onclick="rapToggleTimer()">'+(rt.running?'⏸ Pause':(rt.elapsed>0?'▶ Resume flow':'▶ FLOW'))+'</button></div>'+
+      '</div>',
+    video:
+      '<div class="card dragblock" data-block="video">'+beatHtml+'</div>',
+    scribble:
+      '<div class="card dragblock" data-block="scribble">'+
+        '<h2>Scribble &amp; freewrite</h2>'+
+        '<div class="pad-wrap">'+
+          '<textarea id="rapNotes" class="'+(notesExpanded?'expanded':'')+'" placeholder="Mumble it out here first… flow ideas, half-thoughts, doodles in words.">'+esc(proj.notes)+'</textarea>'+
+          '<button class="pad-mic" id="padMicBtn" onclick="toggleRecording()" title="Record a voice note">🎙</button>'+
+        '</div>'+
+      '</div>',
+    bars:
+      '<div class="card dragblock" data-block="bars">'+
+        '<h2>Bars <span class="sub" id="barScoreLbl"></span></h2>'+
+        '<textarea id="rapBars" class="'+(barsExpanded?'expanded':'')+'" placeholder="The real bars go here. One line = one bar.">'+esc(proj.bars)+'</textarea>'+
+        '<div class="tiles" id="barStats" style="margin-top:10px"></div>'+
+      '</div>',
+  };
 
   box.innerHTML =
-    // ---- above the fold: compact session banner, video, scribble, bars ----
-    '<div class="card rapbanner">'+
-      '<div class="row" style="justify-content:space-between;align-items:center;gap:10px">'+
-        '<h2 style="margin:0;cursor:pointer;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" onclick="renameProject()">🎵 '+esc(proj.name)+' ✎</h2>'+
-        '<button class="sm primary" id="rapTimerBtn" onclick="rapToggleTimer()" style="flex:0 0 auto">'+(rt.running?'⏸ Pause':(rt.elapsed>0?'▶ Resume':'▶ Start'))+'</button>'+
-      '</div>'+
-      '<div class="row" style="justify-content:space-between;align-items:baseline;margin-top:8px">'+
-        '<span class="sub">Committing to <b id="rapGoalVal" style="color:var(--txt)">'+fmtMinLabel(Math.round(proj.timerGoalSec/60))+'</b></span>'+
-        '<span id="rapTimer" style="font-variant-numeric:tabular-nums;font-weight:700;font-size:14px">'+hms(Math.max(0,proj.timerGoalSec-rt.elapsed))+'</span>'+
-      '</div>'+
-      '<input type="range" class="pro-slider" id="rapGoalSlider" min="5" max="300" step="5" value="'+Math.round(proj.timerGoalSec/60)+'" oninput="setRapGoal(this.value)" style="margin-top:6px">'+
-      '<div class="bar" style="margin-top:8px;height:5px"><i id="rapTimerBar" style="width:'+(100*rt.elapsed/proj.timerGoalSec)+'%"></i></div>'+
-    '</div>'+
-    '<div class="card">'+
-      beatHtml+
-    '</div>'+
-    '<div class="card">'+
-      '<h2>Scribble &amp; freewrite</h2>'+
-      '<div class="pad-wrap">'+
-        '<textarea id="rapNotes" placeholder="Mumble it out here first… flow ideas, half-thoughts, doodles in words.">'+esc(proj.notes)+'</textarea>'+
-        '<button class="pad-mic" id="padMicBtn" onclick="toggleRecording()" title="Record a voice note">🎙</button>'+
-      '</div>'+
-    '</div>'+
-    '<div class="card">'+
-      '<h2>Bars <span class="sub" id="barScoreLbl"></span></h2>'+
-      '<textarea id="rapBars" placeholder="The real bars go here. One line = one bar.">'+esc(proj.bars)+'</textarea>'+
-      '<div class="tiles" id="barStats" style="margin-top:10px"></div>'+
-    '</div>'+
+    studioBlockOrder().map(k=>blocksHtml[k]||'').join('') +
     // ---- everything else, below the fold ----
     '<div class="card">'+
       '<h2>Voice memos <button class="sm" id="recBtn" onclick="toggleRecording()">🎙 Record</button></h2>'+
@@ -1958,6 +2051,7 @@ function renderRapPanel(){
   renderBarStats();
   renderRecordings();
   renderRapTotals();
+  studioBindDrag();
 }
 function renderRapTotals(){
   const list=getProjList().map(id=>getProj(id)).filter(Boolean);

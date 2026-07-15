@@ -71,6 +71,11 @@
   input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
   .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   .grow{flex:1;min-width:0}
+  .pad-wrap{position:relative}
+  .pad-wrap textarea{padding-right:52px}
+  .pad-mic{position:absolute;bottom:10px;right:10px;width:38px;height:38px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;padding:0;font-size:16px;line-height:1;
+    background:var(--panel2);border:1px solid var(--line);box-shadow:0 2px 8px rgba(0,0,0,.35);z-index:2}
 
   /* tab bar */
   #tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;justify-content:center;
@@ -1747,6 +1752,18 @@ function attachMedia(proj, kind, media){
 
 /* ---- voice memo recording ---- */
 let mediaRec=null, mediaChunks=[], mediaStream=null, recStartTs=0, recTicker=null;
+// Two entry points trigger the same recorder — the Voice memos header button
+// and the mic tucked in the Scribble pad's corner — kept in sync here so
+// either one always reflects the true recording state.
+function setRecUI(recording, elapsedSec){
+  const headerBtn=$('#recBtn');
+  if(headerBtn){ headerBtn.textContent = recording ? '⏹ Stop · '+hms(elapsedSec||0) : '🎙 Record';
+    headerBtn.classList.toggle('recording', recording); }
+  const padBtn=$('#padMicBtn');
+  if(padBtn){ padBtn.textContent = recording ? '⏹' : '🎙';
+    padBtn.classList.toggle('recording', recording);
+    padBtn.title = recording ? 'Recording · '+hms(elapsedSec||0)+' — tap to stop' : 'Record a voice note'; }
+}
 async function toggleRecording(){
   if(mediaRec && mediaRec.state==='recording'){ mediaRec.stop(); return; }
   if(!navigator.mediaDevices || !window.MediaRecorder){ toast('Voice recording needs your deployed HTTPS link, not local mode'); return; }
@@ -1758,12 +1775,12 @@ async function toggleRecording(){
   mediaRec.onstop=onRecStop;
   mediaRec.start();
   recStartTs=Date.now();
-  const btn=$('#recBtn'); if(btn){ btn.textContent='⏹ Stop · 0:00'; btn.classList.add('recording'); }
-  recTicker=setInterval(()=>{ const b=$('#recBtn'); if(b) b.textContent='⏹ Stop · '+hms((Date.now()-recStartTs)/1000); },1000);
+  setRecUI(true, 0);
+  recTicker=setInterval(()=>setRecUI(true, (Date.now()-recStartTs)/1000),1000);
 }
 function onRecStop(){
   clearInterval(recTicker);
-  const btn=$('#recBtn'); if(btn){ btn.textContent='🎙 Record'; btn.classList.remove('recording'); }
+  setRecUI(false);
   mediaStream.getTracks().forEach(t=>t.stop());
   const durSec=Math.round((Date.now()-recStartTs)/1000);
   const blob=new Blob(mediaChunks,{type:(mediaRec&&mediaRec.mimeType)||'audio/webm'});
@@ -1909,7 +1926,7 @@ function renderRapPanel(){
         '<span class="sub">Committing to <b id="rapGoalVal" style="color:var(--txt)">'+fmtMinLabel(Math.round(proj.timerGoalSec/60))+'</b></span>'+
         '<span id="rapTimer" style="font-variant-numeric:tabular-nums;font-weight:700;font-size:14px">'+hms(Math.max(0,proj.timerGoalSec-rt.elapsed))+'</span>'+
       '</div>'+
-      '<input type="range" class="pro-slider" id="rapGoalSlider" min="5" max="600" step="5" value="'+Math.round(proj.timerGoalSec/60)+'" oninput="setRapGoal(this.value)" style="margin-top:6px">'+
+      '<input type="range" class="pro-slider" id="rapGoalSlider" min="5" max="300" step="5" value="'+Math.round(proj.timerGoalSec/60)+'" oninput="setRapGoal(this.value)" style="margin-top:6px">'+
       '<div class="bar" style="margin-top:8px;height:5px"><i id="rapTimerBar" style="width:'+(100*rt.elapsed/proj.timerGoalSec)+'%"></i></div>'+
     '</div>'+
     '<div class="card">'+
@@ -1917,7 +1934,10 @@ function renderRapPanel(){
     '</div>'+
     '<div class="card">'+
       '<h2>Scribble &amp; freewrite</h2>'+
-      '<textarea id="rapNotes" placeholder="Mumble it out here first… flow ideas, half-thoughts, doodles in words.">'+esc(proj.notes)+'</textarea>'+
+      '<div class="pad-wrap">'+
+        '<textarea id="rapNotes" placeholder="Mumble it out here first… flow ideas, half-thoughts, doodles in words.">'+esc(proj.notes)+'</textarea>'+
+        '<button class="pad-mic" id="padMicBtn" onclick="toggleRecording()" title="Record a voice note">🎙</button>'+
+      '</div>'+
     '</div>'+
     '<div class="card">'+
       '<h2>Bars <span class="sub" id="barScoreLbl"></span></h2>'+

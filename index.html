@@ -53,6 +53,7 @@
     box-shadow:0 8px 30px rgba(0,0,0,.4);animation:xpfloat 1.4s var(--ease) forwards;white-space:nowrap}
 
   .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+  .rapbanner{padding:12px 16px;margin-bottom:10px}
   .card h2{font-size:14px;margin:0 0 10px;font-weight:650;letter-spacing:.2px;display:flex;justify-content:space-between;align-items:center;gap:8px}
   .sub{color:var(--dim);font-size:12.5px}
   button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--txt);
@@ -1898,18 +1899,18 @@ function renderRapPanel(){
           '<button class="ghost sm" onclick="document.getElementById(\'beatFile\').click()">or attach MP3</button></div>';
 
   box.innerHTML =
-    // ---- above the fold: session identity + timer, video, scribble, bars ----
-    '<div class="card">'+
-      '<div class="row" style="justify-content:space-between">'+
-        '<h2 style="margin:0;cursor:pointer" onclick="renameProject()">🎵 '+esc(proj.name)+' ✎</h2>'+
+    // ---- above the fold: compact session banner, video, scribble, bars ----
+    '<div class="card rapbanner">'+
+      '<div class="row" style="justify-content:space-between;align-items:center;gap:10px">'+
+        '<h2 style="margin:0;cursor:pointer;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" onclick="renameProject()">🎵 '+esc(proj.name)+' ✎</h2>'+
+        '<button class="sm primary" id="rapTimerBtn" onclick="rapToggleTimer()" style="flex:0 0 auto">'+(rt.running?'⏸ Pause':(rt.elapsed>0?'▶ Resume':'▶ Start'))+'</button>'+
       '</div>'+
-      '<div class="sched-row" style="margin-top:6px">'+
-        '<div class="sched-lbl">Committing to <b id="rapGoalVal">'+fmtMinLabel(Math.round(proj.timerGoalSec/60))+'</b></div>'+
-        '<input type="range" class="pro-slider" id="rapGoalSlider" min="5" max="600" step="5" value="'+Math.round(proj.timerGoalSec/60)+'" oninput="setRapGoal(this.value)">'+
+      '<div class="row" style="justify-content:space-between;align-items:baseline;margin-top:8px">'+
+        '<span class="sub">Committing to <b id="rapGoalVal" style="color:var(--txt)">'+fmtMinLabel(Math.round(proj.timerGoalSec/60))+'</b></span>'+
+        '<span id="rapTimer" style="font-variant-numeric:tabular-nums;font-weight:700;font-size:14px">'+hms(Math.max(0,proj.timerGoalSec-rt.elapsed))+'</span>'+
       '</div>'+
-      '<div class="clock" style="margin-top:6px"><div class="big" id="rapTimer">'+hms(Math.max(0,proj.timerGoalSec-rt.elapsed))+'</div><div class="biglbl">left in this session</div></div>'+
-      '<div class="bar"><i id="rapTimerBar" style="width:'+(100*rt.elapsed/proj.timerGoalSec)+'%"></i></div>'+
-      '<div class="btns"><button class="primary" id="rapTimerBtn" onclick="rapToggleTimer()">'+(rt.running?'⏸ Pause':(rt.elapsed>0?'▶ Resume':'▶ Start session'))+'</button></div>'+
+      '<input type="range" class="pro-slider" id="rapGoalSlider" min="5" max="600" step="5" value="'+Math.round(proj.timerGoalSec/60)+'" oninput="setRapGoal(this.value)" style="margin-top:6px">'+
+      '<div class="bar" style="margin-top:8px;height:5px"><i id="rapTimerBar" style="width:'+(100*rt.elapsed/proj.timerGoalSec)+'%"></i></div>'+
     '</div>'+
     '<div class="card">'+
       beatHtml+

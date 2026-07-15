@@ -198,7 +198,7 @@
 
   /* rap */
   .ytbox{width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#000;border:1px solid var(--line);margin:10px 0}
-  .ytbox iframe{width:100%;height:100%;border:0;display:block}
+  .ytbox iframe,.ytbox video{width:100%;height:100%;border:0;display:block;object-fit:contain;background:#000}
   #rapNotes,#rapBars{min-height:150px;resize:vertical;line-height:1.7;font-size:15px}
 
   /* diet */
@@ -530,6 +530,7 @@
 
   <!-- ============ RAP ============ -->
   <section class="panel" id="p-rap">
+    <div id="projPanel"></div>
     <div class="card">
       <div class="row" style="justify-content:space-between">
         <h2 style="margin:0">Projects</h2>
@@ -537,7 +538,6 @@
       </div>
       <div class="chips" id="projChips" style="margin-top:10px"></div>
     </div>
-    <div id="projPanel"></div>
     <div class="card">
       <h2>All-time</h2>
       <div class="tiles" id="rapTotals"></div>
@@ -685,7 +685,7 @@
   <button class="tab" data-tab="today" onclick="showTab('today')"><span class="ic">☀️</span>Today<span class="dotdone"></span></button>
   <button class="tab" data-tab="work" onclick="showTab('work')"><span class="ic">⏱</span>Work<span class="dotdone"></span></button>
   <button class="tab" data-tab="gym" onclick="showTab('gym')"><span class="ic">🏋️</span>Gym<span class="dotdone"></span></button>
-  <button class="tab" data-tab="rap" onclick="showTab('rap')"><span class="ic">🎤</span>Rap<span class="dotdone"></span></button>
+  <button class="tab" data-tab="rap" onclick="showTab('rap')"><span class="ic">🎤</span>Studio<span class="dotdone"></span></button>
   <button class="tab" data-tab="diet" onclick="showTab('diet')"><span class="ic">🍗</span>Diet<span class="dotdone"></span></button>
   <button class="tab" data-tab="habits" onclick="showTab('habits')"><span class="ic">📈</span>Habits<span class="dotdone"></span></button>
   <button class="tab" data-tab="goals" onclick="showTab('goals')"><span class="ic">✅</span>Goals<span class="dotdone"></span></button>
@@ -790,7 +790,7 @@
       </div>
       <div class="row">
         <div class="grow"><label>Tank size (ml)</label><input type="number" id="setTank" min="500" step="100"></div>
-        <div class="grow"><label>Daily rap goal (min) — for Today's flow</label><input type="number" id="setRapMin" min="5" step="5"></div>
+        <div class="grow"><label>Daily studio goal (min) — for Today's flow</label><input type="number" id="setRapMin" min="5" step="5"></div>
       </div>
       <div class="sub" style="margin-top:-4px">Log cadence and break timing now live on the Work tab itself.</div>
       <div><label>Weight unit</label>
@@ -1079,7 +1079,7 @@ const FLOW_STAGES = [
   {id:'tracker', em:'📈', t:'Habits', d:'Clear every habit on the tracker', open:()=>showTab('habits')},
   {id:'work', em:'⏱', t:'Work · time study', d:'Log every 15 min', open:()=>showTab('work')},
   {id:'gym', em:'🏋️', t:'Gym', d:'Exercises, weights, progress', open:()=>showTab('gym')},
-  {id:'rap', em:'🎤', t:'Rap · writing', d:'Beat on, mumble, write bars', open:()=>showTab('rap')},
+  {id:'rap', em:'🎤', t:'Studio · writing', d:'Beat on, mumble, write bars', open:()=>showTab('rap')},
   {id:'diet', em:'🍽', t:'Diet', d:'All meals + 3L water', open:()=>showTab('diet')},
   {id:'goals', em:'✅', t:'Goals', d:'All ticked off', open:()=>showTab('goals')},
 ];
@@ -1676,7 +1676,7 @@ function getActiveProj(){
 function newProject(){
   const name=prompt('Song / project name:','New idea '+(getProjList().length+1)); if(name===null) return;
   const id='p'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
-  const proj={id,name:name.trim()||'Untitled',createdAt:Date.now(),beatFile:null,beatYoutube:null,
+  const proj={id,name:name.trim()||'Untitled',createdAt:Date.now(),beatFile:null,beatYoutube:null,beatVideoUrl:null,
     notes:'',bars:'',recordings:[],timerGoalSec:1800,totalSec:0};
   saveProj(proj);
   const list=getProjList(); list.push(id); kset('rap:projlist',list);
@@ -1697,12 +1697,17 @@ function renameProject(){
   proj.name=v.trim(); saveProj(proj); renderRapPanel();
 }
 function parseYT(u){ const m=String(u).match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/); return m?m[1]:(/^[\w-]{11}$/.test(u)?u:null); }
-function promptYoutubeBeat(){
-  const v=prompt('Paste YouTube beat link:'); if(!v) return;
-  const id=parseYT(v); if(!id){ toast('Not a valid YouTube link'); return; }
-  const proj=getActiveProj(); proj.beatYoutube=id; proj.beatFile=null; saveProj(proj); renderRapPanel();
+function promptVideoUrl(){
+  const v=prompt('Paste a video URL — a YouTube link, or a direct video file link:'); if(!v) return;
+  const trimmed=v.trim();
+  const proj=getActiveProj(); if(!proj) return;
+  const id=parseYT(trimmed);
+  if(id){ proj.beatYoutube=id; proj.beatVideoUrl=null; proj.beatFile=null; }
+  else if(/^https?:\/\//i.test(trimmed)){ proj.beatVideoUrl=trimmed; proj.beatYoutube=null; proj.beatFile=null; }
+  else{ toast('Not a recognizable video link'); return; }
+  saveProj(proj); renderRapPanel();
 }
-function removeBeat(){ const proj=getActiveProj(); if(!proj) return; proj.beatFile=null; proj.beatYoutube=null; saveProj(proj); renderRapPanel(); }
+function removeBeat(){ const proj=getActiveProj(); if(!proj) return; proj.beatFile=null; proj.beatYoutube=null; proj.beatVideoUrl=null; saveProj(proj); renderRapPanel(); }
 function onBeatFilePicked(e){
   const f=e.target.files[0]; if(!f) return;
   const proj=getActiveProj(); if(!proj){ toast('Create a project first'); return; }
@@ -1734,7 +1739,7 @@ function uploadAndAttach(blob, filename, durSec, proj, kind){
   reader.readAsDataURL(blob);
 }
 function attachMedia(proj, kind, media){
-  if(kind==='beat'){ proj.beatFile=media; proj.beatYoutube=null; }
+  if(kind==='beat'){ proj.beatFile=media; proj.beatYoutube=null; proj.beatVideoUrl=null; }
   else{ proj.recordings=proj.recordings||[]; proj.recordings.push(media); }
   saveProj(proj); renderRapPanel();
 }
@@ -1865,6 +1870,7 @@ function bindRapAutosave(){
   if(barsEl) barsEl.addEventListener('input',()=>{ renderBarStats(); clearTimeout(barsT); barsT=setTimeout(()=>{ const p=getActiveProj(); if(!p) return; p.bars=barsEl.value; saveProj(p); },600); });
 }
 
+function fmtMinLabel(m){ return m<60 ? m+' min' : (m/60).toFixed(1).replace(/\.0$/,'')+' hr'; }
 function renderRapPanel(){
   const proj=getActiveProj();
   const chips=$('#projChips'); chips.innerHTML='';
@@ -1878,34 +1884,35 @@ function renderRapPanel(){
   if(!proj){ box.innerHTML='<div class="card"><div class="empty">No projects yet — tap + New to start your first song.</div></div>'; renderRapTotals(); return; }
   const rt=ensureRT(proj.id);
   const beatHtml = proj.beatFile
-    ? '<audio controls loop style="width:100%;margin-top:8px" src="'+esc(proj.beatFile.url)+'"></audio>'+
+    ? '<audio controls loop style="width:100%" src="'+esc(proj.beatFile.url)+'"></audio>'+
       '<div class="row" style="margin-top:8px"><span class="sub grow">'+esc(proj.beatFile.name)+' · loops endlessly</span>'+
       '<button class="sm ghost" onclick="removeBeat()">Remove</button></div>'
-    : (proj.beatYoutube
-        ? '<div class="ytbox"><iframe src="https://www.youtube.com/embed/'+proj.beatYoutube+'?rel=0&loop=1&playlist='+proj.beatYoutube+'" allow="autoplay; encrypted-media" allowfullscreen></iframe></div>'+
-          '<div class="sub" style="margin-top:6px">loops endlessly</div>'+
-          '<button class="sm ghost" style="margin-top:8px" onclick="removeBeat()">Remove beat</button>'
-        : '<div class="row" style="margin-top:8px">'+
-          '<button onclick="document.getElementById(\'beatFile\').click()">📎 Attach MP3</button>'+
-          '<button class="ghost sm" onclick="promptYoutubeBeat()">or paste YouTube link</button></div>');
+    : proj.beatYoutube
+      ? '<div class="ytbox"><iframe src="https://www.youtube.com/embed/'+proj.beatYoutube+'?rel=0&loop=1&playlist='+proj.beatYoutube+'" allow="autoplay; encrypted-media" allowfullscreen></iframe></div>'+
+        '<div class="row" style="margin-top:8px"><span class="sub grow">loops endlessly</span><button class="sm ghost" onclick="removeBeat()">Remove</button></div>'
+      : proj.beatVideoUrl
+        ? '<div class="ytbox"><video src="'+esc(proj.beatVideoUrl)+'" controls loop autoplay muted playsinline></video></div>'+
+          '<div class="row" style="margin-top:8px"><span class="sub grow">loops endlessly</span><button class="sm ghost" onclick="removeBeat()">Remove</button></div>'
+        : '<div class="row">'+
+          '<button onclick="promptVideoUrl()">🎬 Paste video URL</button>'+
+          '<button class="ghost sm" onclick="document.getElementById(\'beatFile\').click()">or attach MP3</button></div>';
+
   box.innerHTML =
+    // ---- above the fold: session identity + timer, video, scribble, bars ----
     '<div class="card">'+
       '<div class="row" style="justify-content:space-between">'+
-        '<h2 style="margin:0;cursor:pointer" onclick="renameProject()">'+esc(proj.name)+' ✎</h2>'+
-        '<button class="sm ghost danger" onclick="deleteProject(\''+proj.id+'\')">Delete</button>'+
+        '<h2 style="margin:0;cursor:pointer" onclick="renameProject()">🎵 '+esc(proj.name)+' ✎</h2>'+
       '</div>'+
-      '<div class="sub">Started '+new Date(proj.createdAt).toLocaleDateString()+' · '+hms(proj.totalSec||0)+' total writing time</div>'+
-      beatHtml+
+      '<div class="sched-row" style="margin-top:6px">'+
+        '<div class="sched-lbl">Committing to <b id="rapGoalVal">'+fmtMinLabel(Math.round(proj.timerGoalSec/60))+'</b></div>'+
+        '<input type="range" class="pro-slider" id="rapGoalSlider" min="5" max="600" step="5" value="'+Math.round(proj.timerGoalSec/60)+'" oninput="setRapGoal(this.value)">'+
+      '</div>'+
+      '<div class="clock" style="margin-top:6px"><div class="big" id="rapTimer">'+hms(Math.max(0,proj.timerGoalSec-rt.elapsed))+'</div><div class="biglbl">left in this session</div></div>'+
+      '<div class="bar"><i id="rapTimerBar" style="width:'+(100*rt.elapsed/proj.timerGoalSec)+'%"></i></div>'+
+      '<div class="btns"><button class="primary" id="rapTimerBtn" onclick="rapToggleTimer()">'+(rt.running?'⏸ Pause':(rt.elapsed>0?'▶ Resume':'▶ Start session'))+'</button></div>'+
     '</div>'+
     '<div class="card">'+
-      '<h2>Sprint timer</h2>'+
-      '<div class="sched-row" style="margin-top:4px">'+
-        '<div class="sched-lbl">Committing to <b id="rapGoalVal">'+Math.round(proj.timerGoalSec/60)+' min</b></div>'+
-        '<input type="range" class="pro-slider" id="rapGoalSlider" min="5" max="120" step="5" value="'+Math.round(proj.timerGoalSec/60)+'" oninput="setRapGoal(this.value)">'+
-      '</div>'+
-      '<div class="clock" style="margin-top:6px"><div class="big" id="rapTimer">'+hms(Math.max(0,proj.timerGoalSec-rt.elapsed))+'</div><div class="biglbl">left in this sprint</div></div>'+
-      '<div class="bar"><i id="rapTimerBar" style="width:'+(100*rt.elapsed/proj.timerGoalSec)+'%"></i></div>'+
-      '<div class="btns"><button class="primary" id="rapTimerBtn" onclick="rapToggleTimer()">'+(rt.running?'⏸ Pause':(rt.elapsed>0?'▶ Resume':'▶ Start sprint'))+'</button></div>'+
+      beatHtml+
     '</div>'+
     '<div class="card">'+
       '<h2>Scribble &amp; freewrite</h2>'+
@@ -1916,9 +1923,14 @@ function renderRapPanel(){
       '<textarea id="rapBars" placeholder="The real bars go here. One line = one bar.">'+esc(proj.bars)+'</textarea>'+
       '<div class="tiles" id="barStats" style="margin-top:10px"></div>'+
     '</div>'+
+    // ---- everything else, below the fold ----
     '<div class="card">'+
       '<h2>Voice memos <button class="sm" id="recBtn" onclick="toggleRecording()">🎙 Record</button></h2>'+
       '<div id="recList"></div>'+
+    '</div>'+
+    '<div class="card">'+
+      '<div class="sub">Started '+new Date(proj.createdAt).toLocaleDateString()+' · '+hms(proj.totalSec||0)+' total writing time</div>'+
+      '<button class="sm ghost danger" style="margin-top:10px" onclick="deleteProject(\''+proj.id+'\')">Delete this project</button>'+
     '</div>';
   styleSlider($('#rapGoalSlider'));
   bindRapAutosave();
@@ -2270,7 +2282,7 @@ function autoDeriveHabits(){
   }
   if(rapMinsToday()>=SET.rapGoal && !day.auto.rap){
     day.checks.write=true; day.auto.rap=true; changed=true;
-    setTimeout(()=>{ addXP(6,'rap sprint'); toast('🎤 Rap sprint counted toward Write'); },50);
+    setTimeout(()=>{ addXP(6,'studio time'); toast('🎤 Studio time counted toward Write'); },50);
   }
   if(changed) setHabitDay(key,day);
 }

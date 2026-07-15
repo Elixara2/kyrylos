@@ -1006,18 +1006,23 @@ const THEME_PRESETS=[['default','Default',null],['blue','Blue',215],['teal','Tea
   ['gold','Gold',42],['orange','Orange',22],['red','Red',355],['pink','Pink',330],['purple','Purple',275],['indigo','Indigo',250]];
 function themeHsl(h,s,l){ return 'hsl('+(((h%360)+360)%360).toFixed(0)+','+s+'%,'+l+'%)'; }
 function themeColorsForHue(h){ return [themeHsl(h,78,64), themeHsl(h+30,72,24)]; }
-let themeLiveRAF=null, themeLiveHue=220;
+let themeLiveRAF=null;
 function stopThemeLive(){ if(themeLiveRAF) cancelAnimationFrame(themeLiveRAF); themeLiveRAF=null; }
+// "Live" breathes gently within the chosen colour family instead of cycling the
+// whole wheel — anchored on SET.theme.hue (kept in sync with whatever swatch or
+// hue value is currently selected), oscillating a modest ±20° around it.
 function startThemeLive(){ stopThemeLive();
-  const loop=()=>{ themeLiveHue=(themeLiveHue+0.06)%360;
-    const [a1,a2]=themeColorsForHue(themeLiveHue);
+  const base = SET.theme.hue!=null ? SET.theme.hue : 220, SPREAD=20, t0=performance.now();
+  const loop=(now)=>{ const elapsed=(now-t0)/1000;
+    const h = base + Math.sin(elapsed*0.25)*SPREAD;
+    const [a1,a2]=themeColorsForHue(h);
     themeRoot.style.setProperty('--accent',a1); themeRoot.style.setProperty('--accent2',a2);
     themeLiveRAF=requestAnimationFrame(loop); };
-  loop();
+  themeLiveRAF=requestAnimationFrame(loop);
 }
 function applyTheme(){
   const t=SET.theme||DEF_SETTINGS.theme;
-  if(t.live){ if(!themeLiveRAF){ themeLiveHue=t.hue||220; startThemeLive(); } return; } // don't restart an already-running drift
+  if(t.live){ if(!themeLiveRAF){ startThemeLive(); } return; } // don't restart an already-running drift
   stopThemeLive();
   if(t.mode==='hue'){ const [a1,a2]=themeColorsForHue(t.hue||220);
     themeRoot.style.setProperty('--accent',a1); themeRoot.style.setProperty('--accent2',a2); return; }
@@ -1026,7 +1031,12 @@ function applyTheme(){
     themeRoot.style.setProperty('--accent',a1); themeRoot.style.setProperty('--accent2',a2); }
   else{ themeRoot.style.removeProperty('--accent'); themeRoot.style.removeProperty('--accent2'); }
 }
-function pickThemeSwatch(mode){ SET.theme=Object.assign({}, SET.theme, {mode, live:false}); kset('settings',SET); applyTheme(); renderThemeUI(); }
+function pickThemeSwatch(mode){
+  const preset=THEME_PRESETS.find(p=>p[0]===mode);
+  const patch={mode, live:false};
+  if(preset && preset[2]!=null) patch.hue=preset[2]; // remember it as the live-mode anchor too
+  SET.theme=Object.assign({}, SET.theme, patch); kset('settings',SET); applyTheme(); renderThemeUI();
+}
 function setThemeHue(h){ SET.theme=Object.assign({}, SET.theme, {mode:'hue', hue:parseInt(h,10)||0});
   kset('settings',SET); applyTheme(); renderThemeUI(); }
 function toggleThemeLive(){ SET.theme=Object.assign({}, SET.theme, {live:!SET.theme.live}); kset('settings',SET); applyTheme(); renderThemeUI(); }
@@ -1781,7 +1791,11 @@ function rapToggleTimer(){
 function setRapGoal(mins){
   const proj=getActiveProj(); if(!proj) return;
   const m=parseFloat(mins); if(isNaN(m)||m<1) return;
-  proj.timerGoalSec=Math.max(60, Math.round(m*60)); saveProj(proj); renderRapPanel();
+  proj.timerGoalSec=Math.max(60, Math.round(m*60)); saveProj(proj);
+  // lightweight update only — rebuilding the whole panel mid-drag would destroy
+  // the slider element and kill the drag gesture partway through
+  const lbl=$('#rapGoalVal'); if(lbl) lbl.textContent=Math.round(m)+' min';
+  renderRapTimerDisplay();
 }
 function addRapSeconds(sec){
   const k='rap:daymins:'+todayKey();
@@ -1864,11 +1878,12 @@ function renderRapPanel(){
   if(!proj){ box.innerHTML='<div class="card"><div class="empty">No projects yet — tap + New to start your first song.</div></div>'; renderRapTotals(); return; }
   const rt=ensureRT(proj.id);
   const beatHtml = proj.beatFile
-    ? '<audio controls style="width:100%;margin-top:8px" src="'+esc(proj.beatFile.url)+'"></audio>'+
-      '<div class="row" style="margin-top:8px"><span class="sub grow">'+esc(proj.beatFile.name)+'</span>'+
+    ? '<audio controls loop style="width:100%;margin-top:8px" src="'+esc(proj.beatFile.url)+'"></audio>'+
+      '<div class="row" style="margin-top:8px"><span class="sub grow">'+esc(proj.beatFile.name)+' · loops endlessly</span>'+
       '<button class="sm ghost" onclick="removeBeat()">Remove</button></div>'
     : (proj.beatYoutube
-        ? '<div class="ytbox"><iframe src="https://www.youtube.com/embed/'+proj.beatYoutube+'?rel=0" allow="autoplay; encrypted-media" allowfullscreen></iframe></div>'+
+        ? '<div class="ytbox"><iframe src="https://www.youtube.com/embed/'+proj.beatYoutube+'?rel=0&loop=1&playlist='+proj.beatYoutube+'" allow="autoplay; encrypted-media" allowfullscreen></iframe></div>'+
+          '<div class="sub" style="margin-top:6px">loops endlessly</div>'+
           '<button class="sm ghost" style="margin-top:8px" onclick="removeBeat()">Remove beat</button>'
         : '<div class="row" style="margin-top:8px">'+
           '<button onclick="document.getElementById(\'beatFile\').click()">📎 Attach MP3</button>'+
@@ -1884,8 +1899,10 @@ function renderRapPanel(){
     '</div>'+
     '<div class="card">'+
       '<h2>Sprint timer</h2>'+
-      '<div class="chips" id="goalChips"></div>'+
-      '<div class="row" style="margin-top:8px"><input type="number" id="rapGoalCustom" placeholder="custom min" style="width:110px" value="'+Math.round(proj.timerGoalSec/60)+'" onchange="setRapGoal(this.value)"><span class="sub">minutes — set it to whatever you want</span></div>'+
+      '<div class="sched-row" style="margin-top:4px">'+
+        '<div class="sched-lbl">Committing to <b id="rapGoalVal">'+Math.round(proj.timerGoalSec/60)+' min</b></div>'+
+        '<input type="range" class="pro-slider" id="rapGoalSlider" min="5" max="120" step="5" value="'+Math.round(proj.timerGoalSec/60)+'" oninput="setRapGoal(this.value)">'+
+      '</div>'+
       '<div class="clock" style="margin-top:6px"><div class="big" id="rapTimer">'+hms(Math.max(0,proj.timerGoalSec-rt.elapsed))+'</div><div class="biglbl">left in this sprint</div></div>'+
       '<div class="bar"><i id="rapTimerBar" style="width:'+(100*rt.elapsed/proj.timerGoalSec)+'%"></i></div>'+
       '<div class="btns"><button class="primary" id="rapTimerBtn" onclick="rapToggleTimer()">'+(rt.running?'⏸ Pause':(rt.elapsed>0?'▶ Resume':'▶ Start sprint'))+'</button></div>'+
@@ -1903,9 +1920,7 @@ function renderRapPanel(){
       '<h2>Voice memos <button class="sm" id="recBtn" onclick="toggleRecording()">🎙 Record</button></h2>'+
       '<div id="recList"></div>'+
     '</div>';
-  const gc=$('#goalChips');
-  [15,30,45,60,90].forEach(m=>{ const c=document.createElement('button'); c.className='chip'+(proj.timerGoalSec===m*60?' on':'');
-    c.textContent=m+' min'; c.onclick=()=>setRapGoal(m); gc.appendChild(c); });
+  styleSlider($('#rapGoalSlider'));
   bindRapAutosave();
   renderBarStats();
   renderRecordings();

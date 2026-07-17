@@ -753,9 +753,9 @@
         <button class="sm ghost" onclick="openCogsManage()">⚙ Manage products</button>
       </div>
       <div class="habrow-extra">
-        <div class="fld"><label>Ad spend today (Meta)</label><input type="number" id="profitAdspend" placeholder="$" step="1" onchange="setAdSpend(todayKey(),parseFloat(this.value)||0);renderProfit()"></div>
+        <div class="fld"><label id="profitAdspendLbl">Ad spend today (Meta)</label><input type="number" id="profitAdspend" placeholder="amount" step="1" onchange="setAdSpend(todayKey(),parseFloat(this.value)||0);renderProfit()"></div>
       </div>
-      <div class="sub" style="margin-top:10px">Revenue AND cogs pull from Shopify automatically — cogs is computed live per order from your product costs + per-country shipping rates. Card fees are estimated at <span id="profitFeeNote"></span> — adjust in ⚙ Settings. Ad spend is manual until Meta's API is wired up.</div>
+      <div class="sub" style="margin-top:10px">Revenue AND cogs pull from Shopify automatically (in <span id="profitStoreCcyNote">USD</span>, converted live) — cogs is computed per order from your product costs + per-country shipping rates. Card fees are estimated at <span id="profitFeeNote"></span> — adjust in ⚙ Settings. Ad spend is manual until Meta's API is wired up — enter it in <span id="profitAdCcyNote">AUD</span>, whatever Meta actually bills you in.</div>
     </div>
 
     <div class="card">
@@ -925,6 +925,14 @@
         <div class="row"><input type="text" id="setDayA" placeholder="Day A name" class="grow"><input type="text" id="setDayB" placeholder="Day B name" class="grow"></div></div>
       <div><label>Card-processing fee estimate (Profit tab)</label>
         <div class="row"><input type="number" id="setFeePct" step="0.1" style="width:90px"><span class="sub">% +</span><input type="number" id="setFeeFixed" step="0.05" style="width:90px"><span class="sub">$ per order</span></div></div>
+      <div><label>Currency — Shopify prices in / Profit tab shows</label>
+        <div class="row">
+          <select id="setStoreCcy" style="width:100px"><option>USD</option><option>AUD</option><option>EUR</option><option>GBP</option><option>CAD</option><option>NZD</option></select>
+          <span class="sub">→</span>
+          <select id="setDisplayCcy" style="width:100px"><option>AUD</option><option>USD</option><option>EUR</option><option>GBP</option><option>CAD</option><option>NZD</option></select>
+        </div>
+        <div class="sub" style="margin-top:4px">Revenue/COGS convert from the first to the second automatically (live rate). Ad spend you type in is assumed to already be in the second currency — that's what Meta bills you in.</div>
+      </div>
     </div>
     <div class="foot">
       <button class="ghost" onclick="doSync(true)">↻ Sync now</button>
@@ -1134,7 +1142,7 @@ const DEF_SETTINGS = {
   tsInt:15,
   miniEvery:25, miniLen:45, bigEvery:120, bigLen:15, restOn:true,
   tankMl:1500, rapGoal:60, unit:'kg', dayAName:'Day A', dayBName:'Day B',
-  feePct:2.9, feeFixed:0.30,
+  feePct:2.9, feeFixed:0.30, storeCurrency:'USD', displayCurrency:'AUD',
   theme:{mode:'default', hue:220, live:false}
 };
 let SET = {};
@@ -1205,6 +1213,7 @@ function openSettings(){
   $('#setRapMin').value=SET.rapGoal; $('#setUnit').value=SET.unit;
   $('#setDayA').value=SET.dayAName; $('#setDayB').value=SET.dayBName;
   $('#setFeePct').value=SET.feePct; $('#setFeeFixed').value=SET.feeFixed;
+  $('#setStoreCcy').value=SET.storeCurrency; $('#setDisplayCcy').value=SET.displayCurrency;
   renderThemeUI();
   setSyncUI(hasSrv?'ok':null);
   $('#setScrim').classList.add('show');
@@ -1216,6 +1225,7 @@ function saveSettings(){
   SET.unit=$('#setUnit').value;
   SET.dayAName=$('#setDayA').value.trim()||'Day A'; SET.dayBName=$('#setDayB').value.trim()||'Day B';
   SET.feePct=parseFloat($('#setFeePct').value)||0; SET.feeFixed=parseFloat($('#setFeeFixed').value)||0;
+  SET.storeCurrency=$('#setStoreCcy').value; SET.displayCurrency=$('#setDisplayCcy').value;
   kset('settings',SET); closeSettings(); renderAll(); toast('Settings saved');
 }
 
@@ -2977,22 +2987,61 @@ function backfillShopify(days){
 function estFees(revenue,orders){
   return Math.round((revenue*SET.feePct/100 + orders*SET.feeFixed)*100)/100;
 }
+
+/* ---- currency conversion — Shopify prices in SET.storeCurrency, ad spend is
+   already in SET.displayCurrency (that's what Meta bills), revenue/cogs/fees
+   get converted so everything combines in one currency. Uses the latest
+   cached rate for every day shown (not each day's own historical rate) — see
+   the matching note in Code.gs's fxRate_(). ---- */
+const CCY_SYMBOLS={USD:'$',AUD:'A$',EUR:'€',GBP:'£',CAD:'C$',NZD:'NZ$'};
+function ccySymbol(c){ return CCY_SYMBOLS[c]||(c+' '); }
+function getFxRate(){ return kget('fx:'+SET.storeCurrency+SET.displayCurrency, null); }
+function cacheFxRateLocally(data){ const k='fx:'+SET.storeCurrency+SET.displayCurrency; KVD[k]={v:JSON.stringify(data), t:Date.now()}; persist(); }
+function fxRateStale(){
+  if(SET.storeCurrency===SET.displayCurrency) return false;
+  const d=getFxRate();
+  if(!d) return true;
+  return (Date.now()-(d.updatedAt||0)) > 12*60*60*1000;
+}
+let fxFetching=false;
+function fetchFxRateIfStale(){
+  if(SET.storeCurrency===SET.displayCurrency || !hasSrv || !fxRateStale() || fxFetching) return;
+  fxFetching=true;
+  apiCall('fxRate',{from:SET.storeCurrency,to:SET.displayCurrency}).then(res=>{
+    if(!res || res.ok===false || !res.data) throw new Error((res&&res.error)||'fx fetch failed');
+    cacheFxRateLocally(res.data);
+    renderProfit();
+  }).catch(()=>{}).finally(()=>{ fxFetching=false; });
+}
+function fxMultiplier(){
+  if(SET.storeCurrency===SET.displayCurrency) return 1;
+  const d=getFxRate();
+  return d? d.rate : null; // null = not loaded yet, caller must handle
+}
+
 function dayProfit(key){
   const c=getComputedDay(key);
-  const revenue=c?c.revenue:0, orders=c?c.orders:0, cogs=c?c.cogs:0;
-  const fees=estFees(revenue,orders), ad=getAdSpend(key);
-  return {revenue, orders, fees, cogs, ad, unmatchedSkus:(c&&c.unmatchedSkus)||[], profit:Math.round((revenue-fees-cogs-ad)*100)/100};
+  const revenueSrc=c?c.revenue:0, orders=c?c.orders:0, cogsSrc=c?c.cogs:0;
+  const feesSrc=estFees(revenueSrc,orders);
+  const rate=fxMultiplier();
+  const r=rate==null?1:rate; // fall back to 1:1 (flagged in the UI) rather than silently hide numbers
+  const revenue=Math.round(revenueSrc*r*100)/100, cogs=Math.round(cogsSrc*r*100)/100, fees=Math.round(feesSrc*r*100)/100;
+  const ad=getAdSpend(key); // already in displayCurrency
+  return {revenue, orders, fees, cogs, ad, rateLoaded:rate!=null, unmatchedSkus:(c&&c.unmatchedSkus)||[], profit:Math.round((revenue-fees-cogs-ad)*100)/100};
 }
-function money(n){ return (n<0?'-$':'$')+Math.abs(Math.round(n)).toLocaleString(); }
+function money(n){ return (n<0?'-':'')+ccySymbol(SET.displayCurrency)+Math.abs(Math.round(n)).toLocaleString(); }
 
 function renderProfit(){
   const key=todayKey();
   fetchProfitDayIfStale(key);
+  fetchFxRateIfStale();
   const p=dayProfit(key), c=getComputedDay(key);
   $('#profitToday').textContent=money(p.profit);
   $('#profitToday').style.color=p.profit<0?'var(--red)':'var(--green)';
-  $('#profitTodaySub').textContent = c ? ('Shopify data as of '+clock(c.updatedAt))
-    : (hasSrv? 'fetching Shopify data…' : 'local mode — no Shopify connection');
+  const fx=getFxRate();
+  const fxNote = SET.storeCurrency===SET.displayCurrency ? ''
+    : (fx? ' · 1 '+SET.storeCurrency+' = '+fx.rate.toFixed(3)+' '+SET.displayCurrency : ' · fetching exchange rate…');
+  $('#profitTodaySub').textContent = (c ? ('Shopify data as of '+clock(c.updatedAt)) : (hasSrv? 'fetching Shopify data…' : 'local mode — no Shopify connection')) + fxNote;
   $('#profitTiles').innerHTML=
     '<div class="tile"><b>'+money(p.revenue)+'</b><span>revenue</span></div>'+
     '<div class="tile"><b>'+p.orders+'</b><span>orders</span></div>'+
@@ -3001,11 +3050,16 @@ function renderProfit(){
     '<div class="tile"><b>'+money(p.ad)+'</b><span>ad spend</span></div>'+
     '<div class="tile"><b style="color:'+(p.profit<0?'var(--red)':'var(--green)')+'">'+money(p.profit)+'</b><span>profit</span></div>';
   $('#profitAdspend').value=p.ad||'';
-  $('#profitFeeNote').textContent=SET.feePct+'% + $'+SET.feeFixed.toFixed(2)+'/order';
+  $('#profitAdspendLbl').textContent='Ad spend today (Meta, '+SET.displayCurrency+')';
+  $('#profitStoreCcyNote').textContent=SET.storeCurrency;
+  $('#profitAdCcyNote').textContent=SET.displayCurrency;
+  $('#profitFeeNote').textContent=SET.feePct+'% + '+ccySymbol(SET.storeCurrency)+SET.feeFixed.toFixed(2)+'/order';
   const products=getCogsProducts();
-  $('#profitCogsWarning').innerHTML = !products.length
-    ? '⚠ No product costs set up yet — COGS is showing $0. <button class="sm ghost" onclick="openCogsManage()">⚙ Add products</button>'
+  let warn = !products.length
+    ? '⚠ No product costs set up yet — COGS is showing '+ccySymbol(SET.displayCurrency)+'0. <button class="sm ghost" onclick="openCogsManage()">⚙ Add products</button>'
     : (p.unmatchedSkus.length ? '⚠ '+p.unmatchedSkus.length+' SKU'+(p.unmatchedSkus.length>1?'s':'')+' sold today have no cost set: '+esc(p.unmatchedSkus.join(', '))+' <button class="sm ghost" onclick="openCogsManage()">⚙ Fix</button>' : '');
+  if(!p.rateLoaded) warn = '⚠ Exchange rate not loaded yet — figures below are still in raw '+SET.storeCurrency+', not converted to '+SET.displayCurrency+'.' + (warn?'<br>'+warn:'');
+  $('#profitCogsWarning').innerHTML = warn;
 
   const trendPts=[];
   for(let i=29;i>=0;i--){ const dd=new Date(); dd.setDate(dd.getDate()-i); const k=todayKey(dd); trendPts.push({x:k,y:Math.round(dayProfit(k).profit)}); }

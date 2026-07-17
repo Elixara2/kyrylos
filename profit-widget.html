@@ -49,8 +49,27 @@ const API_TOKEN = 'nSMjCIzxQSrHCeuB02zzvY44oIoid26h';
 const $=s=>document.querySelector(s);
 const pad=n=>String(n).padStart(2,'0');
 const todayKey=()=>{ const d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); };
-const money=n=>(n<0?'-$':'$')+Math.abs(Math.round(n)).toLocaleString();
 const DEF_FEE_PCT=2.9, DEF_FEE_FIXED=0.30;
+const DEF_STORE_CCY='USD', DEF_DISPLAY_CCY='AUD';
+const CCY_SYMBOLS={USD:'$',AUD:'A$',EUR:'€',GBP:'£',CAD:'C$',NZD:'NZ$'};
+function ccySymbol(c){ return CCY_SYMBOLS[c]||(c+' '); }
+let displayCcy=DEF_DISPLAY_CCY;
+const money=n=>(n<0?'-':'')+ccySymbol(displayCcy)+Math.abs(Math.round(n)).toLocaleString();
+
+// Same-shape fx cache as the main app (fx:<store><display> in the kv store).
+// This widget can independently trigger a refresh if it's ever opened
+// without the main K-OS app around to keep the rate warm — harmless, it's
+// just a cached read-through, same as any other backend call here.
+let fxFetching=false;
+function maybeFetchFx(storeCcy, displayCcy_, cached){
+  if(storeCcy===displayCcy_ || fxFetching) return;
+  const stale = !cached || (Date.now()-(cached.updatedAt||0)) > 12*60*60*1000;
+  if(!stale) return;
+  fxFetching=true;
+  fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body:JSON.stringify({action:'fxRate',token:API_TOKEN,from:storeCcy,to:displayCcy_})})
+    .then(r=>r.json()).catch(()=>{}).finally(()=>{ fxFetching=false; });
+}
 
 function poll(){
   fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
@@ -62,12 +81,21 @@ function poll(){
       res.items.forEach(it=>{ try{ kv[it.k]=JSON.parse(it.v); }catch(e){} });
       const key=todayKey();
       const computed=kv['profit:computed:'+key];
-      const ad=kv['profit:adspend:'+key]||0;
+      const ad=kv['profit:adspend:'+key]||0; // already in display currency (what Meta bills)
       const settings=kv['settings']||{};
       const feePct=settings.feePct!=null?settings.feePct:DEF_FEE_PCT;
       const feeFixed=settings.feeFixed!=null?settings.feeFixed:DEF_FEE_FIXED;
-      const revenue=computed?computed.revenue:0, orders=computed?computed.orders:0, cogs=computed?computed.cogs:0;
-      const fees=Math.round((revenue*feePct/100+orders*feeFixed)*100)/100;
+      const storeCcy=settings.storeCurrency||DEF_STORE_CCY;
+      displayCcy=settings.displayCurrency||DEF_DISPLAY_CCY;
+
+      const revenueSrc=computed?computed.revenue:0, orders=computed?computed.orders:0, cogsSrc=computed?computed.cogs:0;
+      const feesSrc=Math.round((revenueSrc*feePct/100+orders*feeFixed)*100)/100;
+      const fxCached = kv['fx:'+storeCcy+displayCcy];
+      maybeFetchFx(storeCcy, displayCcy, fxCached);
+      const rate = storeCcy===displayCcy ? 1 : (fxCached? fxCached.rate : null);
+      const rateLoaded = rate!=null;
+      const r = rateLoaded ? rate : 1;
+      const revenue=Math.round(revenueSrc*r*100)/100, cogs=Math.round(cogsSrc*r*100)/100, fees=Math.round(feesSrc*r*100)/100;
       const profit=Math.round((revenue-fees-cogs-ad)*100)/100;
 
       $('#num').textContent=money(profit);
@@ -81,7 +109,8 @@ function poll(){
       const products=kv['profit:cogsProducts']||[];
       const unmatched=(computed&&computed.unmatchedSkus)||[];
       const warn=$('#warn');
-      if(!products.length){ warn.style.display='block'; warn.textContent='⚠ no product costs set up — cogs is $0'; }
+      if(!rateLoaded){ warn.style.display='block'; warn.textContent='⚠ exchange rate loading — figures still in '+storeCcy; }
+      else if(!products.length){ warn.style.display='block'; warn.textContent='⚠ no product costs set up — cogs is '+ccySymbol(displayCcy)+'0'; }
       else if(unmatched.length){ warn.style.display='block'; warn.textContent='⚠ '+unmatched.length+' unpriced SKU'+(unmatched.length>1?'s':'')+' today'; }
       else warn.style.display='none';
     }).catch(()=>{

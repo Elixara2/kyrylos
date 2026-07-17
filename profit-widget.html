@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>K-OS · Profit</title>
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:#0e1116;color:#e6edf3;
+    font:14px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    overflow:hidden;-webkit-font-smoothing:antialiased}
+  #wrap{display:flex;flex-direction:column;justify-content:center;height:100%;padding:16px 20px}
+  .lbl{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#8b949e;display:flex;align-items:center;gap:6px}
+  .dot{width:6px;height:6px;border-radius:50%;background:#8b949e;flex:0 0 auto}
+  .dot.on{background:#22c55e}
+  .dot.err{background:#f59e0b}
+  #num{font-size:42px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.15;margin:2px 0;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #sub{font-size:11px;color:#8b949e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #rows{display:flex;gap:14px;margin-top:10px;font-size:10.5px;color:#8b949e;text-transform:uppercase;letter-spacing:.04em}
+  #rows div{min-width:0}
+  #rows b{color:#e6edf3;font-variant-numeric:tabular-nums;display:block;font-size:13px;font-weight:700;
+    text-transform:none;letter-spacing:0;overflow:hidden;text-overflow:ellipsis}
+  #warn{font-size:10.5px;color:#f59e0b;margin-top:8px;display:none}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div class="lbl"><span class="dot" id="dot"></span>Today's profit</div>
+  <div id="num">—</div>
+  <div id="sub">connecting…</div>
+  <div id="rows">
+    <div>Rev<b id="rRev">—</b></div>
+    <div>Cogs<b id="rCogs">—</b></div>
+    <div>Ads<b id="rAd">—</b></div>
+    <div>Fees<b id="rFees">—</b></div>
+  </div>
+  <div id="warn"></div>
+</div>
+<script>
+"use strict";
+// Same backend K-OS uses — this widget is read-only (never writes anything),
+// so it's safe for it to carry the same low-privilege sync token. Must be
+// served from a real HTTPS origin (GitHub Pages) — Apps Script's CORS
+// response doesn't allow the browser's "null" file:// origin to read it back,
+// so this page won't get live data if opened as a local file.
+const API_URL = 'https://script.google.com/macros/s/AKfycbwBo36jDTZcJWKMB0KxizVX5XyJIK_dLZ4Wlxzeetj9L9lDzKCUkFyUzd4TU7gqit4ACA/exec';
+const API_TOKEN = 'nSMjCIzxQSrHCeuB02zzvY44oIoid26h';
+const $=s=>document.querySelector(s);
+const pad=n=>String(n).padStart(2,'0');
+const todayKey=()=>{ const d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); };
+const money=n=>(n<0?'-$':'$')+Math.abs(Math.round(n)).toLocaleString();
+const DEF_FEE_PCT=2.9, DEF_FEE_FIXED=0.30;
+
+function poll(){
+  fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body:JSON.stringify({action:'sync',token:API_TOKEN,items:[],since:0})})
+    .then(r=>r.json()).then(res=>{
+      if(!res || !res.items){ throw new Error('bad response'); }
+      $('#dot').className='dot on';
+      const kv={};
+      res.items.forEach(it=>{ try{ kv[it.k]=JSON.parse(it.v); }catch(e){} });
+      const key=todayKey();
+      const computed=kv['profit:computed:'+key];
+      const ad=kv['profit:adspend:'+key]||0;
+      const settings=kv['settings']||{};
+      const feePct=settings.feePct!=null?settings.feePct:DEF_FEE_PCT;
+      const feeFixed=settings.feeFixed!=null?settings.feeFixed:DEF_FEE_FIXED;
+      const revenue=computed?computed.revenue:0, orders=computed?computed.orders:0, cogs=computed?computed.cogs:0;
+      const fees=Math.round((revenue*feePct/100+orders*feeFixed)*100)/100;
+      const profit=Math.round((revenue-fees-cogs-ad)*100)/100;
+
+      $('#num').textContent=money(profit);
+      $('#num').style.color=profit<0?'#ef4444':'#22c55e';
+      $('#sub').textContent=computed?('updated '+new Date(computed.updatedAt).toLocaleTimeString([],{hour:'numeric',minute:'2-digit',second:'2-digit'})):'no Shopify data yet — open K-OS ▸ Profit ▸ Refresh';
+      $('#rRev').textContent=money(revenue);
+      $('#rCogs').textContent=money(cogs);
+      $('#rAd').textContent=money(ad);
+      $('#rFees').textContent=money(fees);
+
+      const products=kv['profit:cogsProducts']||[];
+      const unmatched=(computed&&computed.unmatchedSkus)||[];
+      const warn=$('#warn');
+      if(!products.length){ warn.style.display='block'; warn.textContent='⚠ no product costs set up — cogs is $0'; }
+      else if(unmatched.length){ warn.style.display='block'; warn.textContent='⚠ '+unmatched.length+' unpriced SKU'+(unmatched.length>1?'s':'')+' today'; }
+      else warn.style.display='none';
+    }).catch(()=>{
+      $('#dot').className='dot err';
+      $('#sub').textContent='connection error — retrying…';
+    });
+}
+poll();
+setInterval(poll, 5000);
+</script>
+</body>
+</html>

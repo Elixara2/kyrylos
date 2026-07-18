@@ -1,6 +1,6 @@
 {
-  "name": "KyrylOS",
-  "short_name": "KyrylOS",
+  "name": "K-OS",
+  "short_name": "K-OS",
   "description": "Your life super app — routine, work, gym, rap, diet, goals.",
   "start_url": "./index.html",
   "scope": "./",

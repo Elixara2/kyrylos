@@ -446,6 +446,16 @@
       <h2>Goals <button class="sm ghost" onclick="showTab('goals')">open →</button></h2>
       <div id="goalsMini" class="sub">—</div>
     </div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <div class="lbl">Today's profit</div>
+          <div id="profitBarValue" style="font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:2px">—</div>
+          <div class="sub" id="profitBarSub">—</div>
+        </div>
+        <button class="sm ghost" onclick="openProphit()">Prophit ↗</button>
+      </div>
+    </div>
   </section>
 
   <!-- ============ WORK ============ -->
@@ -732,69 +742,6 @@
     </div>
   </div>
 
-  <!-- ============ PROFIT ============ -->
-  <section class="panel" id="p-profit">
-    <div class="card">
-      <div class="row" style="justify-content:space-between;align-items:flex-start">
-        <div>
-          <div class="lbl">Today's profit</div>
-          <div id="profitToday" style="font-size:38px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:2px">$0</div>
-          <div class="sub" id="profitTodaySub">—</div>
-        </div>
-        <button class="sm ghost" onclick="refreshShopify()">↻ <span id="profitRefreshLbl">Refresh</span></button>
-      </div>
-      <div class="tiles" id="profitTiles" style="margin-top:14px"></div>
-      <div class="sub" id="profitCogsWarning" style="margin-top:10px;color:var(--amber)"></div>
-    </div>
-
-    <div class="card">
-      <div class="row" style="justify-content:space-between">
-        <h2 style="margin:0">Today's inputs</h2>
-        <button class="sm ghost" onclick="openCogsManage()">⚙ Manage products</button>
-      </div>
-      <div class="habrow-extra">
-        <div class="fld"><label id="profitAdspendLbl">Ad spend today (Meta)</label><input type="number" id="profitAdspend" placeholder="amount" step="1" onchange="setAdSpend(todayKey(),parseFloat(this.value)||0);renderProfit()"></div>
-      </div>
-      <div class="sub" style="margin-top:10px">Revenue AND cogs pull from Shopify automatically (in <span id="profitStoreCcyNote">USD</span>, converted live) — cogs is computed per order from your product costs + per-country shipping rates. Card fees are estimated at <span id="profitFeeNote"></span> — adjust in ⚙ Settings. Ad spend is manual until Meta's API is wired up — enter it in <span id="profitAdCcyNote">AUD</span>, whatever Meta actually bills you in.</div>
-    </div>
-
-    <div class="card">
-      <h2>Profit trend · last 30 days <button class="sm ghost" style="margin-left:8px" onclick="backfillShopify(30)">↻ backfill</button></h2>
-      <svg id="profitTrendChart"></svg>
-    </div>
-    <div class="card">
-      <h2>Profit by month</h2>
-      <svg id="profitMonthChart"></svg>
-    </div>
-  </section>
-
-  <!-- manage-products (COGS) modal -->
-  <div class="scrim" id="cogsScrim" onclick="if(event.target===this)closeCogsManage()">
-    <div class="modal">
-      <h2>Manage products &amp; shipping</h2>
-      <div class="sub">COGS per order = a product's base cost + that order's destination country's shipping rate, × quantity. Add a "*" country row as your default/fallback shipping rate for anywhere not listed.</div>
-
-      <div class="lbl" style="margin-top:16px">Products</div>
-      <div class="row" style="margin-top:8px">
-        <input type="text" id="cogsNewSku" placeholder="SKU" style="width:110px">
-        <input type="text" id="cogsNewName" placeholder="Name" class="grow">
-        <input type="number" id="cogsNewCost" placeholder="cost $" step="0.01" style="width:90px">
-        <button class="primary" onclick="addCogsProduct()">Add</button>
-      </div>
-      <div class="hablistmodal" id="cogsProductList"></div>
-
-      <div class="lbl" style="margin-top:18px">Shipping by country</div>
-      <div class="row" style="margin-top:8px">
-        <input type="text" id="shipNewCountry" placeholder="US, AU, * …" style="width:110px">
-        <input type="number" id="shipNewCost" placeholder="cost $" step="0.01" style="width:90px">
-        <button class="primary" onclick="addShipCountry()">Add</button>
-      </div>
-      <div class="hablistmodal" id="shipCountryList"></div>
-
-      <div class="foot"><button class="primary" onclick="closeCogsManage()">Done</button></div>
-    </div>
-  </div>
-
   <!-- ============ GOALS ============ -->
   <section class="panel" id="p-goals">
     <div class="card">
@@ -820,7 +767,6 @@
   <button class="tab" data-tab="rap" onclick="showTab('rap')"><span class="ic">🎤</span>Studio<span class="dotdone"></span></button>
   <button class="tab" data-tab="diet" onclick="showTab('diet')"><span class="ic">🍗</span>Diet<span class="dotdone"></span></button>
   <button class="tab" data-tab="habits" onclick="showTab('habits')"><span class="ic">📈</span>Habits<span class="dotdone"></span></button>
-  <button class="tab" data-tab="profit" onclick="showTab('profit')"><span class="ic">💰</span>Profit<span class="dotdone"></span></button>
   <button class="tab" data-tab="goals" onclick="showTab('goals')"><span class="ic">✅</span>Goals<span class="dotdone"></span></button>
 </div></nav>
 
@@ -923,16 +869,6 @@
         <select id="setUnit"><option value="kg">kg</option><option value="lb">lb</option></select></div>
       <div><label>Day A / Day B names</label>
         <div class="row"><input type="text" id="setDayA" placeholder="Day A name" class="grow"><input type="text" id="setDayB" placeholder="Day B name" class="grow"></div></div>
-      <div><label>Card-processing fee estimate (Profit tab)</label>
-        <div class="row"><input type="number" id="setFeePct" step="0.1" style="width:90px"><span class="sub">% +</span><input type="number" id="setFeeFixed" step="0.05" style="width:90px"><span class="sub">$ per order</span></div></div>
-      <div><label>Currency — Shopify prices in / Profit tab shows</label>
-        <div class="row">
-          <select id="setStoreCcy" style="width:100px"><option>USD</option><option>AUD</option><option>EUR</option><option>GBP</option><option>CAD</option><option>NZD</option></select>
-          <span class="sub">→</span>
-          <select id="setDisplayCcy" style="width:100px"><option>AUD</option><option>USD</option><option>EUR</option><option>GBP</option><option>CAD</option><option>NZD</option></select>
-        </div>
-        <div class="sub" style="margin-top:4px">Revenue/COGS convert from the first to the second automatically (live rate). Ad spend you type in is assumed to already be in the second currency — that's what Meta bills you in.</div>
-      </div>
     </div>
     <div class="foot">
       <button class="ghost" onclick="doSync(true)">↻ Sync now</button>
@@ -1142,7 +1078,6 @@ const DEF_SETTINGS = {
   tsInt:15,
   miniEvery:25, miniLen:45, bigEvery:120, bigLen:15, restOn:true,
   tankMl:1500, rapGoal:60, unit:'kg', dayAName:'Day A', dayBName:'Day B',
-  feePct:2.9, feeFixed:0.30, storeCurrency:'USD', displayCurrency:'AUD',
   theme:{mode:'default', hue:220, live:false}
 };
 let SET = {};
@@ -1212,8 +1147,6 @@ function openSettings(){
   $('#setTank').value=SET.tankMl;
   $('#setRapMin').value=SET.rapGoal; $('#setUnit').value=SET.unit;
   $('#setDayA').value=SET.dayAName; $('#setDayB').value=SET.dayBName;
-  $('#setFeePct').value=SET.feePct; $('#setFeeFixed').value=SET.feeFixed;
-  $('#setStoreCcy').value=SET.storeCurrency; $('#setDisplayCcy').value=SET.displayCurrency;
   renderThemeUI();
   setSyncUI(hasSrv?'ok':null);
   $('#setScrim').classList.add('show');
@@ -1224,8 +1157,6 @@ function saveSettings(){
   SET.tankMl=parseInt($('#setTank').value,10)||1500; SET.rapGoal=parseInt($('#setRapMin').value,10)||60;
   SET.unit=$('#setUnit').value;
   SET.dayAName=$('#setDayA').value.trim()||'Day A'; SET.dayBName=$('#setDayB').value.trim()||'Day B';
-  SET.feePct=parseFloat($('#setFeePct').value)||0; SET.feeFixed=parseFloat($('#setFeeFixed').value)||0;
-  SET.storeCurrency=$('#setStoreCcy').value; SET.displayCurrency=$('#setDisplayCcy').value;
   kset('settings',SET); closeSettings(); renderAll(); toast('Settings saved');
 }
 
@@ -1310,22 +1241,33 @@ function tsDayInfo(key){ return kget('ts:day:'+(key||todayKey()),{started:false,
 const TS_BLOCK_MIN=15;
 function tsBlockLabel(i){ const m=TS_BLOCK_MIN*(i+1); return (m%60===0) ? (m/60)+'HR' : String(m); }
 function tsRowForTime(dayStart, t){ return Math.max(0, Math.floor((t-dayStart)/(TS_BLOCK_MIN*60000))); }
+/* firstStart only gets written by tsToggle() on a genuinely new day. Any day whose
+   "started" flag predates this field (or that got left mid-way through a clock-in
+   before it existed) has no firstStart yet — fall back to its earliest logged entry
+   so old/in-progress days still render instead of silently looking empty. */
+function tsEffectiveDayStart(key){
+  const info=tsDayInfo(key);
+  if(info.firstStart) return info.firstStart;
+  const entries=kget('ts:entries:'+key,[])||[];
+  if(!entries.length) return 0;
+  return entries.reduce((min,e)=>Math.min(min,e.s), Infinity);
+}
 function tsGridRow(key){
-  const info=tsDayInfo(key); const cells={};
-  if(!info.firstStart) return {info, cells, maxBlock:-1};
+  const info=tsDayInfo(key), dayStart=tsEffectiveDayStart(key), cells={};
+  if(!dayStart) return {info, dayStart, cells, maxBlock:-1};
   let maxBlock=-1;
   (kget('ts:entries:'+key,[])||[]).forEach(en=>{
     if(!en.text) return;
-    const b0=tsRowForTime(info.firstStart, en.s);
-    const b1=Math.max(b0, tsRowForTime(info.firstStart, Math.max(en.s+1,en.e)-1));
+    const b0=tsRowForTime(dayStart, en.s);
+    const b1=Math.max(b0, tsRowForTime(dayStart, Math.max(en.s+1,en.e)-1));
     for(let b=b0;b<=b1;b++) cells[b]=en.text;
     maxBlock=Math.max(maxBlock,b1);
   });
-  return {info, cells, maxBlock};
+  return {info, dayStart, cells, maxBlock};
 }
 function tsGridDaysInMonth(y,m){
   const n=new Date(y,m,0).getDate(), out=[];
-  for(let d=1; d<=n; d++){ const key=y+'-'+pad(m)+'-'+pad(d); if(tsDayInfo(key).firstStart) out.push(key); }
+  for(let d=1; d<=n; d++){ const key=y+'-'+pad(m)+'-'+pad(d); if(tsEffectiveDayStart(key)) out.push(key); }
   return out;
 }
 
@@ -1364,6 +1306,7 @@ function tsToggle(){
     beep([[880,.05]]);
     const st=tsDayInfo();
     if(!st.started){ st.started=true; st.firstStart=Date.now(); kset('ts:day:'+todayKey(),st); }
+    else if(!st.firstStart){ st.firstStart=tsEffectiveDayStart(todayKey())||Date.now(); kset('ts:day:'+todayKey(),st); }
     try{ if('Notification' in window && Notification.permission==='default') Notification.requestPermission(); }catch(e){}
   } else if(ts.mode==='working'){ ts.mode='paused'; ts.pausedLeft=ts.nextLogAt-Date.now();
     ts.miniPausedLeft=(ts.miniNextAt||0)-Date.now(); ts.bigPausedLeft=(ts.bigNextAt||0)-Date.now(); }
@@ -1623,8 +1566,8 @@ function tsGridMaxBlocks(days, liveKey){
   let max=31; // 8-hour floor so the sheet never looks cramped
   days.forEach(k=>{ const r=tsGridRow(k); if(r.maxBlock>max) max=r.maxBlock; });
   if(liveKey){
-    const info=tsDayInfo(liveKey);
-    if(info.firstStart){ const liveBlock=tsRowForTime(info.firstStart, Date.now()); if(liveBlock>max) max=liveBlock; }
+    const dayStart=tsEffectiveDayStart(liveKey);
+    if(dayStart){ const liveBlock=tsRowForTime(dayStart, Date.now()); if(liveBlock>max) max=liveBlock; }
   }
   return Math.min(79, max+8); // +2h headroom, hard cap at 20h
 }
@@ -1647,10 +1590,10 @@ function renderTsGrid(){
   rowsData.forEach(r=>{
     const d=new Date(r.key+'T00:00:00'), cls=(r.key===tKey?' col-today':'');
     h1+='<th class="'+cls+'">'+d.getDate()+'/'+(d.getMonth()+1)+'/'+String(d.getFullYear()).slice(2)+'</th>';
-    h2+='<th class="'+cls+'">'+(r.info.firstStart?clock(r.info.firstStart):'—')+'</th>';
+    h2+='<th class="'+cls+'">'+(r.dayStart?clock(r.dayStart):'—')+'</th>';
   });
   head.innerHTML='<tr>'+h1+'</tr><tr>'+h2+'</tr>';
-  const liveBlock=liveKey ? tsRowForTime(tsDayInfo(liveKey).firstStart, Date.now()) : -1;
+  const liveBlock=liveKey ? tsRowForTime(tsEffectiveDayStart(liveKey), Date.now()) : -1;
   let rowsHtml='';
   for(let b=0; b<=maxBlock; b++){
     const hrs=(b+1)*TS_BLOCK_MIN/60, isHour=Number.isInteger(hrs);
@@ -1681,8 +1624,8 @@ function tsEditCell(key,b,td){
   inp.addEventListener('blur',commit);
 }
 function tsSetCell(key,b,val){
-  const info=tsDayInfo(key); if(!info.firstStart) return;
-  const s=info.firstStart+b*TS_BLOCK_MIN*60000, e=s+TS_BLOCK_MIN*60000;
+  const dayStart=tsEffectiveDayStart(key); if(!dayStart) return;
+  const s=dayStart+b*TS_BLOCK_MIN*60000, e=s+TS_BLOCK_MIN*60000;
   const entries=kget('ts:entries:'+key,[]);
   entries.push({s, e, text:val, edited:true});
   kset('ts:entries:'+key, entries);
@@ -2924,222 +2867,44 @@ function renderHabitManage(){
   });
 }
 
-/* ================= PROFIT (Shopify + Unify + Meta) ================= */
-// Revenue AND cogs come from Shopify — the token that makes the API calls
-// lives only in Code.gs's Script Properties, never here. Shopify webhooks
-// push new/updated/cancelled orders straight into the same kv store this
-// page already polls every ~5s (see Code.gs recomputeDayTotals_), so the
-// number here updates live without this file doing any extra polling of its
-// own — a manual Refresh/backfill just re-derives the same thing from
-// Shopify's REST API as a fallback if a webhook was ever missed. COGS is
-// computed per order from the product-cost + per-country-shipping tables
-// (⚙ Manage products) — not typed in daily. Ad spend (Meta) stays manual
-// until its API token is wired up. Card fees are an estimate (SET.feePct/
-// feeFixed), not pulled from Shopify Payments — flagged "est." everywhere.
-function getComputedDay(key){ return kget('profit:computed:'+key, null); }
-/** The value already came FROM the server (webhook or fetch) — cache it locally without re-marking dirty/re-pushing it back. */
-function cacheComputedLocally(key,data){ KVD['profit:computed:'+key]={v:JSON.stringify(data), t:Date.now()}; persist(); }
-function getAdSpend(key){ return kget('profit:adspend:'+key, 0); }
-function setAdSpend(key,val){ kset('profit:adspend:'+key, val); doSync(false); }
-function getCogsProducts(){ return kget('profit:cogsProducts', []); }
-function saveCogsProducts(list){ kset('profit:cogsProducts', list); doSync(false); }
-function getShipCountries(){ return kget('profit:shipCountry', []); }
-function saveShipCountries(list){ kset('profit:shipCountry', list); doSync(false); }
-
-/** Past days settle once webhooks/backfill have run; today's cache goes stale after 5 min (webhook-missed safety net). */
-function computedDayStale(key){
-  const d=getComputedDay(key);
-  if(!d) return true;
-  if(key!==todayKey()) return false;
-  return (Date.now()-(d.updatedAt||0)) > 5*60*1000;
+/* ================= PROFIT (summary only — the real thing lives in Prophit) =================
+   Prophit is a deliberately separate app/entity with its own backend. K-OS
+   only ever makes this one read-only call to show a quick "how much have I
+   made" number on the Today tab — no COGS/webhook/currency logic lives here
+   anymore. Fill in PROPHIT_API_URL after Prophit is deployed. */
+const PROPHIT_API_URL = 'PASTE_YOUR_PROPHIT_EXEC_URL_HERE';
+const PROPHIT_API_TOKEN = 'd04e3b8b19137755e781807596b6a74d';
+const prophitConnected = PROPHIT_API_URL.indexOf('PASTE_') !== 0;
+function openProphit(){
+  if(!prophitConnected){ toast('Prophit not connected yet — see Prophit.app'); return; }
+  toast('Open the Prophit app for full detail');
 }
-function fetchShopifyDay(key){
-  if(!hasSrv) return Promise.reject(new Error('local mode'));
-  return apiCall('shopifyDaySummary', {date:key}).then(res=>{
-    if(!res || res.ok===false || !res.data) throw new Error((res&&res.error)||'shopify fetch failed');
-    cacheComputedLocally(key, res.data);
-    return res.data;
-  });
+let profitSummaryCache=null, profitSummaryFetching=false;
+function fetchProfitSummaryIfStale(){
+  if(!prophitConnected || profitSummaryFetching) return;
+  if(profitSummaryCache && (Date.now()-profitSummaryCache._t)<5*60*1000) return;
+  profitSummaryFetching=true;
+  fetch(PROPHIT_API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body:JSON.stringify({action:'profitSummary',token:PROPHIT_API_TOKEN,date:todayKey()})})
+    .then(r=>r.json()).then(res=>{
+      if(!res || res.ok===false || !res.data) throw new Error('bad response');
+      profitSummaryCache=Object.assign({_t:Date.now()},res.data);
+      renderProfitBar();
+    }).catch(()=>{}).finally(()=>{ profitSummaryFetching=false; });
 }
-let profitFetching={};
-function fetchProfitDayIfStale(key){
-  if(!computedDayStale(key) || profitFetching[key]) return;
-  profitFetching[key]=true;
-  fetchShopifyDay(key).then(()=>renderProfit()).catch(()=>{}).finally(()=>{ delete profitFetching[key]; });
-}
-function refreshShopify(){
-  $('#profitRefreshLbl').textContent='Refreshing…';
-  fetchShopifyDay(todayKey())
-    .then(()=>{ toast('Shopify data refreshed'); renderProfit(); })
-    .catch(()=>{ toast('Shopify fetch failed — check SHOPIFY_TOKEN / store domain'); })
-    .finally(()=>{ $('#profitRefreshLbl').textContent='Refresh'; });
-}
-function backfillShopify(days){
-  const keys=[]; const d=new Date();
-  for(let i=0;i<days;i++){ const k=todayKey(d); if(computedDayStale(k)) keys.push(k); d.setDate(d.getDate()-1); }
-  if(!keys.length){ toast('Already have all '+days+' days cached'); return; }
-  toast('Backfilling '+keys.length+' day'+(keys.length>1?'s':'')+'…');
-  let chain=Promise.resolve();
-  keys.forEach(k=>{ chain=chain.then(()=>fetchShopifyDay(k)).catch(()=>{}); });
-  chain.then(()=>{ toast('Backfill complete'); renderProfit(); });
+function renderProfitBar(){
+  const el=$('#profitBarValue'); if(!el) return;
+  if(!prophitConnected){ el.textContent='—'; $('#profitBarSub').textContent='Prophit not connected'; return; }
+  fetchProfitSummaryIfStale();
+  if(!profitSummaryCache){ el.textContent='…'; $('#profitBarSub').textContent='loading…'; return; }
+  const ccySym=({USD:'$',AUD:'A$',EUR:'€',GBP:'£',CAD:'C$',NZD:'NZ$'})[profitSummaryCache.currency] || (profitSummaryCache.currency+' ');
+  const p=profitSummaryCache.profit;
+  el.textContent=(p<0?'-':'')+ccySym+Math.abs(Math.round(p)).toLocaleString();
+  el.style.color=p<0?'var(--red)':'var(--green)';
+  $('#profitBarSub').textContent = profitSummaryCache.allLoaded===false ? 'partial — exchange rate still loading'
+    : (profitSummaryCache.brandCount+' brand'+(profitSummaryCache.brandCount===1?'':'s'));
 }
 
-function estFees(revenue,orders){
-  return Math.round((revenue*SET.feePct/100 + orders*SET.feeFixed)*100)/100;
-}
-
-/* ---- currency conversion — Shopify prices in SET.storeCurrency, ad spend is
-   already in SET.displayCurrency (that's what Meta bills), revenue/cogs/fees
-   get converted so everything combines in one currency. Uses the latest
-   cached rate for every day shown (not each day's own historical rate) — see
-   the matching note in Code.gs's fxRate_(). ---- */
-const CCY_SYMBOLS={USD:'$',AUD:'A$',EUR:'€',GBP:'£',CAD:'C$',NZD:'NZ$'};
-function ccySymbol(c){ return CCY_SYMBOLS[c]||(c+' '); }
-function getFxRate(){ return kget('fx:'+SET.storeCurrency+SET.displayCurrency, null); }
-function cacheFxRateLocally(data){ const k='fx:'+SET.storeCurrency+SET.displayCurrency; KVD[k]={v:JSON.stringify(data), t:Date.now()}; persist(); }
-function fxRateStale(){
-  if(SET.storeCurrency===SET.displayCurrency) return false;
-  const d=getFxRate();
-  if(!d) return true;
-  return (Date.now()-(d.updatedAt||0)) > 12*60*60*1000;
-}
-let fxFetching=false;
-function fetchFxRateIfStale(){
-  if(SET.storeCurrency===SET.displayCurrency || !hasSrv || !fxRateStale() || fxFetching) return;
-  fxFetching=true;
-  apiCall('fxRate',{from:SET.storeCurrency,to:SET.displayCurrency}).then(res=>{
-    if(!res || res.ok===false || !res.data) throw new Error((res&&res.error)||'fx fetch failed');
-    cacheFxRateLocally(res.data);
-    renderProfit();
-  }).catch(()=>{}).finally(()=>{ fxFetching=false; });
-}
-function fxMultiplier(){
-  if(SET.storeCurrency===SET.displayCurrency) return 1;
-  const d=getFxRate();
-  return d? d.rate : null; // null = not loaded yet, caller must handle
-}
-
-function dayProfit(key){
-  const c=getComputedDay(key);
-  const revenueSrc=c?c.revenue:0, orders=c?c.orders:0, cogsSrc=c?c.cogs:0;
-  const feesSrc=estFees(revenueSrc,orders);
-  const rate=fxMultiplier();
-  const r=rate==null?1:rate; // fall back to 1:1 (flagged in the UI) rather than silently hide numbers
-  const revenue=Math.round(revenueSrc*r*100)/100, cogs=Math.round(cogsSrc*r*100)/100, fees=Math.round(feesSrc*r*100)/100;
-  const ad=getAdSpend(key); // already in displayCurrency
-  return {revenue, orders, fees, cogs, ad, rateLoaded:rate!=null, unmatchedSkus:(c&&c.unmatchedSkus)||[], profit:Math.round((revenue-fees-cogs-ad)*100)/100};
-}
-function money(n){ return (n<0?'-':'')+ccySymbol(SET.displayCurrency)+Math.abs(Math.round(n)).toLocaleString(); }
-
-function renderProfit(){
-  const key=todayKey();
-  fetchProfitDayIfStale(key);
-  fetchFxRateIfStale();
-  const p=dayProfit(key), c=getComputedDay(key);
-  $('#profitToday').textContent=money(p.profit);
-  $('#profitToday').style.color=p.profit<0?'var(--red)':'var(--green)';
-  const fx=getFxRate();
-  const fxNote = SET.storeCurrency===SET.displayCurrency ? ''
-    : (fx? ' · 1 '+SET.storeCurrency+' = '+fx.rate.toFixed(3)+' '+SET.displayCurrency : ' · fetching exchange rate…');
-  $('#profitTodaySub').textContent = (c ? ('Shopify data as of '+clock(c.updatedAt)) : (hasSrv? 'fetching Shopify data…' : 'local mode — no Shopify connection')) + fxNote;
-  $('#profitTiles').innerHTML=
-    '<div class="tile"><b>'+money(p.revenue)+'</b><span>revenue</span></div>'+
-    '<div class="tile"><b>'+p.orders+'</b><span>orders</span></div>'+
-    '<div class="tile"><b>'+money(p.fees)+'</b><span>est. fees</span></div>'+
-    '<div class="tile"><b>'+money(p.cogs)+'</b><span>cogs</span></div>'+
-    '<div class="tile"><b>'+money(p.ad)+'</b><span>ad spend</span></div>'+
-    '<div class="tile"><b style="color:'+(p.profit<0?'var(--red)':'var(--green)')+'">'+money(p.profit)+'</b><span>profit</span></div>';
-  $('#profitAdspend').value=p.ad||'';
-  $('#profitAdspendLbl').textContent='Ad spend today (Meta, '+SET.displayCurrency+')';
-  $('#profitStoreCcyNote').textContent=SET.storeCurrency;
-  $('#profitAdCcyNote').textContent=SET.displayCurrency;
-  $('#profitFeeNote').textContent=SET.feePct+'% + '+ccySymbol(SET.storeCurrency)+SET.feeFixed.toFixed(2)+'/order';
-  const products=getCogsProducts();
-  let warn = !products.length
-    ? '⚠ No product costs set up yet — COGS is showing '+ccySymbol(SET.displayCurrency)+'0. <button class="sm ghost" onclick="openCogsManage()">⚙ Add products</button>'
-    : (p.unmatchedSkus.length ? '⚠ '+p.unmatchedSkus.length+' SKU'+(p.unmatchedSkus.length>1?'s':'')+' sold today have no cost set: '+esc(p.unmatchedSkus.join(', '))+' <button class="sm ghost" onclick="openCogsManage()">⚙ Fix</button>' : '');
-  if(!p.rateLoaded) warn = '⚠ Exchange rate not loaded yet — figures below are still in raw '+SET.storeCurrency+', not converted to '+SET.displayCurrency+'.' + (warn?'<br>'+warn:'');
-  $('#profitCogsWarning').innerHTML = warn;
-
-  const trendPts=[];
-  for(let i=29;i>=0;i--){ const dd=new Date(); dd.setDate(dd.getDate()-i); const k=todayKey(dd); trendPts.push({x:k,y:Math.round(dayProfit(k).profit)}); }
-  drawDivergingBars($('#profitTrendChart'), trendPts, 'var(--green)', 'var(--red)');
-
-  const months=[]; for(let i=5;i>=0;i--){ const d=new Date(); d.setMonth(d.getMonth()-i,1); months.push(d); }
-  const monthPts=months.map(d=>{
-    const y=d.getFullYear(), m=d.getMonth()+1, dim=new Date(y,m,0).getDate();
-    let sum=0; for(let dd=1; dd<=dim; dd++) sum+=dayProfit(y+'-'+pad(m)+'-'+pad(dd)).profit;
-    return {x:y+'-'+pad(m)+'-01', y:Math.round(sum)};
-  });
-  drawDivergingBars($('#profitMonthChart'), monthPts, 'var(--green)', 'var(--red)');
-}
-
-/* ---- COGS management: per-product base cost + per-country shipping ---- */
-function openCogsManage(){ $('#cogsScrim').classList.add('show'); renderCogsManage(); }
-function closeCogsManage(){ $('#cogsScrim').classList.remove('show'); renderProfit(); }
-function addCogsProduct(){
-  const sku=$('#cogsNewSku').value.trim(), name=$('#cogsNewName').value.trim(), cost=parseFloat($('#cogsNewCost').value);
-  if(!sku||isNaN(cost)){ toast('Enter a SKU and a cost'); return; }
-  const list=getCogsProducts();
-  if(list.find(p=>p.sku===sku)){ toast('That SKU is already in the list'); return; }
-  list.push({sku,name:name||sku,baseCost:cost}); saveCogsProducts(list);
-  $('#cogsNewSku').value=''; $('#cogsNewName').value=''; $('#cogsNewCost').value='';
-  renderCogsManage();
-}
-function updateCogsProduct(sku,field,val){
-  const list=getCogsProducts(); const p=list.find(x=>x.sku===sku); if(!p) return;
-  if(field==='name') p.name=val; else if(field==='baseCost') p.baseCost=parseFloat(val)||0;
-  saveCogsProducts(list);
-}
-function deleteCogsProduct(sku){
-  saveCogsProducts(getCogsProducts().filter(p=>p.sku!==sku)); renderCogsManage();
-}
-function addShipCountry(){
-  const country=$('#shipNewCountry').value.trim().toUpperCase(), cost=parseFloat($('#shipNewCost').value);
-  if(!country||isNaN(cost)){ toast('Enter a country code (or * for default) and a cost'); return; }
-  const list=getShipCountries();
-  if(list.find(s=>s.country===country)){ toast('Already have a rate for '+country); return; }
-  list.push({country,cost}); saveShipCountries(list);
-  $('#shipNewCountry').value=''; $('#shipNewCost').value='';
-  renderCogsManage();
-}
-function updateShipCountry(country,val){
-  const list=getShipCountries(); const s=list.find(x=>x.country===country); if(!s) return;
-  s.cost=parseFloat(val)||0; saveShipCountries(list);
-}
-function deleteShipCountry(country){
-  saveShipCountries(getShipCountries().filter(s=>s.country!==country)); renderCogsManage();
-}
-function renderCogsManage(){
-  const products=getCogsProducts();
-  const pbox=$('#cogsProductList'); pbox.innerHTML='';
-  if(!products.length) pbox.innerHTML='<div class="empty">No products yet — add your first above.</div>';
-  products.forEach(p=>{
-    const row=document.createElement('div'); row.className='hmrow';
-    row.innerHTML='<input type="text" value="'+esc(p.sku)+'" disabled style="opacity:.6">'+
-      '<input type="text" value="'+esc(p.name)+'" placeholder="Name">'+
-      '<input type="number" value="'+p.baseCost+'" step="0.01" title="base item cost">'+
-      '<button class="sm ghost danger">✕</button>';
-    const [skuEl,nameEl,costEl,delBtn]=row.children;
-    nameEl.onchange=()=>updateCogsProduct(p.sku,'name',nameEl.value);
-    costEl.onchange=()=>updateCogsProduct(p.sku,'baseCost',costEl.value);
-    delBtn.onclick=()=>deleteCogsProduct(p.sku);
-    pbox.appendChild(row);
-  });
-  const countries=getShipCountries();
-  const cbox=$('#shipCountryList'); cbox.innerHTML='';
-  if(!countries.length) cbox.innerHTML='<div class="empty">No shipping rates yet — add a "*" default rate at least.</div>';
-  countries.forEach(s=>{
-    const row=document.createElement('div'); row.className='hmrow';
-    row.innerHTML='<input type="text" value="'+esc(s.country)+'" disabled style="opacity:.6;flex:0 0 60px">'+
-      '<input type="number" value="'+s.cost+'" step="0.01" title="shipping cost per unit">'+
-      '<button class="sm ghost danger">✕</button>';
-    const [countryEl,costEl,delBtn]=row.children;
-    costEl.onchange=()=>updateShipCountry(s.country,costEl.value);
-    delBtn.onclick=()=>deleteShipCountry(s.country);
-    cbox.appendChild(row);
-  });
-}
 
 /* ================= router ================= */
 let activeTab = jload('tab','today');
@@ -3163,7 +2928,7 @@ function renderAll(){
   ensureHabitsMigrated();
   renderXPBar();
   autoFlow();
-  renderToday(); renderWork(); renderGym(); renderRapPanel(); renderDiet(); renderHabits(); renderProfit(); renderGoals(); renderTabs();
+  renderToday(); renderWork(); renderGym(); renderRapPanel(); renderDiet(); renderHabits(); renderProfitBar(); renderGoals(); renderTabs();
 }
 
 /* ================= init ================= */

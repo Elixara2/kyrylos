@@ -1170,6 +1170,14 @@ const FLOW_STAGES = [
   {id:'diet', em:'🍽', t:'Diet', d:'All meals + 3L water', open:()=>showTab('diet')},
   {id:'goals', em:'✅', t:'Goals', d:'All ticked off', open:()=>showTab('goals')},
 ];
+function flowOrder(){
+  const ids=FLOW_STAGES.map(s=>s.id), saved=kget('flowOrder', null);
+  if(!saved) return ids.slice();
+  const known=saved.filter(id=>ids.includes(id));
+  ids.forEach(id=>{ if(!known.includes(id)) known.push(id); });
+  return known;
+}
+function saveFlowOrder(order){ kset('flowOrder', order); }
 function getFlow(){ return kget('flow:'+todayKey(),{}); }
 function setFlowPart(id,val){ flowMutate(id,val); renderToday(); renderTabs(); }
 function setFlowPartQuiet(id,val){ flowMutate(id,val); }
@@ -1198,6 +1206,63 @@ function autoFlow(){
   setFlowPartQuiet('tracker', acts.length>0 && acts.every(h=>hd.checks[h.id]===true || (h.kind==='tri' && hd.checks[h.id]==='R')));
 }
 
+/* ---- generic press-and-hold drag reorder for any list of .dragblock items ----
+   Same interaction as Studio's block reordering (500ms hold, then drag), just
+   parameterized so Today's flow list and Goals can both use it without duplicating
+   the pointer-event plumbing. */
+function makeDragReorder(containerSel, itemSel, idAttr, getOrder, saveOrder, onDrop){
+  let press=null, drag=null;
+  function bind(){
+    const container=$(containerSel); if(!container) return;
+    container.querySelectorAll(itemSel).forEach(el=>{
+      el.onpointerdown=e=>{
+        if(e.target.closest('button,input,select,a,textarea')) return;
+        press={el, x:e.clientX, y:e.clientY, timer:setTimeout(()=>lift(el,e),500)};
+      };
+      el.onpointermove=e=>{
+        if(press && press.el===el && press.timer){
+          if(Math.abs(e.clientX-press.x)>8 || Math.abs(e.clientY-press.y)>8){ clearTimeout(press.timer); press=null; }
+        }
+        if(drag && drag.el===el) dragMove(e);
+      };
+      el.onpointerup=()=>{
+        if(press && press.timer){ clearTimeout(press.timer); press=null; }
+        if(drag && drag.el===el) drop();
+      };
+      el.onpointercancel=()=>{
+        if(press && press.timer){ clearTimeout(press.timer); press=null; }
+        if(drag){ drag.el.classList.remove('lifted'); drag.el.style.transform=''; drag=null; }
+      };
+    });
+  }
+  function lift(el,e){
+    press=null;
+    try{ el.setPointerCapture(e.pointerId); }catch(err){}
+    el.classList.add('lifted'); buzz(25); beep([[720,.08]]);
+    drag={el, id:el.dataset[idAttr], startY:e.clientY};
+  }
+  function dragMove(e){ if(!drag) return; drag.el.style.transform='translateY('+(e.clientY-drag.startY)+'px) scale(1.02)'; }
+  function drop(){
+    if(!drag) return;
+    const {el,id}=drag;
+    el.classList.remove('lifted'); el.style.transform='';
+    const rect=el.getBoundingClientRect(), centerY=rect.top+rect.height/2;
+    const container=$(containerSel), order=getOrder(), others=order.filter(x=>x!==id);
+    let newIndex=0;
+    others.forEach(x=>{
+      const sib=container.querySelector(itemSel+'[data-'+idAttr.toLowerCase()+'="'+x+'"]');
+      if(sib){ const r=sib.getBoundingClientRect(); if(r.top+r.height/2<centerY) newIndex++; }
+    });
+    const newOrder=others.slice(); newOrder.splice(newIndex,0,id);
+    drag=null;
+    if(newOrder.join(',')!==order.join(',')){ saveOrder(newOrder); buzz(15); }
+    onDrop && onDrop();
+  }
+  return bind;
+}
+
+const bindFlowDrag=makeDragReorder('#flowlist','.fitem','fid',flowOrder,saveFlowOrder,renderToday);
+
 /* ================= TODAY ================= */
 const RC = 2*Math.PI*52;
 $('#dayRing').style.strokeDasharray=RC;
@@ -1209,20 +1274,23 @@ function renderToday(){
   $('#dayRing').style.strokeDashoffset=RC*(1-pct/100);
   const h=new Date().getHours();
   $('#greet').textContent = h<12?'Morning, Kyryl.':h<17?'Keep pushing, Kyryl.':'Evening, Kyryl.';
-  const next=FLOW_STAGES.find(s=>!f[s.id]);
+  const next=FLOW_STAGES.find(s=>s.id===flowOrder().find(id=>!f[id]));
   $('#nowHint').textContent = next ? 'Up next: '+next.t : 'Everything done. Legend. 🏆';
   const d=getDiet();
   $('#waterMini').textContent='💧 '+(d.water/1000).toFixed(2)+' / '+(SET.tankMl*2/1000).toFixed(2)+' L · 🍽 '+
     getMealDefs().filter(m=>d.meals&&d.meals[m.id]).length+'/'+getMealDefs().length+' meals';
   const box=$('#flowlist'); box.innerHTML='';
-  FLOW_STAGES.forEach(s=>{
-    const div=document.createElement('div'); div.className='fitem'+(f[s.id]?' done':'');
+  flowOrder().forEach(id=>{
+    const s=FLOW_STAGES.find(x=>x.id===id); if(!s) return;
+    const div=document.createElement('div'); div.className='fitem dragblock'+(f[s.id]?' done':'');
+    div.dataset.fid=s.id;
     div.innerHTML='<div class="fchk">✓</div><div class="ft"><b>'+s.em+' '+s.t+'</b><span>'+s.d+'</span></div>'+
       '<button class="sm ghost">open</button>';
     div.querySelector('.fchk').onclick=()=>{ const was=!!f[s.id]; setFlowPart(s.id,!was); if(!was){ chimeDone(); buzz(30);} };
     div.querySelector('button').onclick=()=>s.open();
     box.appendChild(div);
   });
+  bindFlowDrag();
   const g=getGoals();
   $('#goalsMini').innerHTML = g.length
     ? g.map(x=>'<div style="padding:2px 0">'+(x.done?'✅ <s style="color:var(--dim)">':'⬜ ')+esc(x.text)+(x.done?'</s>':'')+'</div>').join('')
@@ -2427,18 +2495,28 @@ function carryOver(){
   prev.forEach(p=>{ if(!g.find(x=>x.text===p.text)) g.push({id:Date.now()+Math.random().toString(36).slice(2,6),text:p.text,done:false}); });
   kset('goals:'+todayKey(),g); doSync(false); renderGoals(); toast('Carried over '+prev.length);
 }
+function reorderGoals(newIdOrder){
+  const g=getGoals();
+  const byId=Object.fromEntries(g.map(x=>[x.id,x]));
+  const reordered=newIdOrder.map(id=>byId[id]).filter(Boolean);
+  kset('goals:'+todayKey(), reordered);
+  doSync(false);
+}
+const bindGoalsDrag=makeDragReorder('#glist','.goal','gid',()=>getGoals().map(x=>x.id),reorderGoals,renderGoals);
 function renderGoals(){
   const g=getGoals(), box=$('#glist');
   $('#goalCount').textContent='· '+g.filter(x=>x.done).length+'/'+g.length+' done';
   box.innerHTML = g.length?'':'<div class="empty">No goals yet today.</div>';
   g.forEach(x=>{
-    const div=document.createElement('div'); div.className='goal'+(x.done?' done':'');
+    const div=document.createElement('div'); div.className='goal dragblock'+(x.done?' done':'');
+    div.dataset.gid=x.id;
     div.innerHTML='<div class="gchk">✓</div><div class="gtext">'+esc(x.text)+'</div><button class="gdel">✕</button>';
     div.querySelector('.gchk').onclick=(e)=>toggleGoal(x.id,e);
     div.querySelector('.gtext').onclick=(e)=>toggleGoal(x.id,e);
     div.querySelector('.gdel').onclick=()=>delGoal(x.id);
     box.appendChild(div);
   });
+  bindGoalsDrag();
   let streak=0; const probe=new Date();
   const full=k=>{ const gg=kget('goals:'+k,null); return gg && gg.length>0 && gg.every(x=>x.done); };
   if(!full(todayKey())) probe.setDate(probe.getDate()-1);

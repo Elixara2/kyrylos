@@ -314,17 +314,36 @@
 
   /* goals */
   .goalrow{display:flex;gap:8px;margin-bottom:12px}
+  .goalrow input{min-width:0}
   .glist{display:flex;flex-direction:column}
-  .goal{display:flex;align-items:center;gap:12px;padding:11px 2px;border-bottom:1px solid var(--line);animation:fade .25s var(--ease)}
+  .goal-datenav{display:flex;align-items:center;gap:10px}
+  .goal-datenav button{padding:6px 14px;border-radius:10px}
+  .goal-date{flex:1;text-align:center}
+  .goal-date b{font-size:17px}
+  .goal{display:flex;align-items:center;gap:10px;padding:11px 2px;border-bottom:1px solid var(--line);animation:fade .25s var(--ease)}
   .goal:last-child{border-bottom:none}
+  .gflag{width:4px;align-self:stretch;border-radius:99px;flex:0 0 auto;min-height:24px}
   .gchk{width:24px;height:24px;border-radius:8px;border:1.5px solid var(--line);flex:0 0 auto;cursor:pointer;
     display:flex;align-items:center;justify-content:center;color:transparent;font-size:13px;transition:.18s}
   .goal.done .gchk{background:var(--green);border-color:var(--green);color:#06220f}
-  .gtext{flex:1;font-size:15px;position:relative;transition:color .3s;word-break:break-word;cursor:pointer}
+  .gbody{flex:1;cursor:pointer;min-width:0}
+  .gtext{flex:1;font-size:15px;position:relative;transition:color .3s;word-break:break-word}
   .gtext::after{content:"";position:absolute;left:0;top:52%;height:1.5px;width:0;background:var(--dim);transition:width .35s var(--ease)}
   .goal.done .gtext{color:var(--dim)}
   .goal.done .gtext::after{width:100%}
-  .gdel{background:none;border:none;color:var(--dim);font-size:15px;padding:6px}
+  .gmeta{font-size:11.5px;color:var(--dim);margin-top:2px}
+  .gdel{background:none;border:none;color:var(--dim);font-size:15px;padding:6px;flex:0 0 auto}
+  .prio-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .prio-btn{background:var(--panel2);border:1px solid var(--line);border-radius:99px;padding:7px 13px;font-size:13px;cursor:pointer}
+  .prio-btn.on{background:var(--accent2);border-color:var(--accent2)}
+  .subtask{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+  .subtask:last-child{border-bottom:none}
+  .subchk{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--line);flex:0 0 auto;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;color:transparent;font-size:11px;transition:.18s}
+  .subtask.done .subchk{background:var(--green);border-color:var(--green);color:#06220f}
+  .subtext{flex:1;font-size:14px;word-break:break-word}
+  .subtask.done .subtext{color:var(--dim);text-decoration:line-through}
+  .subdel{background:none;border:none;color:var(--dim);font-size:14px;padding:4px;flex:0 0 auto}
 
   /* habits */
   .habcat{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);font-weight:700;margin:16px 0 2px}
@@ -382,7 +401,8 @@
     display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
   .scrim.show{display:flex}
   .modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;width:100%;
-    max-width:560px;max-height:86vh;overflow-y:auto;box-shadow:0 24px 70px rgba(0,0,0,.55)}
+    min-width:0;max-width:560px;max-height:86vh;overflow-y:auto;box-shadow:0 24px 70px rgba(0,0,0,.55)}
+  .modal input,.modal textarea{max-width:100%}
   .modal h2{margin:0 0 4px;font-size:18px}
   .modal .foot{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}
   .setgrid{display:flex;flex-direction:column;gap:12px;margin-top:12px}
@@ -779,18 +799,44 @@
   <!-- ============ GOALS ============ -->
   <section class="panel" id="p-goals">
     <div class="card">
-      <h2>Goals for today <span class="sub" id="goalCount"></span></h2>
-      <div class="sub" id="goalStreak" style="margin-top:2px"></div>
+      <div class="goal-datenav">
+        <button class="sm ghost" onclick="goalDateShift(-1)">‹</button>
+        <div class="goal-date"><b id="goalDateLbl">Today</b><span class="sub" id="goalCount"></span></div>
+        <button class="sm ghost" onclick="goalDateShift(1)">›</button>
+        <button class="sm ghost" id="goalTodayBtn" onclick="goalDateToday()" style="display:none">Today</button>
+      </div>
+      <div class="sub" id="goalStreak" style="margin-top:6px"></div>
       <div class="goalrow" style="margin-top:12px">
-        <input type="text" id="goalInput" class="grow" placeholder="Write a goal… syncs to your other device">
+        <input type="text" id="goalInput" class="grow" placeholder="Write a goal, to-do or note…">
         <button class="primary" onclick="addGoal()">Add</button>
       </div>
-      <div class="glist" id="glist"><div class="empty">No goals yet today.</div></div>
+      <div class="glist" id="glist"><div class="empty">Blank page — write your first goal or note.</div></div>
       <div class="row" style="margin-top:12px">
-        <button class="sm ghost" onclick="carryOver()">↩ Carry over yesterday's unfinished</button>
+        <button class="sm ghost" onclick="carryOverAll()">↩ Carry over all unfinished</button>
       </div>
     </div>
   </section>
+</div>
+
+<!-- goal detail — black-book page: title, priority, notes, mini-tasks -->
+<div class="scrim" id="goalScrim" onclick="if(event.target===this)closeGoalDetail()">
+  <div class="modal">
+    <input type="text" id="gdTitle" placeholder="Goal title" style="font-size:17px;font-weight:600">
+    <div class="lbl" style="margin-top:14px">Priority</div>
+    <div class="prio-row" id="gdPriority"></div>
+    <div class="lbl" style="margin-top:14px">Notes</div>
+    <textarea id="gdNotes" rows="4" placeholder="Extra info, quick thoughts, links…" style="width:100%;margin-top:4px"></textarea>
+    <div class="lbl" style="margin-top:14px">Mini-tasks</div>
+    <div id="gdSubs" style="margin-top:4px"></div>
+    <div class="goalrow" style="margin-top:8px">
+      <input type="text" id="gdSubInput" class="grow" placeholder="Add a mini-task…" onkeydown="if(event.key==='Enter')addSubtask()">
+      <button class="sm" onclick="addSubtask()">Add</button>
+    </div>
+    <div class="foot">
+      <button class="ghost danger" onclick="deleteGoalFromDetail()">Delete goal</button>
+      <button class="primary" onclick="closeGoalDetail()">Done</button>
+    </div>
+  </div>
 </div>
 
 <!-- tab bar -->
@@ -2725,51 +2771,107 @@ function renderDiet(){
 }
 
 /* ================= GOALS ================= */
-function getGoals(){ return kget('goals:'+todayKey(),[]); }
+/* ---- Goals = your black book: dated pages of to-dos / notes / daily goals.
+   Each goal can carry a priority, free-text notes, and its own mini-tasks. ---- */
+const PRIORITIES=[
+  {id:'none',   label:'None',   color:'var(--dim)',    dot:''},
+  {id:'low',    label:'Low',    color:'#60a5fa',       dot:'🔵'},
+  {id:'medium', label:'Medium', color:'#f59e0b',       dot:'🟡'},
+  {id:'high',   label:'High',   color:'#fb923c',       dot:'🟠'},
+  {id:'urgent', label:'Urgent', color:'#ef4444',       dot:'🔴'}
+];
+function prioMeta(id){ return PRIORITIES.find(p=>p.id===id) || PRIORITIES[0]; }
+function normGoal(g){
+  return { id:g.id, text:g.text||'', done:!!g.done,
+    priority: g.priority||'none', notes: g.notes||'',
+    subtasks: Array.isArray(g.subtasks) ? g.subtasks.map(s=>({id:s.id, text:s.text||'', done:!!s.done})) : [] };
+}
+function newId(){ return Date.now()+Math.random().toString(36).slice(2,6); }
+
+/* which dated page of the black book we're looking at (default today) */
+let goalDate = todayKey();
+function goalKey(){ return 'goals:'+goalDate; }
+function viewGoals(){ return (kget(goalKey(),[])||[]).map(normGoal); }
+function saveViewGoals(arr){ kset(goalKey(), arr); doSync(false); }
+function getGoals(){ return (kget('goals:'+todayKey(),[])||[]).map(normGoal); } // TODAY — for flow/streak/mini
+
+function goalDateShift(days){
+  const d=new Date(goalDate+'T00:00:00'); d.setDate(d.getDate()+days);
+  goalDate=todayKey(d); renderGoals();
+}
+function goalDateToday(){ goalDate=todayKey(); renderGoals(); }
+
 function addGoal(){
   const t=$('#goalInput').value.trim(); if(!t) return;
-  const g=getGoals(); g.push({id:Date.now()+Math.random().toString(36).slice(2,6), text:t, done:false});
-  kset('goals:'+todayKey(),g); $('#goalInput').value='';
-  doSync(false); renderGoals(); renderToday();
+  const g=viewGoals(); g.push({id:newId(), text:t, done:false, priority:'none', notes:'', subtasks:[]});
+  saveViewGoals(g); $('#goalInput').value='';
+  renderGoals(); renderToday();
 }
 $('#goalInput').addEventListener('keydown',e=>{ if(e.key==='Enter') addGoal(); });
 function toggleGoal(id,ev){
-  const g=getGoals(); const x=g.find(y=>y.id===id); if(!x) return;
-  x.done=!x.done; kset('goals:'+todayKey(),g);
+  const g=viewGoals(); const x=g.find(y=>y.id===id); if(!x) return;
+  x.done=!x.done; saveViewGoals(g);
   if(x.done){ chimeDone(); buzz(30); addXP(10,'goal'); confettiBurst(ev?ev.clientX:undefined, ev?ev.clientY:undefined, 34); toast(affirm()); }
-  doSync(false); autoFlow(); renderGoals(); renderToday(); renderTabs();
+  autoFlow(); renderGoals(); renderToday(); renderTabs();
 }
 function delGoal(id){
-  const g=getGoals().filter(y=>y.id!==id); kset('goals:'+todayKey(),g);
-  doSync(false); renderGoals(); renderToday();
+  const g=viewGoals().filter(y=>y.id!==id); saveViewGoals(g);
+  renderGoals(); renderToday();
 }
-function carryOver(){
-  const y=new Date(); y.setDate(y.getDate()-1);
-  const prev=kget('goals:'+todayKey(y),[]).filter(x=>!x.done);
-  if(!prev.length){ toast('Nothing unfinished yesterday'); return; }
-  const g=getGoals();
-  prev.forEach(p=>{ if(!g.find(x=>x.text===p.text)) g.push({id:Date.now()+Math.random().toString(36).slice(2,6),text:p.text,done:false}); });
-  kset('goals:'+todayKey(),g); doSync(false); renderGoals(); toast('Carried over '+prev.length);
+/* carry EVERY unfinished goal from any earlier dated page onto today — idempotent
+   (dedupes by text), leaves the old pages intact as a record */
+function carryOverAll(){
+  const today=todayKey();
+  const dayKeys=Object.keys(KVD).filter(k=>k.startsWith('goals:') && k.slice(6)<today).sort();
+  const cur=(kget('goals:'+today,[])||[]).map(normGoal);
+  const have=new Set(cur.map(x=>x.text.trim().toLowerCase()));
+  let added=0;
+  dayKeys.forEach(k=>{
+    (kget(k,[])||[]).map(normGoal).forEach(x=>{
+      if(x.done) return;
+      const key=x.text.trim().toLowerCase();
+      if(have.has(key)) return;
+      have.add(key);
+      cur.push({id:newId(), text:x.text, done:false, priority:x.priority, notes:x.notes, subtasks:x.subtasks.map(s=>({id:newId(),text:s.text,done:false}))});
+      added++;
+    });
+  });
+  if(!added){ toast('Nothing unfinished to carry over'); return; }
+  kset('goals:'+today, cur); doSync(false);
+  goalDate=today; renderGoals(); renderToday();
+  toast('Carried over '+added+' unfinished goal'+(added===1?'':'s'));
 }
 function reorderGoals(newIdOrder){
-  const g=getGoals();
+  const g=viewGoals();
   const byId=Object.fromEntries(g.map(x=>[x.id,x]));
   const reordered=newIdOrder.map(id=>byId[id]).filter(Boolean);
-  kset('goals:'+todayKey(), reordered);
-  doSync(false);
+  saveViewGoals(reordered);
 }
-const bindGoalsDrag=makeDragReorder('#glist','.goal','gid',()=>getGoals().map(x=>x.id),reorderGoals,renderGoals);
+const bindGoalsDrag=makeDragReorder('#glist','.goal','gid',()=>viewGoals().map(x=>x.id),reorderGoals,renderGoals);
+
 function renderGoals(){
-  const g=getGoals(), box=$('#glist');
-  $('#goalCount').textContent='· '+g.filter(x=>x.done).length+'/'+g.length+' done';
-  box.innerHTML = g.length?'':'<div class="empty">No goals yet today.</div>';
+  const g=viewGoals(), box=$('#glist');
+  const isToday=goalDate===todayKey();
+  const d=new Date(goalDate+'T00:00:00');
+  $('#goalDateLbl').textContent = isToday ? 'Today' : d.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'});
+  $('#goalTodayBtn').style.display = isToday ? 'none' : '';
+  $('#goalCount').textContent = g.length ? '· '+g.filter(x=>x.done).length+'/'+g.length+' done' : '';
+  box.innerHTML = g.length?'':'<div class="empty">'+(isToday?'Blank page — write your first goal or note.':'Nothing written on this day.')+'</div>';
   g.forEach(x=>{
+    const pm=prioMeta(x.priority);
+    const subDone=x.subtasks.filter(s=>s.done).length, subN=x.subtasks.length;
+    const meta=[]; if(subN) meta.push('☑ '+subDone+'/'+subN); if(x.notes.trim()) meta.push('📝');
     const div=document.createElement('div'); div.className='goal dragblock'+(x.done?' done':'');
     div.dataset.gid=x.id;
-    div.innerHTML='<div class="drag-handle">'+DRAG_HANDLE_SVG+'</div><div class="gchk">✓</div><div class="gtext">'+esc(x.text)+'</div><button class="gdel">✕</button>';
-    div.querySelector('.gchk').onclick=(e)=>toggleGoal(x.id,e);
-    div.querySelector('.gtext').onclick=(e)=>toggleGoal(x.id,e);
-    div.querySelector('.gdel').onclick=()=>delGoal(x.id);
+    div.innerHTML='<div class="drag-handle">'+DRAG_HANDLE_SVG+'</div>'+
+      '<div class="gflag" style="background:'+(x.priority==='none'?'transparent':pm.color)+'"></div>'+
+      '<div class="gchk">✓</div>'+
+      '<div class="gbody"><div class="gtext">'+esc(x.text)+'</div>'+
+        (meta.length?'<div class="gmeta">'+meta.join(' · ')+'</div>':'')+'</div>'+
+      '<button class="gdel">✕</button>';
+    div.querySelector('.gchk').onclick=(e)=>{ e.stopPropagation(); toggleGoal(x.id,e); };
+    div.querySelector('.gbody').onclick=()=>openGoalDetail(x.id);
+    div.querySelector('.gdel').onclick=(e)=>{ e.stopPropagation(); delGoal(x.id); };
     box.appendChild(div);
   });
   bindGoalsDrag();
@@ -2778,6 +2880,63 @@ function renderGoals(){
   if(!full(todayKey())) probe.setDate(probe.getDate()-1);
   while(full(todayKey(probe))){ streak++; probe.setDate(probe.getDate()-1); }
   $('#goalStreak').textContent = streak? '🔥 '+streak+' day streak of clearing every goal' : 'Clear all your goals today to start a streak.';
+}
+
+/* ---- goal detail: title, priority, notes, mini-tasks ---- */
+let gdCurrentId=null;
+function openGoalDetail(id){
+  const g=viewGoals(), x=g.find(y=>y.id===id); if(!x) return;
+  gdCurrentId=id;
+  $('#gdTitle').value=x.text;
+  $('#gdNotes').value=x.notes;
+  renderGdPriority(x.priority);
+  renderGdSubs(x.subtasks);
+  $('#gdSubInput').value='';
+  $('#goalScrim').classList.add('show');
+}
+function closeGoalDetail(){ saveGoalDetail(); $('#goalScrim').classList.remove('show'); gdCurrentId=null; }
+function gdGoal(){ return viewGoals().find(y=>y.id===gdCurrentId); }
+function gdMutate(fn){
+  const g=viewGoals(), x=g.find(y=>y.id===gdCurrentId); if(!x) return;
+  fn(x); saveViewGoals(g);
+}
+function saveGoalDetail(){
+  if(!gdCurrentId) return;
+  const title=$('#gdTitle').value.trim(), notes=$('#gdNotes').value;
+  gdMutate(x=>{ if(title) x.text=title; x.notes=notes; });
+  renderGoals(); renderToday();
+}
+function renderGdPriority(cur){
+  const box=$('#gdPriority'); box.innerHTML='';
+  PRIORITIES.forEach(p=>{
+    const b=document.createElement('button');
+    b.className='prio-btn'+(p.id===cur?' on':''); b.textContent=p.label;
+    if(p.id===cur && p.id!=='none') b.style.background=p.color, b.style.borderColor=p.color, b.style.color='#0c0704';
+    b.onclick=()=>{ gdMutate(x=>x.priority=p.id); renderGdPriority(p.id); renderGoals(); };
+    box.appendChild(b);
+  });
+}
+function renderGdSubs(subs){
+  const box=$('#gdSubs'); box.innerHTML = subs.length?'':'<div class="sub" style="padding:4px 0">No mini-tasks yet.</div>';
+  subs.forEach(s=>{
+    const row=document.createElement('div'); row.className='subtask'+(s.done?' done':'');
+    row.innerHTML='<div class="subchk">✓</div><div class="subtext">'+esc(s.text)+'</div><button class="subdel">✕</button>';
+    row.querySelector('.subchk').onclick=()=>{ gdMutate(x=>{ const t=x.subtasks.find(y=>y.id===s.id); if(t) t.done=!t.done; }); refreshGdSubs(); };
+    row.querySelector('.subdel').onclick=()=>{ gdMutate(x=>{ x.subtasks=x.subtasks.filter(y=>y.id!==s.id); }); refreshGdSubs(); };
+    box.appendChild(row);
+  });
+}
+function refreshGdSubs(){ const x=gdGoal(); if(x) renderGdSubs(x.subtasks); renderGoals(); }
+function addSubtask(){
+  const inp=$('#gdSubInput'), t=inp.value.trim(); if(!t) return;
+  gdMutate(x=>x.subtasks.push({id:newId(), text:t, done:false}));
+  inp.value=''; refreshGdSubs(); inp.focus();
+}
+function deleteGoalFromDetail(){
+  if(!gdCurrentId) return;
+  const g=viewGoals().filter(y=>y.id!==gdCurrentId); kset(goalKey(), g); doSync(false);
+  $('#goalScrim').classList.remove('show'); gdCurrentId=null;
+  renderGoals(); renderToday();
 }
 
 /* ================= HABITS (life tracker) ================= */

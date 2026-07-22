@@ -117,15 +117,23 @@
   .rmid b{font-size:24px;font-variant-numeric:tabular-nums}
   .rmid span{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:1px}
   .flowlist{display:flex;flex-direction:column}
-  .fitem{display:flex;align-items:center;gap:12px;padding:11px 2px;border-bottom:1px solid var(--line)}
+  .fitem{display:flex;align-items:center;gap:12px;padding:13px 2px;border-bottom:1px solid var(--line)}
   .fitem:last-child{border-bottom:none}
-  .fchk{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--line);flex:0 0 auto;cursor:pointer;
-    display:flex;align-items:center;justify-content:center;font-size:14px;color:transparent;transition:.2s}
-  .fitem.done .fchk{background:var(--green);border-color:var(--green);color:#06220f}
-  .fitem .ft{flex:1;min-width:0}
-  .fitem .ft b{font-size:14.5px;font-weight:600;display:block}
+  .fitem .ft{flex:1;min-width:0;cursor:pointer}
+  .fitem .ft b{font-size:15px;font-weight:600;display:block}
   .fitem .ft span{font-size:12px;color:var(--dim)}
-  .fitem.done .ft b{text-decoration:line-through;color:var(--dim)}
+  .fitem.done .ft b{color:var(--dim)}
+  .fgo{flex:0 0 auto;width:26px;height:26px;display:flex;align-items:center;justify-content:center;
+    color:var(--dim);font-size:20px;cursor:pointer}
+  .fitem.done .fgo{color:var(--green)}
+  .setbtn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left}
+  .setbtn .st{color:var(--dim);font-size:12.5px;font-weight:600;flex:0 0 auto}
+  .cardlink{cursor:pointer;transition:border-color .15s}
+  .cardlink:active{border-color:var(--accent)}
+  .cardlink-h{display:flex;align-items:center;justify-content:space-between}
+  .cardlink-go{color:var(--dim);font-size:20px;font-weight:400}
+  .miniitem{padding:3px 0;font-size:13.5px;color:var(--txt)}
+  .miniitem.done{color:var(--dim);text-decoration:line-through}
 
   /* work */
   .clock{text-align:center;padding:8px 0 2px}
@@ -485,22 +493,22 @@
       <h2>Daily flow</h2>
       <div class="flowlist" id="flowlist"></div>
     </div>
-    <div class="card">
-      <h2>Habits <button class="sm ghost" onclick="showTab('habits')">open →</button></h2>
+    <div class="card cardlink" onclick="showTab('habits')">
+      <h2 class="cardlink-h">Habits <span class="cardlink-go">›</span></h2>
       <div id="habitsMini" class="sub">—</div>
     </div>
-    <div class="card">
-      <h2>Goals <button class="sm ghost" onclick="showTab('goals')">open →</button></h2>
+    <div class="card cardlink" onclick="showTab('goals')">
+      <h2 class="cardlink-h">Goals <span class="cardlink-go">›</span></h2>
       <div id="goalsMini" class="sub">—</div>
     </div>
-    <div class="card">
-      <div class="row" style="justify-content:space-between">
+    <div class="card cardlink" onclick="openProphit()">
+      <div class="row" style="justify-content:space-between;align-items:flex-start">
         <div>
           <div class="lbl">Today's profit</div>
           <div id="profitBarValue" style="font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:2px">—</div>
           <div class="sub" id="profitBarSub">—</div>
         </div>
-        <button class="sm ghost" onclick="openProphit()">Prophit ↗</button>
+        <span class="cardlink-go" style="font-size:22px">›</span>
       </div>
     </div>
   </section>
@@ -817,6 +825,39 @@
       </div>
     </div>
   </section>
+
+  <!-- ============ ALARM · morning mission ============ -->
+  <section class="panel" id="p-alarm">
+    <div class="card">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <h2 style="margin:0">Morning Mission ⏰</h2>
+        <span class="sub" id="missionStatus"></span>
+      </div>
+      <div class="sub" style="margin-top:4px">Pairs with your phone's real alarm: it rings you awake, K-OS then locks the whole app until you complete a mission.</div>
+      <div class="toggle-row" onclick="toggleMissionEnabled()" style="margin-top:12px">
+        <div><b>Require a mission each morning</b><span>Blocks the whole app until solved</span></div>
+        <div class="switch" id="missionEnabledToggle"><i></i></div>
+      </div>
+      <button class="primary" onclick="openMission()" style="width:100%;margin-top:14px">▶ Run mission now</button>
+    </div>
+
+    <div class="card">
+      <div class="lbl">Mission types</div>
+      <div class="sub" style="margin-top:2px">Tap to toggle — one is picked at random each morning.</div>
+      <div class="chips" id="missionTypeChips" style="margin-top:10px"></div>
+
+      <div class="lbl" style="margin-top:16px">Math difficulty</div>
+      <select id="missionMathDiff" onchange="setMissionMathDiff(this.value)" style="width:100%;margin-top:6px">
+        <option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option>
+      </select>
+
+      <div class="lbl" style="margin-top:16px">Phrases to type</div>
+      <div class="sub" style="margin-top:2px">One per line — leave blank for defaults.</div>
+      <textarea id="missionPhrases" rows="3" style="width:100%;margin-top:6px" onblur="saveMissionPhrases(this.value)" placeholder="I choose discipline over comfort"></textarea>
+
+      <button class="setbtn" onclick="registerBarcodeRef()" style="margin-top:14px"><span>Scan reference barcode</span><span class="st" id="missionBarcodeStatus">—</span></button>
+    </div>
+  </section>
 </div>
 
 <!-- goal detail — black-book page: title, priority, notes, mini-tasks -->
@@ -849,6 +890,7 @@
   <button class="tab" data-tab="diet" onclick="showTab('diet')"><span class="ic">🍗</span>Diet<span class="dotdone"></span></button>
   <button class="tab" data-tab="habits" onclick="showTab('habits')"><span class="ic">📈</span>Habits<span class="dotdone"></span></button>
   <button class="tab" data-tab="goals" onclick="showTab('goals')"><span class="ic">✅</span>Goals<span class="dotdone"></span></button>
+  <button class="tab" data-tab="alarm" onclick="showTab('alarm')"><span class="ic">⏰</span>Alarm<span class="dotdone"></span></button>
 </div></nav>
 
 <!-- time-study log modal -->
@@ -934,29 +976,6 @@
         <div><b>Live flowing gradient</b><span>Colours drift and breathe on their own</span></div>
         <div class="switch" id="themeLiveToggle"><i></i></div>
       </div>
-    </div>
-
-    <div class="sect">
-      <div class="lbl">Morning Mission — wake-up gate</div>
-      <div class="sub">Pairs with your phone's real alarm: it rings you awake, K-OS then locks the app until you complete a mission.</div>
-      <div class="toggle-row" onclick="toggleMissionEnabled()" style="margin-top:8px">
-        <div><b>Require a mission each morning</b><span>Blocks the whole app until solved</span></div>
-        <div class="switch" id="missionEnabledToggle"><i></i></div>
-      </div>
-      <div class="lbl" style="margin-top:12px">Mission types (tap to toggle — one is picked at random each morning)</div>
-      <div class="chips" id="missionTypeChips"></div>
-      <div class="row" style="margin-top:8px">
-        <div class="grow"><label>Math difficulty</label>
-          <select id="missionMathDiff" onchange="setMissionMathDiff(this.value)">
-            <option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option>
-          </select>
-        </div>
-      </div>
-      <div style="margin-top:10px">
-        <label>Phrases to type (one per line — leave blank for defaults)</label>
-        <textarea id="missionPhrases" rows="3" style="width:100%" onblur="saveMissionPhrases(this.value)" placeholder="I choose discipline over comfort"></textarea>
-      </div>
-      <button class="setbtn" onclick="registerBarcodeRef()" style="margin-top:10px"><span>Scan reference barcode</span><span class="st" id="missionBarcodeStatus">—</span></button>
     </div>
 
     <div class="setgrid">
@@ -1254,7 +1273,6 @@ function openSettings(){
   $('#setRapMin').value=SET.rapGoal; $('#setUnit').value=SET.unit;
   $('#setDayA').value=SET.dayAName; $('#setDayB').value=SET.dayBName;
   renderThemeUI();
-  renderMissionSettings();
   setSyncUI(hasSrv?'ok':null);
   $('#setScrim').classList.add('show');
 }
@@ -1407,6 +1425,11 @@ function renderMissionSettings(){
   const diffSel=$('#missionMathDiff'); if(diffSel) diffSel.value=m.mathDiff;
   const phrasesEl=$('#missionPhrases'); if(phrasesEl && document.activeElement!==phrasesEl) phrasesEl.value=(m.phrases||[]).join('\n');
   const bs=$('#missionBarcodeStatus'); if(bs) bs.textContent = m.barcodeRef ? 'Set ✓' : 'Not set';
+}
+function renderAlarm(){
+  renderMissionSettings();
+  const m=getMission(), st=$('#missionStatus'); if(!st) return;
+  st.textContent = !m.enabled ? 'Off' : (todayMissionDone() ? "✓ Done today" : '● Active');
 }
 
 /* ---- the gate itself ---- */
@@ -1587,16 +1610,18 @@ function renderToday(){
     const s=FLOW_STAGES.find(x=>x.id===id); if(!s) return;
     const div=document.createElement('div'); div.className='fitem dragblock'+(f[s.id]?' done':'');
     div.dataset.fid=s.id;
-    div.innerHTML='<div class="drag-handle">'+DRAG_HANDLE_SVG+'</div><div class="fchk">✓</div><div class="ft"><b>'+s.em+' '+s.t+'</b><span>'+s.d+'</span></div>'+
-      '<button class="sm ghost">open</button>';
-    div.querySelector('.fchk').onclick=()=>{ const was=!!f[s.id]; setFlowPart(s.id,!was); if(!was){ chimeDone(); buzz(30);} };
-    div.querySelector('button').onclick=()=>s.open();
+    div.innerHTML='<div class="drag-handle">'+DRAG_HANDLE_SVG+'</div>'+
+      '<div class="ft"><b>'+s.em+' '+s.t+'</b><span>'+s.d+'</span></div>'+
+      '<div class="fgo">'+(f[s.id]?'✓':'›')+'</div>';
+    div.querySelector('.ft').onclick=()=>s.open();
+    div.querySelector('.fgo').onclick=()=>s.open();
     box.appendChild(div);
   });
   bindFlowDrag();
   const g=getGoals();
   $('#goalsMini').innerHTML = g.length
-    ? g.map(x=>'<div style="padding:2px 0">'+(x.done?'✅ <s style="color:var(--dim)">':'⬜ ')+esc(x.text)+(x.done?'</s>':'')+'</div>').join('')
+    ? g.slice(0,6).map(x=>'<div class="miniitem'+(x.done?' done':'')+'">'+esc(x.text)+'</div>').join('') +
+      (g.length>6?'<div class="sub" style="margin-top:2px">+'+(g.length-6)+' more</div>':'')
     : 'No goals yet — add some.';
 }
 
@@ -3163,9 +3188,9 @@ function renderHabits(){
   });
 
   $('#habitsMini').innerHTML = acts.length
-    ? acts.slice(0,6).map(h=>{ const v=day.checks[h.id];
-        return '<div style="padding:2px 0">'+(v===true?'✅':v==='R'?'🟠':'⬜')+' '+esc(h.label)+'</div>'; }).join('') +
-        (acts.length>6?'<div class="sub">+'+(acts.length-6)+' more</div>':'')
+    ? acts.slice(0,6).map(h=>{ const v=day.checks[h.id]; const done=v===true||v==='R';
+        return '<div class="miniitem'+(done?' done':'')+'">'+esc(h.label)+'</div>'; }).join('') +
+        (acts.length>6?'<div class="sub" style="margin-top:2px">+'+(acts.length-6)+' more</div>':'')
     : 'No habits yet — set them up.';
 
   if(habView==='grid') renderHabitsMonth();
@@ -3435,7 +3460,7 @@ function renderAll(){
   ensureHabitsMigrated();
   renderXPBar();
   autoFlow();
-  renderToday(); renderWork(); renderGym(); renderRapPanel(); renderDiet(); renderHabits(); renderProfitBar(); renderGoals(); renderTabs();
+  renderToday(); renderWork(); renderGym(); renderRapPanel(); renderDiet(); renderHabits(); renderProfitBar(); renderGoals(); renderAlarm(); renderTabs();
   checkMissionGate();
 }
 

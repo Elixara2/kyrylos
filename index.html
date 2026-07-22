@@ -82,6 +82,10 @@
   .dragblock{transition:box-shadow .2s,transform .15s;touch-action:pan-y;position:relative;
     -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   .dragblock.lifted{box-shadow:0 24px 60px rgba(0,0,0,.55);z-index:40;touch-action:none;cursor:grabbing}
+  .drag-handle{display:flex;align-items:center;justify-content:center;width:26px;flex:0 0 auto;align-self:stretch;
+    color:var(--dim);cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  .drag-handle:active{color:var(--txt)}
+  .dragblock.lifted .drag-handle{cursor:grabbing;color:var(--accent)}
   .expand-toggle{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;
     display:flex;align-items:center;justify-content:center;padding:0;font-size:15px;line-height:1;
     background:var(--accent2);border:1px solid var(--accent2);color:#fff;box-shadow:0 3px 10px rgba(0,0,0,.4);z-index:6}
@@ -1266,36 +1270,32 @@ function autoFlow(){
    Same interaction as Studio's block reordering (500ms hold, then drag), just
    parameterized so Today's flow list and Goals can both use it without duplicating
    the pointer-event plumbing. */
+const DRAG_HANDLE_SVG='<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">'+
+  '<circle cx="5" cy="3" r="1.3"/><circle cx="11" cy="3" r="1.3"/>'+
+  '<circle cx="5" cy="8" r="1.3"/><circle cx="11" cy="8" r="1.3"/>'+
+  '<circle cx="5" cy="13" r="1.3"/><circle cx="11" cy="13" r="1.3"/></svg>';
+/* dedicated grip handle, not press-and-hold-anywhere — a handle is what actually
+   works reliably on touch (long-press on the row itself kept losing to the OS's own
+   text-selection gesture even with touch-action set), and it's the same pattern
+   banking apps use to reorder accounts, which is what was asked for directly */
 function makeDragReorder(containerSel, itemSel, idAttr, getOrder, saveOrder, onDrop){
-  let press=null, drag=null;
+  let drag=null;
   function bind(){
     const container=$(containerSel); if(!container) return;
     container.querySelectorAll(itemSel).forEach(el=>{
-      el.onpointerdown=e=>{
-        if(e.target.closest('button,input,select,a,textarea')) return;
-        press={el, x:e.clientX, y:e.clientY, timer:setTimeout(()=>lift(el,e),500)};
+      const handle=el.querySelector('.drag-handle'); if(!handle) return;
+      handle.onpointerdown=e=>{
+        e.preventDefault();
+        try{ handle.setPointerCapture(e.pointerId); }catch(err){}
+        el.classList.add('lifted'); buzz(25); beep([[720,.08]]);
+        drag={el, id:el.dataset[idAttr], startY:e.clientY};
       };
-      el.onpointermove=e=>{
-        if(press && press.el===el && press.timer){
-          if(Math.abs(e.clientX-press.x)>8 || Math.abs(e.clientY-press.y)>8){ clearTimeout(press.timer); press=null; }
-        }
-        if(drag && drag.el===el) dragMove(e);
-      };
-      el.onpointerup=()=>{
-        if(press && press.timer){ clearTimeout(press.timer); press=null; }
-        if(drag && drag.el===el) drop();
-      };
-      el.onpointercancel=()=>{
-        if(press && press.timer){ clearTimeout(press.timer); press=null; }
-        if(drag){ drag.el.classList.remove('lifted'); drag.el.style.transform=''; drag=null; }
+      handle.onpointermove=e=>{ if(drag && drag.el===el) dragMove(e); };
+      handle.onpointerup=()=>{ if(drag && drag.el===el) drop(); };
+      handle.onpointercancel=()=>{
+        if(drag && drag.el===el){ el.classList.remove('lifted'); el.style.transform=''; drag=null; }
       };
     });
-  }
-  function lift(el,e){
-    press=null;
-    try{ el.setPointerCapture(e.pointerId); }catch(err){}
-    el.classList.add('lifted'); buzz(25); beep([[720,.08]]);
-    drag={el, id:el.dataset[idAttr], startY:e.clientY};
   }
   function dragMove(e){ if(!drag) return; drag.el.style.transform='translateY('+(e.clientY-drag.startY)+'px) scale(1.02)'; }
   function drop(){
@@ -1540,7 +1540,7 @@ function renderToday(){
     const s=FLOW_STAGES.find(x=>x.id===id); if(!s) return;
     const div=document.createElement('div'); div.className='fitem dragblock'+(f[s.id]?' done':'');
     div.dataset.fid=s.id;
-    div.innerHTML='<div class="fchk">✓</div><div class="ft"><b>'+s.em+' '+s.t+'</b><span>'+s.d+'</span></div>'+
+    div.innerHTML='<div class="drag-handle">'+DRAG_HANDLE_SVG+'</div><div class="fchk">✓</div><div class="ft"><b>'+s.em+' '+s.t+'</b><span>'+s.d+'</span></div>'+
       '<button class="sm ghost">open</button>';
     div.querySelector('.fchk').onclick=()=>{ const was=!!f[s.id]; setFlowPart(s.id,!was); if(!was){ chimeDone(); buzz(30);} };
     div.querySelector('button').onclick=()=>s.open();
@@ -2766,7 +2766,7 @@ function renderGoals(){
   g.forEach(x=>{
     const div=document.createElement('div'); div.className='goal dragblock'+(x.done?' done':'');
     div.dataset.gid=x.id;
-    div.innerHTML='<div class="gchk">✓</div><div class="gtext">'+esc(x.text)+'</div><button class="gdel">✕</button>';
+    div.innerHTML='<div class="drag-handle">'+DRAG_HANDLE_SVG+'</div><div class="gchk">✓</div><div class="gtext">'+esc(x.text)+'</div><button class="gdel">✕</button>';
     div.querySelector('.gchk').onclick=(e)=>toggleGoal(x.id,e);
     div.querySelector('.gtext').onclick=(e)=>toggleGoal(x.id,e);
     div.querySelector('.gdel').onclick=()=>delGoal(x.id);

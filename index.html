@@ -79,7 +79,8 @@
   .pad-wrap textarea.expanded{min-height:420px}
 
   /* draggable studio blocks — hold to lift, drag to reorder */
-  .dragblock{transition:box-shadow .2s,transform .15s;touch-action:pan-y;position:relative}
+  .dragblock{transition:box-shadow .2s,transform .15s;touch-action:pan-y;position:relative;
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   .dragblock.lifted{box-shadow:0 24px 60px rgba(0,0,0,.55);z-index:40;touch-action:none;cursor:grabbing}
   .expand-toggle{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;
     display:flex;align-items:center;justify-content:center;padding:0;font-size:15px;line-height:1;

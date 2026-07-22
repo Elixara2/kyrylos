@@ -233,6 +233,27 @@
     color:#fff;font:inherit;font-weight:600;padding:13px 26px;border-radius:99px;cursor:pointer;backdrop-filter:blur(6px)}
   .btn-break:active{transform:scale(.96)}
 
+  /* morning mission — full-screen, no dismiss, wake-up-energy palette (opposite of the calm break overlay) */
+  .missionov{position:fixed;inset:0;z-index:90;display:none;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;gap:14px;background:radial-gradient(120% 120% at 50% 28%,#4a2306,#0c0704 78%);
+    padding:calc(var(--safe-t) + 20px) 24px calc(var(--safe-b) + 24px);overflow-y:auto}
+  .missionov.show{display:flex;animation:fade .4s var(--ease)}
+  .mission-kicker{font-size:13px;letter-spacing:.28em;text-transform:uppercase;color:#f59e0b;font-weight:700}
+  .mission-title{font-size:24px;font-weight:800;max-width:22ch;color:#fff}
+  .mission-body{width:100%;max-width:360px;display:flex;flex-direction:column;gap:14px;align-items:center}
+  .mission-math{font-size:44px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:.02em;color:#fff}
+  .mission-input{width:100%;text-align:center;font-size:20px;padding:14px;border-radius:12px;
+    border:1.5px solid rgba(255,255,255,.25);background:rgba(255,255,255,.07);color:#fff;font:inherit}
+  .mission-input:focus{outline:none;border-color:#f59e0b}
+  .mission-phrase{font-size:16px;color:rgba(255,255,255,.88);font-style:italic;max-width:32ch;line-height:1.5}
+  .mission-video{width:100%;max-width:320px;border-radius:16px;overflow:hidden;background:#000;aspect-ratio:3/4}
+  .mission-video video{width:100%;height:100%;object-fit:cover;display:block}
+  .mission-btn{appearance:none;border:1.5px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);
+    color:#fff;font:inherit;font-weight:700;padding:14px 28px;border-radius:99px;cursor:pointer;backdrop-filter:blur(6px);width:100%}
+  .mission-btn.primary{background:#f59e0b;border-color:#f59e0b;color:#1a0f00}
+  .mission-btn:active{transform:scale(.97)}
+  .mission-err{color:#fca5a5;font-size:13px;min-height:16px;max-width:32ch}
+
   /* gym */
   .excard{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
   .excard h3{margin:0 0 8px;font-size:15px;display:flex;justify-content:space-between;align-items:center}
@@ -579,6 +600,14 @@
     <button class="btn-break" onclick="endRest(true)">Skip · back to work →</button>
   </div>
 
+  <!-- full-screen morning-mission gate — no close/skip button, by design -->
+  <div class="missionov" id="missionov">
+    <div class="mission-kicker">🌅 Morning Mission</div>
+    <div class="mission-title" id="missionTitle">Prove you're awake</div>
+    <div class="mission-body" id="missionBody"></div>
+    <div class="mission-err" id="missionErr"></div>
+  </div>
+
   <!-- ============ GYM ============ -->
   <section class="panel" id="p-gym">
     <div class="card">
@@ -855,6 +884,29 @@
       </div>
     </div>
 
+    <div class="sect">
+      <div class="lbl">Morning Mission — wake-up gate</div>
+      <div class="sub">Pairs with your phone's real alarm: it rings you awake, K-OS then locks the app until you complete a mission.</div>
+      <div class="toggle-row" onclick="toggleMissionEnabled()" style="margin-top:8px">
+        <div><b>Require a mission each morning</b><span>Blocks the whole app until solved</span></div>
+        <div class="switch" id="missionEnabledToggle"><i></i></div>
+      </div>
+      <div class="lbl" style="margin-top:12px">Mission types (tap to toggle — one is picked at random each morning)</div>
+      <div class="chips" id="missionTypeChips"></div>
+      <div class="row" style="margin-top:8px">
+        <div class="grow"><label>Math difficulty</label>
+          <select id="missionMathDiff" onchange="setMissionMathDiff(this.value)">
+            <option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:10px">
+        <label>Phrases to type (one per line — leave blank for defaults)</label>
+        <textarea id="missionPhrases" rows="3" style="width:100%" onblur="saveMissionPhrases(this.value)" placeholder="I choose discipline over comfort"></textarea>
+      </div>
+      <button class="setbtn" onclick="registerBarcodeRef()" style="margin-top:10px"><span>Scan reference barcode</span><span class="st" id="missionBarcodeStatus">—</span></button>
+    </div>
+
     <div class="setgrid">
       <div><label>Morning routine (ASCEND) URL — opens from Today</label>
         <input type="url" id="setAscend" placeholder="http:// or file:// link to ASCEND"></div>
@@ -1078,11 +1130,13 @@ const DEF_SETTINGS = {
   tsInt:15,
   miniEvery:25, miniLen:45, bigEvery:120, bigLen:15, restOn:true,
   tankMl:1500, rapGoal:60, unit:'kg', dayAName:'Day A', dayBName:'Day B',
-  theme:{mode:'default', hue:220, live:false}
+  theme:{mode:'default', hue:220, live:false},
+  mission:{enabled:false, types:['math'], mathDiff:'medium', phrases:[], barcodeRef:''}
 };
 let SET = {};
 function loadSettingsCache(){ SET = Object.assign({}, DEF_SETTINGS, kget('settings',{}));
-  if(!SET.theme) SET.theme=Object.assign({}, DEF_SETTINGS.theme); }
+  if(!SET.theme) SET.theme=Object.assign({}, DEF_SETTINGS.theme);
+  SET.mission=Object.assign({}, DEF_SETTINGS.mission, SET.mission); }
 loadSettingsCache();
 
 /* ================= appearance / flow-colour theme ================= */
@@ -1148,6 +1202,7 @@ function openSettings(){
   $('#setRapMin').value=SET.rapGoal; $('#setUnit').value=SET.unit;
   $('#setDayA').value=SET.dayAName; $('#setDayB').value=SET.dayBName;
   renderThemeUI();
+  renderMissionSettings();
   setSyncUI(hasSrv?'ok':null);
   $('#setScrim').classList.add('show');
 }
@@ -1262,6 +1317,206 @@ function makeDragReorder(containerSel, itemSel, idAttr, getOrder, saveOrder, onD
 }
 
 const bindFlowDrag=makeDragReorder('#flowlist','.fitem','fid',flowOrder,saveFlowOrder,renderToday);
+
+/* ================= MORNING MISSION =================
+   Companion to your phone's real alarm, not a replacement for it — a website can't
+   reliably ring through a locked screen or silent mode, so the actual wake-up ring
+   stays on your phone. This is the "prove you're awake" gate K-OS shows once you
+   open it: full-screen, no close/skip button, blocks the whole app until solved.
+   Every mission type has a way through that never truly locks you out — barcode has
+   manual entry, camera failure on the photo mission falls back to math. */
+const MISSION_TYPES=[
+  {id:'math', label:'Math problem'},
+  {id:'phrase', label:'Type a phrase'},
+  {id:'barcode', label:'Scan a barcode'},
+  {id:'photo', label:'Take a photo'}
+];
+const MISSION_DEFAULT_PHRASES=['I choose discipline over comfort','Today I build the life I want','Get up. Show up. Level up.'];
+function getMission(){ return SET.mission || DEF_SETTINGS.mission; }
+function todayMissionDone(){ return !!kget('mission:done:'+todayKey(), false); }
+function toggleMissionEnabled(){
+  SET.mission=Object.assign({}, getMission(), {enabled:!getMission().enabled});
+  kset('settings',SET); renderMissionSettings(); checkMissionGate();
+}
+function toggleMissionType(id){
+  const m=getMission(), types=m.types.includes(id) ? m.types.filter(x=>x!==id) : m.types.concat([id]);
+  if(!types.length) return; // always keep at least one enabled
+  SET.mission=Object.assign({}, m, {types}); kset('settings',SET); renderMissionSettings();
+}
+function setMissionMathDiff(v){ SET.mission=Object.assign({}, getMission(), {mathDiff:v}); kset('settings',SET); }
+function saveMissionPhrases(text){
+  const phrases=text.split('\n').map(s=>s.trim()).filter(Boolean);
+  SET.mission=Object.assign({}, getMission(), {phrases}); kset('settings',SET);
+}
+function renderMissionSettings(){
+  const m=getMission();
+  const t=$('#missionEnabledToggle'); if(t) t.classList.toggle('on', !!m.enabled);
+  const box=$('#missionTypeChips');
+  if(box){ box.innerHTML=''; MISSION_TYPES.forEach(mt=>{
+    const c=document.createElement('div'); c.className='chip'+(m.types.includes(mt.id)?' on':'');
+    c.textContent=mt.label; c.onclick=()=>toggleMissionType(mt.id); box.appendChild(c);
+  }); }
+  const diffSel=$('#missionMathDiff'); if(diffSel) diffSel.value=m.mathDiff;
+  const phrasesEl=$('#missionPhrases'); if(phrasesEl && document.activeElement!==phrasesEl) phrasesEl.value=(m.phrases||[]).join('\n');
+  const bs=$('#missionBarcodeStatus'); if(bs) bs.textContent = m.barcodeRef ? 'Set ✓' : 'Not set';
+}
+
+/* ---- the gate itself ---- */
+let missionActiveType=null, missionStream=null, missionBarcodeTimer=null, missionRegisterMode=false;
+function checkMissionGate(){
+  if($('#missionov').classList.contains('show')) return; // already open (gate or registration) — don't clobber an in-progress attempt
+  const m=getMission();
+  if(m.enabled && m.types.length && !todayMissionDone()) openMission();
+}
+function openMission(){
+  missionRegisterMode=false;
+  const m=getMission(), pool=m.types.length?m.types:['math'];
+  missionActiveType=pool[Math.floor(Math.random()*pool.length)];
+  $('#missionTitle').textContent="Prove you're awake";
+  $('#missionErr').textContent='';
+  $('#missionov').classList.add('show');
+  renderMissionBody();
+}
+function renderMissionBody(){
+  const box=$('#missionBody'); box.innerHTML='';
+  if(missionActiveType==='math') renderMathMission(box);
+  else if(missionActiveType==='phrase') renderPhraseMission(box);
+  else if(missionActiveType==='barcode') renderBarcodeMission(box);
+  else if(missionActiveType==='photo') renderPhotoMission(box);
+}
+function completeMission(){
+  kset('mission:done:'+todayKey(), true);
+  stopMissionCamera();
+  addXP(15,'morning mission');
+  confettiBurst(innerWidth/2, innerHeight*.3, 90);
+  chimeDone(); buzz([30,60,30,60,80]);
+  $('#missionov').classList.remove('show');
+  toast('☀️ Mission complete — day started');
+}
+function stopMissionCamera(){
+  if(missionStream){ missionStream.getTracks().forEach(t=>t.stop()); missionStream=null; }
+  clearInterval(missionBarcodeTimer); missionBarcodeTimer=null;
+}
+function missionFallbackToMath(reason){
+  stopMissionCamera();
+  $('#missionErr').textContent=reason||'Camera unavailable — switched to a math problem.';
+  missionActiveType='math';
+  renderMathMission($('#missionBody'));
+}
+
+/* ---- math ---- */
+let missionMathAnswer=null;
+function genMathProblem(diff){
+  const [lo,hi]=({easy:[1,20],medium:[10,99],hard:[100,999]})[diff]||[10,99];
+  const a=Math.floor(Math.random()*(hi-lo+1))+lo, b=Math.floor(Math.random()*(hi-lo+1))+lo;
+  const ops=diff==='easy'?['+','-']:['+','-','×'];
+  const op=ops[Math.floor(Math.random()*ops.length)];
+  let x=a,y=b; if(op==='-' && x<y){ const t=x; x=y; y=t; }
+  const answer = op==='+' ? x+y : op==='-' ? x-y : x*y;
+  return {text:x+' '+op+' '+y, answer};
+}
+function renderMathMission(box){
+  const p=genMathProblem(getMission().mathDiff);
+  missionMathAnswer=p.answer;
+  $('#missionTitle').textContent='Solve it to unlock';
+  box.innerHTML='<div class="mission-math">'+p.text+' = ?</div>'+
+    '<input type="text" inputmode="numeric" class="mission-input" id="missionMathInput" placeholder="Answer" autocomplete="off">'+
+    '<button class="mission-btn primary" onclick="submitMath()">Unlock →</button>';
+  const inp=$('#missionMathInput'); setTimeout(()=>inp.focus(),60);
+  inp.addEventListener('keydown',e=>{ if(e.key==='Enter') submitMath(); });
+}
+function submitMath(){
+  const v=parseInt($('#missionMathInput').value,10);
+  if(v===missionMathAnswer) completeMission();
+  else { $('#missionErr').textContent='Not quite — try again.'; buzz(60); renderMathMission($('#missionBody')); }
+}
+
+/* ---- type a phrase ---- */
+let missionPhraseTarget=null;
+function renderPhraseMission(box){
+  const list=(getMission().phrases||[]).length ? getMission().phrases : MISSION_DEFAULT_PHRASES;
+  missionPhraseTarget=list[Math.floor(Math.random()*list.length)];
+  $('#missionTitle').textContent='Type it exactly to unlock';
+  box.innerHTML='<div class="mission-phrase">"'+esc(missionPhraseTarget)+'"</div>'+
+    '<input type="text" class="mission-input" id="missionPhraseInput" placeholder="Type the phrase…" autocomplete="off" autocapitalize="off">'+
+    '<button class="mission-btn primary" onclick="submitPhrase()">Unlock →</button>';
+  const inp=$('#missionPhraseInput'); setTimeout(()=>inp.focus(),60);
+  inp.addEventListener('keydown',e=>{ if(e.key==='Enter') submitPhrase(); });
+}
+function submitPhrase(){
+  const v=$('#missionPhraseInput').value.trim().toLowerCase();
+  if(v===missionPhraseTarget.trim().toLowerCase()) completeMission();
+  else { $('#missionErr').textContent="Doesn't match — try again."; buzz(60); }
+}
+
+/* ---- scan a barcode — camera + BarcodeDetector where available, manual entry always works ---- */
+async function renderBarcodeMission(box){
+  const registering=missionRegisterMode, ref=getMission().barcodeRef;
+  $('#missionTitle').textContent = registering ? "Scan the item you'll use each morning" : 'Scan your object to unlock';
+  box.innerHTML='<div class="mission-video"><video id="missionVideo" autoplay playsinline muted></video></div>'+
+    '<div class="sub">'+(registering?'Point the camera at any barcode to register it.':'Scanning for your registered barcode…')+'</div>'+
+    '<input type="text" inputmode="numeric" class="mission-input" id="missionBarcodeManual" placeholder="Or type the barcode number" autocomplete="off">'+
+    '<button class="mission-btn primary" onclick="submitBarcodeManual()">'+(registering?'Save →':'Unlock →')+'</button>'+
+    (registering?'<button class="mission-btn" onclick="closeMissionRegister()">Cancel</button>':'');
+  const manualInp=$('#missionBarcodeManual'); manualInp.addEventListener('keydown',e=>{ if(e.key==='Enter') submitBarcodeManual(); });
+  if(!registering && !ref) $('#missionErr').textContent='No barcode registered yet — type any number to unlock, then set one up in Settings.';
+  try{
+    missionStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    const v=$('#missionVideo'); v.srcObject=missionStream;
+    if('BarcodeDetector' in window){
+      const detector=new BarcodeDetector();
+      missionBarcodeTimer=setInterval(async ()=>{
+        try{
+          const codes=await detector.detect(v);
+          if(!codes.length) return;
+          const val=codes[0].rawValue;
+          if(registering){ saveBarcodeRef(val); return; }
+          if(!ref || val===ref) completeMission();
+          else $('#missionErr').textContent='Scanned '+val+" — doesn't match. Try your registered item, or type it below.";
+        }catch(err){}
+      }, 600);
+    }
+  }catch(e){
+    $('#missionErr').textContent='Camera unavailable — type the barcode number above.';
+  }
+}
+function submitBarcodeManual(){
+  const v=$('#missionBarcodeManual').value.trim(); if(!v) return;
+  if(missionRegisterMode){ saveBarcodeRef(v); return; }
+  const ref=getMission().barcodeRef;
+  if(!ref || v===ref) completeMission();
+  else { $('#missionErr').textContent="Doesn't match your registered barcode."; buzz(60); }
+}
+function registerBarcodeRef(){
+  missionRegisterMode=true; missionActiveType='barcode';
+  $('#missionErr').textContent='';
+  $('#missionov').classList.add('show');
+  renderMissionBody();
+}
+function saveBarcodeRef(val){
+  SET.mission=Object.assign({}, getMission(), {barcodeRef:val}); kset('settings',SET);
+  stopMissionCamera(); $('#missionov').classList.remove('show'); missionRegisterMode=false;
+  renderMissionSettings(); toast('Barcode registered ✓');
+}
+function closeMissionRegister(){
+  stopMissionCamera(); $('#missionov').classList.remove('show'); missionRegisterMode=false;
+}
+
+/* ---- take a photo — proof of picking the phone up and engaging, not a pixel-match against
+   a reference (that's fragile enough to risk a real lockout, so deliberately kept simple) ---- */
+async function renderPhotoMission(box){
+  $('#missionTitle').textContent='Take a photo to unlock';
+  box.innerHTML='<div class="mission-video"><video id="missionVideo" autoplay playsinline muted></video></div>'+
+    '<div class="sub">Snap any photo — proves you\'re up and moving.</div>'+
+    '<button class="mission-btn primary" onclick="capturePhotoMission()">📸 Capture</button>';
+  try{
+    missionStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    $('#missionVideo').srcObject=missionStream;
+  }catch(e){
+    missionFallbackToMath('Camera unavailable — solve this instead.');
+  }
+}
+function capturePhotoMission(){ completeMission(); }
 
 /* ================= TODAY ================= */
 const RC = 2*Math.PI*52;
@@ -2950,7 +3205,7 @@ function renderHabitManage(){
    only ever makes this one read-only call to show a quick "how much have I
    made" number on the Today tab — no COGS/webhook/currency logic lives here
    anymore. Fill in PROPHIT_API_URL after Prophit is deployed. */
-const PROPHIT_API_URL = 'PASTE_YOUR_PROPHIT_EXEC_URL_HERE';
+const PROPHIT_API_URL = 'https://script.google.com/macros/s/AKfycbwaH-B2ffe1Pae5Nzcaf4x-hjwbr9Dqd3DiK0nxRlcoAp1SN6_S9SBH632oibbd_6w7YA/exec';
 const PROPHIT_API_TOKEN = 'd04e3b8b19137755e781807596b6a74d';
 const prophitConnected = PROPHIT_API_URL.indexOf('PASTE_') !== 0;
 function openProphit(){
@@ -3007,6 +3262,7 @@ function renderAll(){
   renderXPBar();
   autoFlow();
   renderToday(); renderWork(); renderGym(); renderRapPanel(); renderDiet(); renderHabits(); renderProfitBar(); renderGoals(); renderTabs();
+  checkMissionGate();
 }
 
 /* ================= init ================= */

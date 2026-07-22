@@ -134,6 +134,11 @@
   .cardlink-go{color:var(--dim);font-size:20px;font-weight:400}
   .miniitem{padding:3px 0;font-size:13.5px;color:var(--txt)}
   .miniitem.done{color:var(--dim);text-decoration:line-through}
+  .alarm-clock{display:flex;align-items:center;gap:12px;margin-top:6px}
+  .alarm-clock input[type=time]{flex:1;font-size:32px;font-weight:800;font-variant-numeric:tabular-nums;
+    padding:10px 14px;text-align:center;color-scheme:dark}
+  .warn-note{color:var(--amber);font-size:12px;line-height:1.45;background:rgba(245,158,11,.08);
+    border:1px solid rgba(245,158,11,.25);border-radius:10px;padding:9px 11px}
 
   /* work */
   .clock{text-align:center;padding:8px 0 2px}
@@ -829,11 +834,21 @@
   <!-- ============ ALARM · morning mission ============ -->
   <section class="panel" id="p-alarm">
     <div class="card">
+      <div class="lbl">Wake-up time</div>
+      <div class="alarm-clock">
+        <input type="time" id="alarmTimeInput" onchange="setAlarmTime(this.value)">
+        <button class="sm ghost" onclick="clearAlarmTime()">Clear</button>
+      </div>
+      <div class="sub" id="alarmNext" style="margin-top:8px">No alarm set</div>
+      <div class="sub warn-note" style="margin-top:10px">⚠︎ Rings only while K-OS is open on your phone — a website can't wake a locked/sleeping phone. Keep your phone's built-in alarm as the real wake-up; K-OS then runs the mission.</div>
+    </div>
+
+    <div class="card">
       <div class="row" style="justify-content:space-between;align-items:center">
         <h2 style="margin:0">Morning Mission ⏰</h2>
         <span class="sub" id="missionStatus"></span>
       </div>
-      <div class="sub" style="margin-top:4px">Pairs with your phone's real alarm: it rings you awake, K-OS then locks the whole app until you complete a mission.</div>
+      <div class="sub" style="margin-top:4px">When your alarm goes off you have to complete a mission to unlock the app.</div>
       <div class="toggle-row" onclick="toggleMissionEnabled()" style="margin-top:12px">
         <div><b>Require a mission each morning</b><span>Blocks the whole app until solved</span></div>
         <div class="switch" id="missionEnabledToggle"><i></i></div>
@@ -1202,7 +1217,7 @@ const DEF_SETTINGS = {
   miniEvery:25, miniLen:45, bigEvery:120, bigLen:15, restOn:true,
   tankMl:1500, rapGoal:60, unit:'kg', dayAName:'Day A', dayBName:'Day B',
   theme:{mode:'default', hue:220, live:false},
-  mission:{enabled:false, types:['math'], mathDiff:'medium', phrases:[], barcodeRef:''}
+  mission:{enabled:false, types:['math'], mathDiff:'medium', phrases:[], barcodeRef:'', alarmTime:''}
 };
 let SET = {};
 function loadSettingsCache(){ SET = Object.assign({}, DEF_SETTINGS, kget('settings',{}));
@@ -1294,6 +1309,7 @@ const FLOW_STAGES = [
   {id:'rap', em:'🎤', t:'Studio · writing', d:'Beat on, mumble, write bars', open:()=>showTab('rap')},
   {id:'diet', em:'🍽', t:'Diet', d:'All meals + 3L water', open:()=>showTab('diet')},
   {id:'goals', em:'✅', t:'Goals', d:'All ticked off', open:()=>showTab('goals')},
+  {id:'alarm', em:'⏰', t:'Alarm', d:'Morning wake-up mission', open:()=>showTab('alarm')},
 ];
 function flowOrder(){
   const ids=FLOW_STAGES.map(s=>s.id), saved=kget('flowOrder', null);
@@ -1329,6 +1345,8 @@ function autoFlow(){
   const g=getGoals(); setFlowPartQuiet('goals', g.length>0 && g.every(x=>x.done));
   const acts=activeHabits(), hd=getHabitDay(todayKey());
   setFlowPartQuiet('tracker', acts.length>0 && acts.every(h=>hd.checks[h.id]===true || (h.kind==='tri' && hd.checks[h.id]==='R')));
+  // alarm stage: done once the morning mission is cleared; if the gate isn't enabled there's nothing to do, so treat as done
+  setFlowPartQuiet('alarm', !getMission().enabled || todayMissionDone());
 }
 
 /* ---- generic press-and-hold drag reorder for any list of .dragblock items ----
@@ -1428,8 +1446,56 @@ function renderMissionSettings(){
 }
 function renderAlarm(){
   renderMissionSettings();
-  const m=getMission(), st=$('#missionStatus'); if(!st) return;
-  st.textContent = !m.enabled ? 'Off' : (todayMissionDone() ? "✓ Done today" : '● Active');
+  const m=getMission();
+  const st=$('#missionStatus'); if(st) st.textContent = !m.enabled ? 'Off' : (todayMissionDone() ? "✓ Done today" : '● Active');
+  const inp=$('#alarmTimeInput'); if(inp && document.activeElement!==inp) inp.value=m.alarmTime||'';
+  const nx=$('#alarmNext'); if(nx){
+    if(!m.alarmTime){ nx.textContent='No alarm set — pick a time above.'; }
+    else{
+      const d=nextAlarmDate(m.alarmTime), mins=Math.round((d-Date.now())/60000);
+      const h=Math.floor(mins/60), mm=mins%60;
+      const when = d.toDateString()===new Date().toDateString() ? 'today' : 'tomorrow';
+      nx.innerHTML='⏰ Next alarm: <b>'+when+' '+fmtClock(d)+'</b> · in '+h+'h '+mm+'m';
+    }
+  }
+}
+function fmtClock(d){ return d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}); }
+function setAlarmTime(v){ SET.mission=Object.assign({}, getMission(), {alarmTime:v||''}); kset('settings',SET); renderAlarm();
+  if(v) toast('Alarm set for '+fmtClock(nextAlarmDate(v))); }
+function clearAlarmTime(){ SET.mission=Object.assign({}, getMission(), {alarmTime:''}); kset('settings',SET); renderAlarm(); toast('Alarm cleared'); }
+/* next occurrence of HH:MM — today if still ahead, otherwise tomorrow */
+function nextAlarmDate(hhmm){
+  const [h,m]=hhmm.split(':').map(Number);
+  const d=new Date(); d.setHours(h,m,0,0);
+  if(d.getTime()<=Date.now()) d.setDate(d.getDate()+1);
+  return d;
+}
+/* fire only when the app is actually running and we CROSS the set time (within a 2-min
+   window) — never retroactively hours later, and once per day. A web page genuinely
+   cannot ring a locked/sleeping phone, so this is a best-effort foreground alarm. */
+let alarmRinging=false;
+function checkAlarm(){
+  const t=getMission().alarmTime; if(!t || alarmRinging) return;
+  const firedKey='mission:alarmFired:'+todayKey();
+  if(kget(firedKey,false)) return;
+  const [h,m]=t.split(':').map(Number), now=new Date();
+  const target=new Date(); target.setHours(h,m,0,0);
+  const delta=(now-target)/1000; // seconds since target
+  if(delta>=0 && delta<120){ kset(firedKey,true); ringAlarm(); }
+}
+function ringAlarm(){
+  alarmRinging=true;
+  let n=0;
+  const ring=()=>{
+    beep([[880,.25],[0.0001,.06],[880,.25],[0.0001,.06],[1175,.4]]); buzz([200,120,200,120,300]);
+    n++; if(n<8 && alarmRinging) setTimeout(ring, 1600);
+  };
+  ring();
+  const m=getMission();
+  if(m.enabled && m.types.length){ openMission(); }
+  else { toast('⏰ Wake up — good morning, Kyryl.'); }
+  // stop the ringing once the mission overlay is engaged or after ~13s
+  setTimeout(()=>{ alarmRinging=false; }, 13000);
 }
 
 /* ---- the gate itself ---- */
@@ -3469,6 +3535,7 @@ if(!hasSrv){ $('#localnote').style.display='block'; setSyncUI(null); } else { se
 showTab(activeTab);
 let lastDay=todayKey();
 setInterval(()=>{ if(todayKey()!==lastDay){ lastDay=todayKey(); ts=jload('tsrun',{mode:'idle'}); ts.mode='idle'; tsSave(); renderAll(); } }, 30000);
+setInterval(checkAlarm, 10000); checkAlarm();
 </script>
 </body>
 </html>

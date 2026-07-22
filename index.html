@@ -287,6 +287,7 @@
 
   /* rap */
   .ytbox{width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#000;border:1px solid var(--line);margin:10px 0}
+  .ytbox.audio{aspect-ratio:auto;height:78px}
   .ytbox iframe,.ytbox video{width:100%;height:100%;border:0;display:block;object-fit:contain;background:#000}
   #rapNotes,#rapBars{min-height:150px;resize:vertical;line-height:1.7;font-size:15px}
 
@@ -2316,6 +2317,22 @@ function attachMedia(proj, kind, media){
   else{ proj.recordings=proj.recordings||[]; proj.recordings.push(media); }
   saveProj(proj); renderRapPanel();
 }
+/* Drive's uc?export=download URL does NOT play in a <video>/<audio> tag — it 302s to a
+   virus-scan interstitial instead of raw bytes, so the element just shows a broken/black box.
+   Embed the Drive preview player instead (plays video AND audio, cross-device, file is shared
+   anyone-with-link). Local blobs (this-device-only) still use native elements so they loop/autoplay. */
+function beatEmbedHtml(media, isVideo){
+  if(media.id && !media.local){
+    return '<div class="ytbox'+(isVideo?'':' audio')+'"><iframe src="https://drive.google.com/file/d/'+esc(media.id)+'/preview" allow="autoplay" allowfullscreen></iframe></div>';
+  }
+  return isVideo
+    ? '<div class="ytbox"><video src="'+esc(media.url)+'" controls loop autoplay muted playsinline></video></div>'
+    : '<audio controls loop style="width:100%" src="'+esc(media.url)+'"></audio>';
+}
+function beatLabelHtml(media){
+  return '<div class="row" style="margin-top:8px"><span class="sub grow">'+esc(media.name)+
+    (media.local?' · loops endlessly':'')+'</span><button class="sm ghost" onclick="removeBeat()">Remove</button></div>';
+}
 
 /* ---- voice memo recording ---- */
 let mediaRec=null, mediaChunks=[], mediaStream=null, recStartTs=0, recTicker=null;
@@ -2553,12 +2570,9 @@ function renderRapPanel(){
   if(!proj){ box.innerHTML='<div class="card"><div class="empty">No projects yet — tap + New to start your first song.</div></div>'; renderRapTotals(); return; }
   const rt=ensureRT(proj.id);
   const beatHtml = proj.beatFile
-    ? '<audio controls loop style="width:100%" src="'+esc(proj.beatFile.url)+'"></audio>'+
-      '<div class="row" style="margin-top:8px"><span class="sub grow">'+esc(proj.beatFile.name)+' · loops endlessly</span>'+
-      '<button class="sm ghost" onclick="removeBeat()">Remove</button></div>'
+    ? beatEmbedHtml(proj.beatFile,false)+beatLabelHtml(proj.beatFile)
     : proj.beatVideo
-      ? '<div class="ytbox"><video src="'+esc(proj.beatVideo.url)+'" controls loop autoplay muted playsinline></video></div>'+
-        '<div class="row" style="margin-top:8px"><span class="sub grow">'+esc(proj.beatVideo.name)+' · loops endlessly</span><button class="sm ghost" onclick="removeBeat()">Remove</button></div>'
+      ? beatEmbedHtml(proj.beatVideo,true)+beatLabelHtml(proj.beatVideo)
       : '<div class="row">'+
         '<button onclick="document.getElementById(\'beatVideoFile\').click()">🎬 Select video</button>'+
         '<button class="ghost sm" onclick="document.getElementById(\'beatFile\').click()">or select MP3</button></div>';

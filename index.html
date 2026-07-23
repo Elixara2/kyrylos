@@ -1912,21 +1912,29 @@ function tsOpenLog(){
   chimeLog(); buzz([40,80,40]);
   try{ if('Notification' in window && Notification.permission==='granted')
     new Notification('K-OS · Time to log',{body:'What did you do this block?'}); }catch(e){}
-  $('#tsBlockLbl').textContent='Block '+clock(ts.blockStart)+' – '+clock(Date.now());
+  const blockLbl='Block '+clock(ts.blockStart)+' – '+clock(Date.now());
+  // seamless: if the floating timer is popped out, ask right inside it — no separate popup
+  if(pipWin && !pipWin.closed){ showPipLog(blockLbl); return; }
+  $('#tsBlockLbl').textContent=blockLbl;
   $('#tsNote').value='';
   $('#tsScrim').classList.add('show');
   setTimeout(()=>$('#tsNote').focus(),60);
 }
-function tsCloseLog(saveIt){
-  const note=$('#tsNote').value.trim();
-  if(saveIt && note){
+/* the one place a block actually gets saved + the session resumes (shared by the
+   full-screen popup and the in-widget input) */
+function commitLog(note){
+  if(note){
     const e=getTsEntries(); e.push({s:ts.blockStart, e:Date.now(), text:note});
     kset('ts:entries:'+todayKey(), e);
     addXP(6,'block logged');
   }
-  $('#tsScrim').classList.remove('show');
   ts.mode='working'; ts.blockStart=Date.now(); ts.nextLogAt=Date.now()+SET.tsInt*60000; tsSave();
-  autoFlow(); renderWork(); renderToday();
+  autoFlow(); renderWork(); renderToday(); updatePip();
+}
+function tsCloseLog(saveIt){
+  const note=$('#tsNote').value.trim();
+  $('#tsScrim').classList.remove('show');
+  commitLog(saveIt ? note : '');
 }
 $('#tsNote').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); tsCloseLog(true); } });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape' && ts.mode==='resting') endRest(true); });
@@ -2168,19 +2176,62 @@ async function popOutTimer(){
     '#pw-bar{width:82%;height:4px;background:#1c232d;border-radius:99px;margin-top:6px;overflow:hidden}'+
     '#pw-bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#3b82f6,#60a5fa);transition:width .4s}'+
     '@media(max-height:112px){#pw-lbl,#pw-bar{display:none}#pw-time{font-size:clamp(28px,22vw,60px)}}'+
-    '@media(max-height:78px){#pw-top{font-size:11px}#pw-time{font-size:clamp(24px,26vw,48px)}}';
+    '@media(max-height:78px){#pw-top{font-size:11px}#pw-time{font-size:clamp(24px,26vw,48px)}}'+
+    /* in-widget log view (blue, matches the full-screen popup) */
+    '#pw-log{display:none;height:100vh;flex-direction:column;align-items:center;justify-content:center;padding:10px;gap:6px;text-align:center}'+
+    '#pw-logq{font-size:clamp(13px,5.5vw,17px);font-weight:800}'+
+    '#pw-block{font-size:10px;color:rgba(255,255,255,.6)}'+
+    '#pw-input{width:100%;font-size:clamp(14px,5vw,18px);text-align:center;padding:10px;border-radius:10px;'+
+      'border:1.5px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;outline:none}'+
+    '#pw-input:focus{border-color:#fff}#pw-input::placeholder{color:rgba(255,255,255,.5)}'+
+    '.pw-loghint{font-size:9.5px;letter-spacing:.5px;text-transform:uppercase;color:rgba(255,255,255,.55)}'+
+    '@media(max-height:120px){#pw-logq,#pw-block{display:none}}';
   pipWin.document.head.appendChild(st);
   pipWin.document.body.innerHTML =
     '<div id="pw"><div id="pw-top"><span id="pw-state">●</span><span id="pw-brk">—</span></div>'+
     '<div id="pw-time">—</div><div id="pw-lbl">clock in</div>'+
-    '<div id="pw-bar"><i id="pw-barfill"></i></div></div>';
-  pipWin.document.body.addEventListener('click',()=>{ try{ window.focus(); }catch(e){} showTab('work'); });
-  pipWin.addEventListener('pagehide',()=>{ pipWin=null; });
+    '<div id="pw-bar"><i id="pw-barfill"></i></div></div>'+
+    '<div id="pw-log"><div id="pw-logq">⏰ What did you do?</div><div id="pw-block"></div>'+
+    '<input id="pw-input" placeholder="1–2 words…" autocomplete="off"><div class="pw-loghint">⏎ save · esc skip</div></div>';
+  pipWin.document.getElementById('pw').addEventListener('click',()=>{ try{ window.focus(); }catch(e){} showTab('work'); });
+  const pinp=pipWin.document.getElementById('pw-input');
+  pinp.addEventListener('keydown',ev=>{
+    if(ev.key==='Enter'){ ev.preventDefault(); pipSubmitLog(true); }
+    else if(ev.key==='Escape'){ ev.preventDefault(); pipSubmitLog(false); }
+  });
+  pipWin.addEventListener('pagehide',()=>{
+    const wasLogging = ts.mode==='logging'; pipWin=null;
+    if(wasLogging){ // widget closed mid-log — fall back to the in-app popup so nothing's lost
+      $('#tsBlockLbl').textContent='Block '+clock(ts.blockStart)+' – '+clock(Date.now());
+      $('#tsNote').value=''; $('#tsScrim').classList.add('show'); setTimeout(()=>$('#tsNote').focus(),60);
+    }
+  });
   updatePip();
   toast('Floating timer popped out — drag & resize it, it stays on top.');
 }
+/* swap the widget into "what did you do?" input mode, then back to the timer */
+function showPipLog(blockLbl){
+  if(!pipWin || pipWin.closed) return;
+  const d=pipWin.document;
+  d.getElementById('pw').style.display='none';
+  d.getElementById('pw-log').style.display='flex';
+  d.getElementById('pw-block').textContent=blockLbl;
+  const inp=d.getElementById('pw-input'); inp.value='';
+  d.body.style.background='radial-gradient(130% 130% at 50% 34%,#1e40af,#0a1330 80%)';
+  setTimeout(()=>{ try{ pipWin.focus(); inp.focus(); }catch(e){} },40);
+}
+function pipSubmitLog(saveIt){
+  if(!pipWin || pipWin.closed){ commitLog(''); return; }
+  const d=pipWin.document, inp=d.getElementById('pw-input');
+  const note=(inp.value||'').trim();
+  d.getElementById('pw-log').style.display='none';
+  d.getElementById('pw').style.display='flex';
+  d.body.style.background='#0e1116';
+  commitLog(saveIt ? note : '');
+}
 function updatePip(){
   if(!pipWin || pipWin.closed) return;
+  if(ts.mode==='logging') return; // widget is showing the "what did you do?" input — don't clobber it
   const d=pipWin.document, g=id=>d.getElementById(id);
   const time=g('pw-time'), lbl=g('pw-lbl'), brk=g('pw-brk'), state=g('pw-state'), fill=g('pw-barfill'), body=d.body;
   if(!time) return;

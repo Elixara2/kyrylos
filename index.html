@@ -188,19 +188,36 @@
   .sched-group .lbl{margin:0}
   .sched-divider{height:1px;background:var(--line);margin:18px 0 2px}
   /* rest / break overlay */
+  /* Stretchly-style break: a green wash takes over the whole screen with a big rest timer */
   .breakov{position:fixed;inset:0;z-index:80;display:none;flex-direction:column;align-items:center;justify-content:center;
-    text-align:center;gap:8px;background:radial-gradient(120% 120% at 50% 40%,#0f1830,#05070d 75%);
-    padding:calc(var(--safe-t) + 20px) 24px calc(var(--safe-b) + 24px)}
+    text-align:center;gap:14px;background:radial-gradient(130% 130% at 50% 38%,#1f9d55,#0a3d22 78%);
+    padding:calc(var(--safe-t) + 24px) 24px calc(var(--safe-b) + 28px)}
   .breakov.show{display:flex;animation:fade .4s var(--ease)}
-  .break-kind{font-size:14px;letter-spacing:.28em;text-transform:uppercase;color:var(--accent);font-weight:700}
-  .break-cd{font-size:clamp(72px,24vw,130px);font-weight:800;font-variant-numeric:tabular-nums;line-height:1;letter-spacing:-.02em}
-  .break-msg{font-size:16px;color:var(--dim);max-width:26ch}
-  .breath-orb{width:150px;height:150px;border-radius:50%;margin-bottom:6px;
-    background:radial-gradient(circle,rgba(59,130,246,.6),rgba(59,130,246,0));animation:breathe 5.5s ease-in-out infinite}
-  @keyframes breathe{0%,100%{transform:scale(.72);opacity:.55}50%{transform:scale(1.18);opacity:1}}
-  .break-quote{max-width:34ch;margin-top:14px;font-size:14px;font-style:italic;color:rgba(230,237,243,.75);line-height:1.5}
+  .break-kind{font-size:15px;letter-spacing:.3em;text-transform:uppercase;color:rgba(255,255,255,.85);font-weight:800}
+  .break-cd{font-size:clamp(96px,32vw,190px);font-weight:800;font-variant-numeric:tabular-nums;line-height:1;letter-spacing:-.03em;color:#fff;
+    text-shadow:0 6px 40px rgba(0,0,0,.35)}
+  .break-msg{font-size:17px;color:rgba(255,255,255,.9);max-width:28ch}
+  .breath-orb{display:none}
+  .break-quote{max-width:34ch;margin-top:8px;font-size:14px;font-style:italic;color:rgba(255,255,255,.82);line-height:1.5}
   .break-quote span{display:block;margin-top:6px;font-style:normal;font-size:11.5px;letter-spacing:.08em;
-    text-transform:uppercase;color:var(--dim)}
+    text-transform:uppercase;color:rgba(255,255,255,.6)}
+  /* log popup takes over the whole screen too (blue, distinct from the green breaks) */
+  .logov{position:fixed;inset:0;z-index:82;display:none;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;background:radial-gradient(130% 130% at 50% 34%,#1e40af,#0a1330 80%);
+    padding:calc(var(--safe-t) + 24px) 24px calc(var(--safe-b) + 28px)}
+  .logov.show{display:flex;animation:fade .3s var(--ease)}
+  .logov-inner{width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;align-items:center}
+  .log-kick{font-size:14px;letter-spacing:.28em;text-transform:uppercase;color:rgba(255,255,255,.8);font-weight:800}
+  .log-q{font-size:26px;font-weight:800;color:#fff}
+  .log-block{color:rgba(255,255,255,.7)}
+  .log-input{width:100%;font-size:22px;text-align:center;padding:16px;border-radius:14px;
+    border:1.5px solid rgba(255,255,255,.28);background:rgba(255,255,255,.08);color:#fff}
+  .log-input::placeholder{color:rgba(255,255,255,.5)}
+  .log-input:focus{outline:none;border-color:#fff}
+  .log-save{width:100%;appearance:none;border:none;background:#fff;color:#0a1330;font:inherit;font-weight:800;
+    padding:15px;border-radius:99px;cursor:pointer}
+  .log-skip{appearance:none;border:none;background:none;color:rgba(255,255,255,.75);font:inherit;padding:6px;cursor:pointer}
+  .log-save:active,.log-skip:active{transform:scale(.98)}
 
   /* committed-window banner */
   .commit-range{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:10px;
@@ -558,18 +575,22 @@
 
     <div class="card">
       <h2>Schedule <span class="sub" id="restStateLbl"></span></h2>
-      <div class="sub">Runs quietly in the background while you work — the sheet opens itself when it's time to log, breaks nudge you automatically.</div>
+      <div class="sub">Runs quietly while you work — a log popup takes over the screen when it's time to note what you did, breaks nudge you automatically.</div>
 
-      <div class="sched-row">
-        <div class="sched-lbl">Log every <b id="tsIntVal">15 min</b></div>
-        <input type="range" class="pro-slider" id="tsIntSlider" min="10" max="60" step="5" oninput="setTsInt(this.value)">
+      <label class="toggle-inline" style="margin-top:14px"><input type="checkbox" id="logToggle" onchange="toggleLogEnabled(this.checked)"> log reminders on</label>
+      <div class="sub" style="margin-top:2px">Off = work straight through for long focus stretches — no popups. Session &amp; committed hours still track.</div>
+      <div id="logSchedRow">
+        <div class="sched-row" style="margin-top:12px">
+          <div class="sched-lbl">Log every <b id="tsIntVal">15 min</b></div>
+          <input type="range" class="pro-slider" id="tsIntSlider" min="0.5" max="60" step="0.5" oninput="setTsInt(this.value)">
+        </div>
       </div>
 
       <div class="sched-divider"></div>
       <div class="sched-group"><span class="lbl">Mini breaks</span></div>
       <div class="sched-row">
         <div class="sched-lbl">Every <b id="miniEveryVal">25 min</b></div>
-        <input type="range" class="pro-slider" id="miniEverySlider" min="5" max="45" step="5" oninput="setMiniEvery(this.value)">
+        <input type="range" class="pro-slider" id="miniEverySlider" min="0.5" max="45" step="0.5" oninput="setMiniEvery(this.value)">
       </div>
       <div class="sched-row">
         <div class="sched-lbl">Lasts <b id="miniLenVal">45 sec</b></div>
@@ -580,11 +601,11 @@
       <div class="sched-group"><span class="lbl">Big breaks</span></div>
       <div class="sched-row">
         <div class="sched-lbl">Every <b id="bigEveryVal">2.0 hr</b></div>
-        <input type="range" class="pro-slider" id="bigEverySlider" min="60" max="240" step="15" oninput="setBigEvery(this.value)">
+        <input type="range" class="pro-slider" id="bigEverySlider" min="0.5" max="240" step="0.5" oninput="setBigEvery(this.value)">
       </div>
       <div class="sched-row">
         <div class="sched-lbl">Lasts <b id="bigLenVal">15 min</b></div>
-        <input type="range" class="pro-slider" id="bigLenSlider" min="5" max="30" step="5" oninput="setBigLen(this.value)">
+        <input type="range" class="pro-slider" id="bigLenSlider" min="0.5" max="30" step="0.5" oninput="setBigLen(this.value)">
       </div>
 
       <div class="row" style="margin-top:18px">
@@ -909,16 +930,15 @@
 </div></nav>
 
 <!-- time-study log modal -->
-<div class="scrim" id="tsScrim">
-  <div class="modal">
-    <h2>⏰ What did you do?</h2>
-    <div class="sub" id="tsBlockLbl"></div>
-    <input type="text" id="tsNote" placeholder="1–2 words…" style="margin-top:14px" autocomplete="off">
-    <div class="foot">
-      <button class="ghost" onclick="tsCloseLog(false)">Skip</button>
-      <button class="primary" onclick="tsCloseLog(true)">Save ▶</button>
-    </div>
-    <div class="sub" style="margin-top:8px">⏎ saves &amp; auto-closes · writes straight into your spreadsheet</div>
+<div class="logov" id="tsScrim">
+  <div class="logov-inner">
+    <div class="log-kick">⏰ Time to log</div>
+    <div class="log-q">What did you do?</div>
+    <div class="sub log-block" id="tsBlockLbl"></div>
+    <input type="text" id="tsNote" class="log-input" placeholder="1–2 words…" autocomplete="off" autocapitalize="sentences">
+    <button class="log-save" onclick="tsCloseLog(true)">Save &amp; continue ▶</button>
+    <button class="log-skip" onclick="tsCloseLog(false)">Skip this block</button>
+    <div class="sub" style="margin-top:2px;color:rgba(255,255,255,.6)">⏎ saves &amp; auto-closes · writes into your spreadsheet</div>
   </div>
 </div>
 
@@ -1214,7 +1234,7 @@ function levelUp(level){
 const DEF_SETTINGS = {
   ascendUrl:'', lifeUrl:'',
   tsInt:15,
-  miniEvery:25, miniLen:45, bigEvery:120, bigLen:15, restOn:true,
+  miniEvery:25, miniLen:45, bigEvery:120, bigLen:15, restOn:true, logOn:true,
   tankMl:1500, rapGoal:60, unit:'kg', dayAName:'Day A', dayBName:'Day B',
   theme:{mode:'default', hue:220, live:false},
   mission:{enabled:false, types:['math'], mathDiff:'medium', phrases:[], barcodeRef:'', alarmTime:''}
@@ -1811,9 +1831,14 @@ function tsResetSession(){
 }
 
 /* ---- log cadence ---- */
-function setTsInt(min){ SET.tsInt=parseInt(min,10)||15; kset('settings',SET);
+/* format a minutes value as 30 sec / 15 min / 2.0 hr for slider labels */
+function fmtEvery(mins){ return mins<1 ? Math.round(mins*60)+' sec' : mins<60 ? (Number.isInteger(mins)?mins:mins.toFixed(1))+' min' : (mins/60).toFixed(1)+' hr'; }
+function setTsInt(min){ SET.tsInt=parseFloat(min)||15; kset('settings',SET);
   if(ts.mode==='working') ts.nextLogAt=Date.now()+SET.tsInt*60000, tsSave();
   renderWork(); }
+function toggleLogEnabled(on){ SET.logOn=!!on; kset('settings',SET);
+  if(on && ts.mode==='working') ts.nextLogAt=Date.now()+SET.tsInt*60000, tsSave();
+  toast(on?'Log reminders on':'Working straight through — no log popups'); renderWork(); }
 
 /* ---- rest / break timer — two tiers: quick "mini" resets, longer "big" breaks ---- */
 let restTicker=null;
@@ -1863,14 +1888,14 @@ function endRest(skipped){
 }
 function toggleRestEnabled(on){ SET.restOn=!!on; kset('settings',SET);
   toast(on?'Auto-breaks on':'Auto-breaks off'); renderWork(); }
-function setMiniEvery(min){ SET.miniEvery=parseInt(min,10)||25; kset('settings',SET);
+function setMiniEvery(min){ SET.miniEvery=parseFloat(min)||25; kset('settings',SET);
   if(ts.mode==='working') ts.miniNextAt=Date.now()+SET.miniEvery*60000, tsSave();
   renderWork(); }
 function setMiniLen(sec){ SET.miniLen=parseInt(sec,10)||45; kset('settings',SET); renderWork(); }
-function setBigEvery(min){ SET.bigEvery=parseInt(min,10)||120; kset('settings',SET);
+function setBigEvery(min){ SET.bigEvery=parseFloat(min)||120; kset('settings',SET);
   if(ts.mode==='working') ts.bigNextAt=Date.now()+SET.bigEvery*60000, tsSave();
   renderWork(); }
-function setBigLen(min){ SET.bigLen=parseInt(min,10)||15; kset('settings',SET); renderWork(); }
+function setBigLen(min){ SET.bigLen=parseFloat(min)||15; kset('settings',SET); renderWork(); }
 
 /* ---- log a block: a quick in-app note, always — writes straight into our own
    sheet (no external site to open, wait on, or lose focus to) ---- */
@@ -1902,11 +1927,11 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape' && ts.mode==='resti
 function renderWork(){
   const span=SET.tsInt*60000;
   let leftMs = ts.mode==='working' ? ts.nextLogAt-Date.now() : ts.mode==='paused' ? (ts.pausedLeft||span) : span;
-  $('#tsCount').textContent=hms(leftMs/1000);
-  $('#tsBar').style.width=(100*(1-Math.max(0,leftMs)/span))+'%';
+  if(!SET.logOn){ $('#tsCount').textContent='∞'; $('#tsBar').style.width='0%'; }
+  else { $('#tsCount').textContent=hms(leftMs/1000); $('#tsBar').style.width=(100*(1-Math.max(0,leftMs)/span))+'%'; }
   $('#tsStartBtn').textContent = ts.mode==='working' ? '⏸ Pause' : ts.mode==='paused' ? '▶ Resume' : '▶ Clock in';
-  $('#tsLbl').textContent = ts.mode==='idle' ? 'press clock in when work begins' : ts.mode==='paused' ? 'paused' : 'until next log';
-  $('#tsInfo').textContent = ts.mode==='idle' ? 'Logging every '+SET.tsInt+' min once you clock in' : 'Logging every '+SET.tsInt+' min';
+  $('#tsLbl').textContent = !SET.logOn ? 'straight-through focus' : ts.mode==='idle' ? 'press clock in when work begins' : ts.mode==='paused' ? 'paused' : 'until next log';
+  $('#tsInfo').textContent = !SET.logOn ? 'Working straight through — no log popups' : (ts.mode==='idle' ? 'Logging every '+fmtEvery(SET.tsInt)+' once you clock in' : 'Logging every '+fmtEvery(SET.tsInt));
   $('#tsStartedLbl').textContent = ts.mode!=='idle' && ts.sessionStart ? 'Started '+clock(ts.sessionStart) : 'Ready when you are';
   $('#tsClockOutWrap').style.display = ts.mode==='idle' ? 'none' : '';
 
@@ -1949,18 +1974,21 @@ function renderWork(){
   $('#tsRestIn').textContent = nextBreakLeft!=null ? hms(nextBreakLeft/1000)+(nextBreakKind==='big'?' 🛋':' ☕') : (SET.restOn?'—':'off');
 
   // schedule sliders
+  $('#logToggle').checked = SET.logOn;
+  $('#logSchedRow').style.opacity = SET.logOn ? '1' : '.4';
+  $('#logSchedRow').style.pointerEvents = SET.logOn ? '' : 'none';
   $('#restToggle').checked = SET.restOn;
-  $('#restStateLbl').textContent = SET.restOn ? '· on' : '· off';
+  $('#restStateLbl').textContent = (SET.logOn?'log on':'straight-through') + (SET.restOn ? ' · breaks on' : ' · breaks off');
   const tsIntS=$('#tsIntSlider'); if(document.activeElement!==tsIntS) tsIntS.value=SET.tsInt; styleSlider(tsIntS);
-  $('#tsIntVal').textContent=SET.tsInt+' min';
+  $('#tsIntVal').textContent=fmtEvery(SET.tsInt);
   const miS=$('#miniEverySlider'); if(document.activeElement!==miS) miS.value=SET.miniEvery; styleSlider(miS);
-  $('#miniEveryVal').textContent=SET.miniEvery+' min';
+  $('#miniEveryVal').textContent=fmtEvery(SET.miniEvery);
   const mlS=$('#miniLenSlider'); if(document.activeElement!==mlS) mlS.value=SET.miniLen; styleSlider(mlS);
   $('#miniLenVal').textContent=SET.miniLen+' sec';
   const beS=$('#bigEverySlider'); if(document.activeElement!==beS) beS.value=SET.bigEvery; styleSlider(beS);
-  $('#bigEveryVal').textContent=(SET.bigEvery/60).toFixed(1)+' hr';
+  $('#bigEveryVal').textContent=fmtEvery(SET.bigEvery);
   const blS=$('#bigLenSlider'); if(document.activeElement!==blS) blS.value=SET.bigLen; styleSlider(blS);
-  $('#bigLenVal').textContent=SET.bigLen+' min';
+  $('#bigLenVal').textContent=fmtEvery(SET.bigLen);
 
   box.innerHTML = e.length ? '' : '<div class="empty">Blocks you log appear here.</div>';
   [...e].reverse().forEach(x=>{ const d=document.createElement('div'); d.className='entry';
@@ -2096,7 +2124,7 @@ function tsSetCell(key,b,val){
 setInterval(()=>{
   if(ts.mode==='working'){
     tsCheckMilestones(); // fires regardless of which tab is open — a marathon session shouldn't need the Work tab up to celebrate
-    if(Date.now()>=ts.nextLogAt){ tsOpenLog(); }
+    if(SET.logOn && Date.now()>=ts.nextLogAt){ tsOpenLog(); }
     else if(SET.restOn && ts.bigNextAt && Date.now()>=ts.bigNextAt){ startRest('big',false); }
     else if(SET.restOn && ts.miniNextAt && Date.now()>=ts.miniNextAt){ startRest('mini',false); }
     else if(document.visibilityState==='visible' && document.querySelector('#p-work.on')) renderWork();

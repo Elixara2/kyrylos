@@ -143,6 +143,10 @@
   /* work */
   .clock{text-align:center;padding:8px 0 2px}
   .big{font-size:62px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:1px;line-height:1.05}
+  /* tighter Work tab so the essentials fit one screen */
+  #p-work .card{padding:13px;margin-bottom:10px}
+  #p-work .clock{padding:2px 0 0}
+  #p-work .worktiles{margin-top:12px}
   .biglbl{color:var(--dim);font-size:12.5px;text-transform:uppercase;letter-spacing:1.2px;margin-top:2px}
   .bar{height:8px;background:var(--panel2);border-radius:6px;overflow:hidden;margin-top:14px}
   .bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),#60a5fa);transition:width .4s}
@@ -569,6 +573,9 @@
       <div class="row" style="justify-content:center;margin-top:10px" id="tsClockOutWrap">
         <button class="sm ghost danger" onclick="tsClockOut()">⏹ Clock out</button>
         <button class="sm ghost" onclick="tsResetSession()">↺ Reset</button>
+      </div>
+      <div class="row" style="justify-content:center;margin-top:10px">
+        <button class="sm" onclick="popOutTimer()">⧉ Float timer on top</button>
       </div>
       <div class="sub" style="text-align:center;margin-top:12px" id="tsInfo"></div>
     </div>
@@ -1965,15 +1972,8 @@ function renderWork(){
   // momentum tiles (session-scoped)
   $('#tsBlocksToday').textContent=e.length;
   $('#tsWorkedToday').textContent = workedMin>=60 ? (workedMin/60).toFixed(1)+'h' : workedMin+'m';
-  let nextBreakLeft=null, nextBreakKind=null;
-  if(ts.mode==='working' && SET.restOn){
-    const cands=[];
-    if(ts.miniNextAt) cands.push(['mini',ts.miniNextAt]);
-    if(ts.bigNextAt) cands.push(['big',ts.bigNextAt]);
-    cands.sort((a,b)=>a[1]-b[1]);
-    if(cands.length){ nextBreakKind=cands[0][0]; nextBreakLeft=Math.max(0,cands[0][1]-Date.now()); }
-  }
-  $('#tsRestIn').textContent = nextBreakLeft!=null ? hms(nextBreakLeft/1000)+(nextBreakKind==='big'?' 🛋':' ☕') : (SET.restOn?'—':'off');
+  const nb=tsNextBreak();
+  $('#tsRestIn').textContent = nb ? hms(nb.leftMs/1000)+(nb.kind==='big'?' 🛋':' ☕') : (SET.restOn?'—':'off');
 
   // schedule sliders
   $('#logToggle').checked = SET.logOn;
@@ -2124,6 +2124,7 @@ function tsSetCell(key,b,val){
   if(key===todayKey()) renderWork();
 }
 setInterval(()=>{
+  updatePip(); // keep the floating widget live in every mode (idle/working/paused/resting)
   if(ts.mode==='working'){
     tsCheckMilestones(); // fires regardless of which tab is open — a marathon session shouldn't need the Work tab up to celebrate
     if(SET.logOn && Date.now()>=ts.nextLogAt){ tsOpenLog(); }
@@ -2132,6 +2133,77 @@ setInterval(()=>{
     else if(document.visibilityState==='visible' && document.querySelector('#p-work.on')) renderWork();
   }
 },1000);
+
+/* ================= floating always-on-top timer (Document Picture-in-Picture) =================
+   A real OS-level floating window that stays in front of every other app on desktop
+   Chromium (Brave/Chrome/Edge). Resize it freely — the content collapses to just the
+   timer + next-up glyph when short. Not supported on mobile browsers; falls back to a toast. */
+function tsNextBreak(){
+  if(ts.mode!=='working' || !SET.restOn) return null;
+  const cands=[];
+  if(ts.miniNextAt) cands.push(['mini',ts.miniNextAt]);
+  if(ts.bigNextAt) cands.push(['big',ts.bigNextAt]);
+  cands.sort((a,b)=>a[1]-b[1]);
+  return cands.length ? {kind:cands[0][0], leftMs:Math.max(0,cands[0][1]-Date.now())} : null;
+}
+let pipWin=null;
+async function popOutTimer(){
+  if(!('documentPictureInPicture' in window)){
+    toast('Floating window needs desktop Brave/Chrome/Edge — on your phone, add K-OS to the home screen instead.');
+    return;
+  }
+  if(pipWin && !pipWin.closed){ pipWin.focus(); return; }
+  try{
+    pipWin = await documentPictureInPicture.requestWindow({width:210, height:150});
+  }catch(e){ toast('Could not open the floating window.'); return; }
+  const st=pipWin.document.createElement('style');
+  st.textContent =
+    '*{margin:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}'+
+    'body{background:#0e1116;color:#e6edf3;height:100vh;overflow:hidden;cursor:pointer;-webkit-user-select:none;user-select:none}'+
+    '#pw{height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px;gap:3px;text-align:center}'+
+    '#pw-top{display:flex;align-items:center;gap:7px;font-size:12px;color:#8b949e;font-weight:600}'+
+    '#pw-state{font-size:9px}'+
+    '#pw-time{font-size:clamp(30px,17vw,68px);font-weight:800;font-variant-numeric:tabular-nums;line-height:1;letter-spacing:-.02em}'+
+    '#pw-lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:#8b949e}'+
+    '#pw-bar{width:82%;height:4px;background:#1c232d;border-radius:99px;margin-top:6px;overflow:hidden}'+
+    '#pw-bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#3b82f6,#60a5fa);transition:width .4s}'+
+    '@media(max-height:112px){#pw-lbl,#pw-bar{display:none}#pw-time{font-size:clamp(28px,22vw,60px)}}'+
+    '@media(max-height:78px){#pw-top{font-size:11px}#pw-time{font-size:clamp(24px,26vw,48px)}}';
+  pipWin.document.head.appendChild(st);
+  pipWin.document.body.innerHTML =
+    '<div id="pw"><div id="pw-top"><span id="pw-state">●</span><span id="pw-brk">—</span></div>'+
+    '<div id="pw-time">—</div><div id="pw-lbl">clock in</div>'+
+    '<div id="pw-bar"><i id="pw-barfill"></i></div></div>';
+  pipWin.document.body.addEventListener('click',()=>{ try{ window.focus(); }catch(e){} showTab('work'); });
+  pipWin.addEventListener('pagehide',()=>{ pipWin=null; });
+  updatePip();
+  toast('Floating timer popped out — drag & resize it, it stays on top.');
+}
+function updatePip(){
+  if(!pipWin || pipWin.closed) return;
+  const d=pipWin.document, g=id=>d.getElementById(id);
+  const time=g('pw-time'), lbl=g('pw-lbl'), brk=g('pw-brk'), state=g('pw-state'), fill=g('pw-barfill'), body=d.body;
+  if(!time) return;
+  if(ts.mode==='resting'){
+    const left=Math.max(0,Math.round((ts.restEndAt-Date.now())/1000));
+    time.textContent=hms(left); lbl.textContent=(ts.restKind==='big'?'big break':'mini break');
+    state.textContent='●'; state.style.color='#fff'; brk.textContent=(ts.restKind==='big'?'🛋 rest':'☕ rest');
+    body.style.background='radial-gradient(120% 120% at 50% 40%,#1f9d55,#0a3d22)'; fill.style.width='0%'; return;
+  }
+  body.style.background='#0e1116';
+  if(ts.mode==='idle'){ time.textContent='—'; lbl.textContent='clock in'; state.style.color='#8b949e'; brk.textContent='—'; fill.style.width='0%'; return; }
+  if(!SET.logOn){
+    const el=Math.max(0,Math.floor((Date.now()-ts.sessionStart)/1000));
+    time.textContent=hms(el); lbl.textContent='focus'; fill.style.width='0%';
+  } else {
+    const span=SET.tsInt*60000, leftMs = ts.mode==='paused' ? (ts.pausedLeft||span) : (ts.nextLogAt-Date.now());
+    time.textContent=hms(Math.max(0,leftMs)/1000); lbl.textContent = ts.mode==='paused'?'paused':'until next log';
+    fill.style.width=(100*(1-Math.max(0,Math.min(leftMs,span))/span))+'%';
+  }
+  state.textContent='●'; state.style.color = ts.mode==='paused' ? '#f59e0b' : '#22c55e';
+  const nb=tsNextBreak();
+  brk.textContent = nb ? (nb.kind==='big'?'🛋':'☕')+' '+Math.max(1,Math.ceil(nb.leftMs/60000))+'m' : (SET.restOn?'—':'no breaks');
+}
 
 /* ================= charts (shared) ================= */
 const NS='http://www.w3.org/2000/svg';

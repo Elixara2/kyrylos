@@ -1952,10 +1952,12 @@ function renderWork(){
   const todayMin=todayWorkedMin();
   const sessionCountToday=sessions.length + (ts.mode!=='idle'?1:0);
   $('#commitToday').textContent=(todayMin>=60?(todayMin/60).toFixed(1)+' hrs':todayMin+' min')+' today across '+sessionCountToday+' session'+(sessionCountToday===1?'':'s');
+  // committed window tracks the LIVE current time — "from now, N hours" → finish clock.
+  // (anchoring to the original clock-in left a stale start time frozen on screen.)
   const rangeEl=$('#commitRange');
-  if(ts.mode!=='idle' && ts.sessionStart){
-    const end=ts.sessionStart+committed*3600000;
-    rangeEl.innerHTML='<b>'+clock(ts.sessionStart)+'</b><span class="arrow">→</span><b>'+clock(end)+'</b>';
+  if(ts.mode!=='idle'){
+    const nowMs=Date.now(), end=nowMs+committed*3600000;
+    rangeEl.innerHTML='<b>'+clock(nowMs)+'</b><span class="arrow">→</span><b>'+clock(end)+'</b>';
     rangeEl.style.display='';
   } else { rangeEl.style.display='none'; }
   tsCheckMilestones();

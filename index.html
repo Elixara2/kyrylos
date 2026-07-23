@@ -2162,39 +2162,56 @@ async function popOutTimer(){
   }
   if(pipWin && !pipWin.closed){ pipWin.focus(); return; }
   try{
-    pipWin = await documentPictureInPicture.requestWindow({width:210, height:150});
+    // short & wide — dock-height by default (label + progress bar reveal if you drag it taller)
+    pipWin = await documentPictureInPicture.requestWindow({width:232, height:64});
   }catch(e){ toast('Could not open the floating window.'); return; }
   const st=pipWin.document.createElement('style');
   st.textContent =
     '*{margin:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}'+
-    'body{background:#0e1116;color:#e6edf3;height:100vh;overflow:hidden;cursor:pointer;-webkit-user-select:none;user-select:none}'+
-    '#pw{height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px;gap:3px;text-align:center}'+
-    '#pw-top{display:flex;align-items:center;gap:7px;font-size:12px;color:#8b949e;font-weight:600}'+
+    'body{background:#0e1116;color:#e6edf3;height:100vh;overflow:hidden;-webkit-user-select:none;user-select:none}'+
+    '#pw{height:100vh;display:flex;flex-direction:column;justify-content:center;padding:7px 9px;gap:5px}'+
+    '#pw-row{display:flex;align-items:center;gap:8px}'+
+    '#pw-time{font-size:clamp(24px,11vw,40px);font-weight:800;font-variant-numeric:tabular-nums;line-height:1;letter-spacing:-.02em;flex:0 0 auto;cursor:pointer}'+
+    '#pw-mid{flex:1;min-width:0;overflow:hidden;display:flex;flex-direction:column;gap:1px}'+
+    '#pw-top{display:flex;align-items:center;gap:5px;font-size:11px;color:#8b949e;font-weight:600;white-space:nowrap}'+
     '#pw-state{font-size:9px}'+
-    '#pw-time{font-size:clamp(30px,17vw,68px);font-weight:800;font-variant-numeric:tabular-nums;line-height:1;letter-spacing:-.02em}'+
-    '#pw-lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:#8b949e}'+
-    '#pw-bar{width:82%;height:4px;background:#1c232d;border-radius:99px;margin-top:6px;overflow:hidden}'+
+    '#pw-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.7px;color:#8b949e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'+
+    '#pw-ctl{display:flex;gap:4px;flex:0 0 auto}'+
+    '#pw-ctl button{width:30px;height:30px;border-radius:8px;border:1px solid #2a323d;background:#1c232d;color:#e6edf3;'+
+      'font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}'+
+    '#pw-ctl button:active{transform:scale(.92)}'+
+    '#pw-out{color:#ef4444}'+
+    '#pw-bar{height:4px;background:#1c232d;border-radius:99px;overflow:hidden}'+
     '#pw-bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#3b82f6,#60a5fa);transition:width .4s}'+
-    '@media(max-height:112px){#pw-lbl,#pw-bar{display:none}#pw-time{font-size:clamp(28px,22vw,60px)}}'+
-    '@media(max-height:78px){#pw-top{font-size:11px}#pw-time{font-size:clamp(24px,26vw,48px)}}'+
+    '@media(max-height:74px){#pw-lbl,#pw-bar{display:none}}'+
     /* in-widget log view (blue, matches the full-screen popup) */
-    '#pw-log{display:none;height:100vh;flex-direction:column;align-items:center;justify-content:center;padding:10px;gap:6px;text-align:center}'+
-    '#pw-logq{font-size:clamp(13px,5.5vw,17px);font-weight:800}'+
-    '#pw-block{font-size:10px;color:rgba(255,255,255,.6)}'+
-    '#pw-input{width:100%;font-size:clamp(14px,5vw,18px);text-align:center;padding:10px;border-radius:10px;'+
+    '#pw-log{display:none;height:100vh;flex-direction:column;align-items:center;justify-content:center;padding:8px 10px;gap:5px;text-align:center}'+
+    '#pw-logq{font-size:clamp(12px,5vw,15px);font-weight:800}'+
+    '#pw-block{font-size:9.5px;color:rgba(255,255,255,.6)}'+
+    '#pw-input{width:100%;font-size:clamp(14px,5vw,17px);text-align:center;padding:9px;border-radius:9px;'+
       'border:1.5px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;outline:none}'+
     '#pw-input:focus{border-color:#fff}#pw-input::placeholder{color:rgba(255,255,255,.5)}'+
-    '.pw-loghint{font-size:9.5px;letter-spacing:.5px;text-transform:uppercase;color:rgba(255,255,255,.55)}'+
-    '@media(max-height:120px){#pw-logq,#pw-block{display:none}}';
+    '.pw-loghint{font-size:9px;letter-spacing:.5px;text-transform:uppercase;color:rgba(255,255,255,.55)}'+
+    '@media(max-height:92px){#pw-logq,#pw-block,.pw-loghint{display:none}}';
   pipWin.document.head.appendChild(st);
   pipWin.document.body.innerHTML =
-    '<div id="pw"><div id="pw-top"><span id="pw-state">●</span><span id="pw-brk">—</span></div>'+
-    '<div id="pw-time">—</div><div id="pw-lbl">clock in</div>'+
-    '<div id="pw-bar"><i id="pw-barfill"></i></div></div>'+
+    '<div id="pw">'+
+      '<div id="pw-row">'+
+        '<div id="pw-time">—</div>'+
+        '<div id="pw-mid"><div id="pw-top"><span id="pw-state">●</span><span id="pw-brk">—</span></div>'+
+          '<div id="pw-lbl">clock in</div></div>'+
+        '<div id="pw-ctl"><button id="pw-toggle" title="Clock in / Pause">▶</button>'+
+          '<button id="pw-out" title="Clock out">⏹</button></div>'+
+      '</div>'+
+      '<div id="pw-bar"><i id="pw-barfill"></i></div>'+
+    '</div>'+
     '<div id="pw-log"><div id="pw-logq">⏰ What did you do?</div><div id="pw-block"></div>'+
     '<input id="pw-input" placeholder="1–2 words…" autocomplete="off"><div class="pw-loghint">⏎ save · esc skip</div></div>';
-  pipWin.document.getElementById('pw').addEventListener('click',()=>{ try{ window.focus(); }catch(e){} showTab('work'); });
-  const pinp=pipWin.document.getElementById('pw-input');
+  const pd=pipWin.document;
+  pd.getElementById('pw-time').addEventListener('click',()=>{ try{ window.focus(); }catch(e){} showTab('work'); });
+  pd.getElementById('pw-toggle').addEventListener('click',ev=>{ ev.stopPropagation(); tsToggle(); updatePip(); });
+  pd.getElementById('pw-out').addEventListener('click',ev=>{ ev.stopPropagation(); if(ts.mode!=='idle'){ tsClockOut(); updatePip(); } });
+  const pinp=pd.getElementById('pw-input');
   pinp.addEventListener('keydown',ev=>{
     if(ev.key==='Enter'){ ev.preventDefault(); pipSubmitLog(true); }
     else if(ev.key==='Escape'){ ev.preventDefault(); pipSubmitLog(false); }
@@ -2207,7 +2224,7 @@ async function popOutTimer(){
     }
   });
   updatePip();
-  toast('Floating timer popped out — drag & resize it, it stays on top.');
+  toast('Floating timer popped out — resize it, it stays on top (bottom-right).');
 }
 /* swap the widget into "what did you do?" input mode, then back to the timer */
 function showPipLog(blockLbl){
@@ -2234,7 +2251,12 @@ function updatePip(){
   if(ts.mode==='logging') return; // widget is showing the "what did you do?" input — don't clobber it
   const d=pipWin.document, g=id=>d.getElementById(id);
   const time=g('pw-time'), lbl=g('pw-lbl'), brk=g('pw-brk'), state=g('pw-state'), fill=g('pw-barfill'), body=d.body;
+  const toggle=g('pw-toggle'), out=g('pw-out');
   if(!time) return;
+  // controls: clock in when idle, pause/resume otherwise; clock-out hidden when idle
+  if(toggle){ toggle.textContent = (ts.mode==='working') ? '⏸' : '▶';
+    toggle.title = ts.mode==='idle' ? 'Clock in' : ts.mode==='working' ? 'Pause' : ts.mode==='paused' ? 'Resume' : 'Working'; }
+  if(out){ out.style.visibility = ts.mode==='idle' ? 'hidden' : 'visible'; }
   if(ts.mode==='resting'){
     const left=Math.max(0,Math.round((ts.restEndAt-Date.now())/1000));
     time.textContent=hms(left); lbl.textContent=(ts.restKind==='big'?'big break':'mini break');

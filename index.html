@@ -222,6 +222,27 @@
     padding:15px;border-radius:99px;cursor:pointer}
   .log-skip{appearance:none;border:none;background:none;color:rgba(255,255,255,.75);font:inherit;padding:6px;cursor:pointer}
   .log-save:active,.log-skip:active{transform:scale(.98)}
+  /* clip trimmer */
+  .trimov{position:fixed;inset:0;z-index:84;display:none;align-items:center;justify-content:center;
+    background:rgba(6,9,13,.9);backdrop-filter:blur(6px);padding:calc(var(--safe-t) + 16px) 16px calc(var(--safe-b) + 16px)}
+  .trimov.show{display:flex;animation:fade .3s var(--ease)}
+  .trim-inner{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;width:100%;max-width:560px;
+    max-height:92vh;overflow-y:auto;box-shadow:0 24px 70px rgba(0,0,0,.6)}
+  .trim-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-size:16px}
+  .trim-x{background:var(--panel2);border:1px solid var(--line);color:var(--txt);width:32px;height:32px;border-radius:9px;cursor:pointer;font-size:14px}
+  #trimVid{width:100%;max-height:46vh;border-radius:12px;background:#000;display:block}
+  .trim-tl{position:relative;height:34px;margin:14px 2px 0;background:var(--panel2);border-radius:8px;cursor:pointer;touch-action:none;
+    background-image:repeating-linear-gradient(90deg,transparent,transparent 9px,rgba(255,255,255,.05) 9px,rgba(255,255,255,.05) 10px)}
+  .trim-sel{position:absolute;top:0;bottom:0;background:rgba(59,130,246,.28);border-left:2px solid var(--accent);border-right:2px solid var(--accent)}
+  .trim-ph{position:absolute;top:-3px;bottom:-3px;width:2px;background:#fff;left:0;pointer-events:none;opacity:.85}
+  .trim-h{position:absolute;top:-5px;bottom:-5px;width:16px;margin-left:-8px;border-radius:6px;background:var(--accent);
+    cursor:ew-resize;touch-action:none;box-shadow:0 2px 8px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center}
+  .trim-h::after{content:"";width:2px;height:14px;background:rgba(255,255,255,.7);border-radius:2px}
+  .trim-times{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:12.5px;color:var(--dim);
+    font-variant-numeric:tabular-nums}
+  .trim-times b{color:var(--accent)}
+  .trim-btns{display:flex;gap:8px;margin-top:14px}
+  .trim-btns .primary{flex:1}
 
   /* committed-window banner */
   .commit-range{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:10px;
@@ -946,6 +967,28 @@
     <button class="log-save" onclick="tsCloseLog(true)">Save &amp; continue ▶</button>
     <button class="log-skip" onclick="tsCloseLog(false)">Skip this block</button>
     <div class="sub" style="margin-top:2px;color:rgba(255,255,255,.6)">⏎ saves &amp; auto-closes · writes into your spreadsheet</div>
+  </div>
+</div>
+
+<!-- clip trimmer: trim a downloaded video, attach the cut to the current project -->
+<div class="trimov" id="trimov">
+  <div class="trim-inner">
+    <div class="trim-head"><b>✂ Trim clip</b><button class="trim-x" onclick="closeTrim()">✕</button></div>
+    <video id="trimVid" playsinline preload="auto"></video>
+    <div class="trim-tl" id="trimTL">
+      <div class="trim-sel" id="trimSel"></div>
+      <div class="trim-ph" id="trimPH"></div>
+      <div class="trim-h" id="trimH1"></div>
+      <div class="trim-h" id="trimH2"></div>
+    </div>
+    <div class="trim-times"><span id="trimInLbl">0:00</span><b id="trimSelLbl">selection 0:00</b><span id="trimOutLbl">0:00</span></div>
+    <div class="trim-btns">
+      <button class="sm" onclick="trimPreview()">▶ Preview</button>
+      <button class="sm ghost" onclick="trimUseFull()">Use full clip</button>
+      <button class="primary" id="trimSaveBtn" onclick="trimExport()">✂ Trim &amp; attach</button>
+    </div>
+    <div class="sub" id="trimProg" style="display:none;text-align:center;margin-top:8px">Recording trim… <b id="trimProgPct">0%</b></div>
+    <div class="sub" style="text-align:center;margin-top:8px">Drag the handles to set in/out. Saves to your current project, downloads the file, and syncs to Drive.</div>
   </div>
 </div>
 
@@ -2548,8 +2591,8 @@ function onBeatFilePicked(e){
 }
 function onBeatVideoFilePicked(e){
   const f=e.target.files[0]; if(!f) return;
-  const proj=getActiveProj(); if(!proj){ toast('Create a project first'); return; }
-  uploadAndAttach(f, f.name, 0, proj, 'beatvideo');
+  const proj=getActiveProj(); if(!proj){ toast('Create a project first'); e.target.value=''; return; }
+  openTrim(f); // pick your downloaded clip → trim it → attach to the project
   e.target.value='';
 }
 
@@ -2598,6 +2641,115 @@ function beatEmbedHtml(media, isVideo){
 function beatLabelHtml(media){
   return '<div class="row" style="margin-top:8px"><span class="sub grow">'+esc(media.name)+
     (media.local?' · loops endlessly':'')+'</span><button class="sm ghost" onclick="removeBeat()">Remove</button></div>';
+}
+
+/* ================= clip trimmer =================
+   Pick a downloaded video → set in/out points → export the cut (real MP4 where the
+   browser supports it, else WebM) via MediaRecorder, download it, and attach to the
+   current project. Real-time capture: exporting plays the selection through once. */
+let trimFile=null, trimBlobUrl=null, trimDur=0, trimIn=0, trimOut=0, trimDragH=null, trimPreviewing=false, trimRec=null, trimStopping=false;
+function fmtTime(s){ s=Math.max(0,s||0); const m=Math.floor(s/60), ss=Math.floor(s%60); return m+':'+String(ss).padStart(2,'0'); }
+function openTrim(file){
+  if(!getActiveProj()){ toast('Create a project first'); return; }
+  trimFile=file;
+  if(trimBlobUrl) URL.revokeObjectURL(trimBlobUrl);
+  trimBlobUrl=URL.createObjectURL(file);
+  const v=$('#trimVid'); v.src=trimBlobUrl; v.muted=true; v.loop=false;
+  v.onloadedmetadata=()=>{ trimDur=isFinite(v.duration)?v.duration:0; trimIn=0; trimOut=trimDur; renderTrimTL(); };
+  v.ontimeupdate=()=>{
+    if(trimPreviewing && v.currentTime>=trimOut){ v.currentTime=trimIn; }
+    $('#trimPH').style.left=((v.currentTime/(trimDur||1))*100)+'%';
+  };
+  $('#trimProg').style.display='none'; $('#trimSaveBtn').disabled=false;
+  $('#trimov').classList.add('show');
+  trimBindTL();
+}
+function closeTrim(){
+  const v=$('#trimVid'); try{ v.pause(); }catch(e){} v.removeAttribute('src'); try{v.load();}catch(e){}
+  trimPreviewing=false; trimStopping=true;
+  if(trimRec && trimRec.state==='recording'){ try{trimRec.stop();}catch(e){} }
+  $('#trimov').classList.remove('show');
+  if(trimBlobUrl){ URL.revokeObjectURL(trimBlobUrl); trimBlobUrl=null; }
+  trimFile=null;
+}
+function renderTrimTL(){
+  const a=trimDur?trimIn/trimDur*100:0, b=trimDur?trimOut/trimDur*100:100;
+  $('#trimH1').style.left=a+'%'; $('#trimH2').style.left=b+'%';
+  $('#trimSel').style.left=a+'%'; $('#trimSel').style.width=Math.max(0,b-a)+'%';
+  $('#trimInLbl').textContent=fmtTime(trimIn);
+  $('#trimOutLbl').textContent=fmtTime(trimOut);
+  $('#trimSelLbl').textContent='selection '+fmtTime(trimOut-trimIn);
+}
+function trimBindTL(){
+  const tl=$('#trimTL'); if(!tl) return;
+  const posAt=cx=>{ const r=tl.getBoundingClientRect(); return Math.max(0,Math.min(1,(cx-r.left)/r.width))*trimDur; };
+  ['trimH1','trimH2'].forEach(id=>{
+    const h=$('#'+id);
+    h.onpointerdown=e=>{ e.preventDefault(); e.stopPropagation(); trimDragH=id; try{h.setPointerCapture(e.pointerId);}catch(_){} };
+    h.onpointermove=e=>{ if(trimDragH!==id||!trimDur) return; const t=posAt(e.clientX);
+      if(id==='trimH1') trimIn=Math.min(t, trimOut-0.2); else trimOut=Math.max(t, trimIn+0.2);
+      trimIn=Math.max(0,trimIn); trimOut=Math.min(trimDur,trimOut); renderTrimTL();
+      const v=$('#trimVid'); if(v){ v.currentTime=(id==='trimH1'?trimIn:trimOut); } };
+    h.onpointerup=()=>{ trimDragH=null; };
+    h.onpointercancel=()=>{ trimDragH=null; };
+  });
+  tl.onclick=e=>{ if(trimDragH) return; const v=$('#trimVid'); if(v && trimDur){ v.currentTime=posAt(e.clientX); } };
+}
+function trimPreview(){
+  const v=$('#trimVid'); if(!v||!trimDur) return;
+  trimPreviewing=true; v.muted=false; v.volume=1; v.currentTime=trimIn; v.play().catch(()=>{});
+}
+function trimUseFull(){
+  const proj=getActiveProj();
+  if(trimFile && proj) uploadAndAttach(trimFile, trimFile.name, Math.round(trimDur), proj, 'beatvideo');
+  else if(!proj) toast('Create a project first');
+  closeTrim();
+}
+function pickTrimMime(){
+  if(!window.MediaRecorder) return '';
+  const prefs=['video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/mp4','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];
+  for(const m of prefs){ try{ if(MediaRecorder.isTypeSupported(m)) return m; }catch(e){} }
+  return '';
+}
+function seekTo(v,t){ return new Promise(res=>{ let done=false; const cb=()=>{ if(done) return; done=true; v.removeEventListener('seeked',cb); res(); };
+  v.addEventListener('seeked',cb); v.currentTime=t; setTimeout(cb,1500); }); }
+async function trimExport(){
+  const v=$('#trimVid'); if(!v||!trimDur) return;
+  if(trimOut-trimIn < 0.3){ toast('Selection is too short.'); return; }
+  const cap = v.captureStream ? v.captureStream() : (v.mozCaptureStream ? v.mozCaptureStream() : null);
+  if(!cap){ toast('This browser can’t export trims — use "Use full clip", or trim in another app.'); return; }
+  const mime=pickTrimMime();
+  try{ trimRec = mime ? new MediaRecorder(cap,{mimeType:mime}) : new MediaRecorder(cap); }
+  catch(e){ toast('Trim export not supported here — try "Use full clip".'); return; }
+  const chunks=[];
+  trimRec.ondataavailable=e=>{ if(e.data && e.data.size) chunks.push(e.data); };
+  trimRec.onstop=()=>{ const type=trimRec.mimeType||mime||'video/webm'; finishTrim(new Blob(chunks,{type}), type); };
+  $('#trimProg').style.display=''; $('#trimProgPct').textContent='0%'; $('#trimSaveBtn').disabled=true;
+  v.muted=false; v.volume=1;
+  await seekTo(v, trimIn);
+  trimStopping=false;
+  try{ trimRec.start(200); }catch(e){ toast('Could not start recording.'); $('#trimSaveBtn').disabled=false; $('#trimProg').style.display='none'; return; }
+  await v.play().catch(()=>{});
+  const watch=()=>{
+    if(trimStopping) return;
+    const span=Math.max(0.1,trimOut-trimIn);
+    $('#trimProgPct').textContent=Math.max(0,Math.min(100,Math.round((v.currentTime-trimIn)/span*100)))+'%';
+    $('#trimPH').style.left=((v.currentTime/(trimDur||1))*100)+'%';
+    if(v.currentTime>=trimOut-0.03 || v.ended){ trimStopping=true; try{v.pause();}catch(e){} try{ if(trimRec.state==='recording') trimRec.stop(); }catch(e){} }
+    else requestAnimationFrame(watch);
+  };
+  requestAnimationFrame(watch);
+}
+function finishTrim(blob, type){
+  $('#trimProg').style.display='none'; $('#trimSaveBtn').disabled=false;
+  const proj=getActiveProj();
+  const ext = /mp4/.test(type) ? 'mp4' : 'webm';
+  const base=((proj?proj.name:'clip').replace(/[^a-z0-9]+/gi,'-').replace(/^-+|-+$/g,'').toLowerCase())||'clip';
+  const fname=base+'-'+Date.now().toString(36)+'.'+ext;
+  try{ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fname; document.body.appendChild(a); a.click(); setTimeout(()=>a.remove(),100); }catch(e){}
+  if(proj) uploadAndAttach(blob, fname, Math.round(trimOut-trimIn), proj, 'beatvideo');
+  else toast('Trim downloaded'+(ext==='webm'?' (WebM — your browser lacks MP4 export)':''));
+  closeTrim();
 }
 
 /* ---- voice memo recording ---- */
@@ -2840,7 +2992,7 @@ function renderRapPanel(){
     : proj.beatVideo
       ? beatEmbedHtml(proj.beatVideo,true)+beatLabelHtml(proj.beatVideo)
       : '<div class="row">'+
-        '<button onclick="document.getElementById(\'beatVideoFile\').click()">🎬 Select video</button>'+
+        '<button onclick="document.getElementById(\'beatVideoFile\').click()">🎬 Trim &amp; add video</button>'+
         '<button class="ghost sm" onclick="document.getElementById(\'beatFile\').click()">or select MP3</button></div>';
 
   const notesExpanded=isBlockExpanded('scribble'), barsExpanded=isBlockExpanded('bars');

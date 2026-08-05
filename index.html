@@ -4,13 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0e1116">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="K-OS">
-<meta name="mobile-web-app-capable" content="yes">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="icon" type="image/png" href="icon-192.png">
 <title>K-OS</title>
 <style>
   :root{
@@ -102,6 +95,51 @@
   .tab.on .ic{transform:translateY(-1px)}
   .tab .dotdone{width:4px;height:4px;border-radius:50%;background:transparent;margin-top:1px}
   .tab.done .dotdone{background:var(--green)}
+
+  /* ── floating Prophit tab ──────────────────────────────────────────────
+     Always-visible profit pill, parked just above the tab bar. Collapsed it
+     is today's net profit and nothing else; tapped, it expands upward into
+     the supporting numbers. Sits at z-index 40 — over the page, under the
+     full-screen overlays (80+) so it can never trap a modal. */
+  #pfloat{position:fixed;right:14px;bottom:calc(var(--safe-b) + 74px);z-index:40;
+    display:flex;flex-direction:column;align-items:flex-end;gap:8px;pointer-events:none}
+  #pfloat > *{pointer-events:auto}
+
+  #pfpill{display:flex;align-items:center;gap:9px;padding:9px 14px;border-radius:999px;
+    background:rgba(28,35,45,.92);backdrop-filter:blur(14px) saturate(1.3);
+    border:1px solid var(--line);color:var(--txt);font:inherit;
+    box-shadow:0 2px 6px rgba(0,0,0,.24),0 12px 32px -12px rgba(0,0,0,.6);
+    transition:transform .18s var(--ease),border-color .18s ease}
+  #pfpill:active{transform:scale(.96)}
+  #pfpill.up{border-color:rgba(34,197,94,.45)}
+  #pfpill.down{border-color:rgba(239,68,68,.45)}
+  #pfpill .lbl{font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+  #pfpill .val{font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
+  #pfpill .dot{width:7px;height:7px;border-radius:50%;background:var(--dim);flex:0 0 auto}
+  #pfpill .dot.live{background:var(--green);box-shadow:0 0 0 3px rgba(34,197,94,.16)}
+
+  #pfcard{width:min(320px,calc(100vw - 28px));padding:14px 15px 13px;border-radius:16px;
+    background:rgba(22,27,34,.97);backdrop-filter:blur(16px);border:1px solid var(--line);
+    box-shadow:0 8px 24px -8px rgba(0,0,0,.5),0 30px 60px -30px rgba(0,0,0,.8);
+    display:none;animation:pfIn .22s var(--ease)}
+  #pfcard.on{display:block}
+  @keyframes pfIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+  #pfcard .hd{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px}
+  #pfcard .hd b{font-size:13px;letter-spacing:.2px}
+  #pfcard .hd span{font-size:11px;color:var(--dim)}
+  #pfgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px 12px}
+  #pfgrid .k{font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+  #pfgrid .v{font-size:14.5px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:1px}
+  #pfcard .ft{margin-top:11px;padding-top:10px;border-top:1px solid var(--line);
+    display:flex;align-items:center;justify-content:space-between;gap:8px}
+  #pfcard .ft .wk{font-size:11.5px;color:var(--dim)}
+  #pfcard .ft .wk b{color:var(--txt);font-variant-numeric:tabular-nums}
+  #pfcard .warn{margin-top:9px;font-size:10.5px;line-height:1.4;color:var(--amber)}
+  #pfcard .refresh{background:none;border:1px solid var(--line);color:var(--dim);
+    border-radius:8px;padding:4px 9px;font-size:11px;font-weight:600}
+
+  /* the pill would sit on top of the tab bar in landscape on small phones */
+  @media (max-height:460px){ #pfloat{display:none} }
 
   .panel{display:none;animation:fade .25s var(--ease)}
   .panel.on{display:block}
@@ -943,6 +981,30 @@
       <button class="primary" onclick="closeGoalDetail()">Done</button>
     </div>
   </div>
+</div>
+
+<!-- floating Prophit tab — live on every screen -->
+<div id="pfloat">
+  <div id="pfcard" role="dialog" aria-label="Profit detail">
+    <div class="hd"><b>Today</b><span id="pfDate">—</span></div>
+    <div id="pfgrid">
+      <div><div class="k">Revenue</div><div class="v" id="pfRev">—</div></div>
+      <div><div class="k">Ad spend</div><div class="v" id="pfAd">—</div></div>
+      <div><div class="k">Orders</div><div class="v" id="pfOrd">—</div></div>
+      <div><div class="k">AOV</div><div class="v" id="pfAov">—</div></div>
+      <div><div class="k">CAC</div><div class="v" id="pfCac">—</div></div>
+      <div><div class="k">ROAS</div><div class="v" id="pfRoas">—</div></div>
+    </div>
+    <div class="ft">
+      <div class="wk">7 days: <b id="pfWeek">—</b></div>
+      <button class="refresh" onclick="refreshProfitFloat(true)">Refresh</button>
+    </div>
+    <div class="warn" id="pfWarn" style="display:none"></div>
+  </div>
+  <button id="pfpill" onclick="toggleProfitFloat()" aria-label="Today's profit">
+    <span class="dot" id="pfDot"></span>
+    <span><span class="lbl">Profit today</span><br><span class="val" id="pfVal">—</span></span>
+  </button>
 </div>
 
 <!-- tab bar -->
@@ -3830,6 +3892,98 @@ function renderProfitBar(){
     : (profitSummaryCache.brandCount+' brand'+(profitSummaryCache.brandCount===1?'':'s'));
 }
 
+/* ================= floating profit tab =================
+   The pill is up on every screen, so it polls on its own timer rather than
+   riding renderAll() — otherwise it would go stale the moment you left Today.
+   One call per 3 min while the app is visible, paused while hidden so a phone
+   left open overnight doesn't hammer the backend for nothing. */
+let pfCache=null, pfWeek=null, pfFetching=false, pfTimer=null;
+
+function pfSym(c){ return ({USD:'$',AUD:'A$',EUR:'€',GBP:'£',CAD:'C$',NZD:'NZ$'})[c] || (c+' '); }
+function pfMoney(n,ccy,dp){
+  if(n===null||n===undefined||isNaN(n)) return '—';
+  const d = dp===undefined ? 0 : dp;
+  return (n<0?'-':'')+pfSym(ccy)+Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});
+}
+
+function prophitCall(action, extra){
+  return fetch(PROPHIT_API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body:JSON.stringify(Object.assign({action:action,token:PROPHIT_API_TOKEN},extra||{}))})
+    .then(r=>r.json()).then(res=>{
+      if(!res || res.ok===false || !res.data) throw new Error(res && res.error || 'bad response');
+      return res.data;
+    });
+}
+
+function refreshProfitFloat(force){
+  if(!prophitConnected || pfFetching) return;
+  if(!force && pfCache && (Date.now()-pfCache._t) < 3*60*1000) return;
+  pfFetching=true;
+  Promise.all([
+    prophitCall('profitSummary',{date:todayKey()}),
+    prophitCall('profitRange',{days:7})
+  ]).then(([today,week])=>{
+    pfCache=Object.assign({_t:Date.now()},today);
+    pfWeek=week;
+  }).catch(()=>{ /* offline or backend down — keep showing the last good number */ })
+   .finally(()=>{ pfFetching=false; renderProfitFloat(); });
+}
+
+function renderProfitFloat(){
+  const pill=$('#pfpill'), val=$('#pfVal'), dot=$('#pfDot');
+  if(!pill) return;
+  if(!prophitConnected){ val.textContent='—'; return; }
+  if(!pfCache){ val.textContent='…'; return; }
+
+  const c=pfCache.currency;
+  val.textContent=pfMoney(pfCache.profit,c);
+  val.style.color = pfCache.profit<0 ? 'var(--red)' : 'var(--green)';
+  pill.classList.toggle('up', pfCache.profit>=0);
+  pill.classList.toggle('down', pfCache.profit<0);
+  // green dot = the number was refreshed in the last 10 minutes
+  dot.classList.toggle('live', (Date.now()-pfCache._t) < 10*60*1000);
+
+  $('#pfDate').textContent=pfCache.date||'';
+  $('#pfRev').textContent=pfMoney(pfCache.revenue,c);
+  $('#pfAd').textContent=pfMoney(pfCache.adSpend,c);
+  $('#pfOrd').textContent=(pfCache.orders||0)+(pfCache.units?' / '+pfCache.units+'u':'');
+  $('#pfAov').textContent=pfMoney(pfCache.aov,c);
+  $('#pfCac').textContent=pfMoney(pfCache.cac,c,2);
+  $('#pfRoas').textContent=pfCache.roas ? pfCache.roas.toFixed(2)+'×' : '—';
+
+  if(pfWeek){
+    $('#pfWeek').textContent=pfMoney(pfWeek.profit,pfWeek.currency)
+      +'  ·  '+pfWeek.orders+' orders  ·  '+(pfWeek.roas?pfWeek.roas.toFixed(2)+'×':'—');
+  }
+
+  // Say so when the number is partly guesswork rather than letting it look exact.
+  const warn=$('#pfWarn'); let msg='';
+  if(pfCache.allLoaded===false) msg='Partial — exchange rate still loading.';
+  else if(pfCache.estimatedPct>5) msg=pfCache.estimatedPct+'% of COGS is still a 50%-of-price estimate. Add those products in Prophit ▸ ⚙ Products.';
+  warn.textContent=msg;
+  warn.style.display=msg?'block':'none';
+}
+
+function toggleProfitFloat(){
+  const card=$('#pfcard');
+  const opening=!card.classList.contains('on');
+  card.classList.toggle('on', opening);
+  if(opening) refreshProfitFloat(false);
+}
+
+function startProfitFloat(){
+  if(!prophitConnected) return;
+  refreshProfitFloat(false);
+  clearInterval(pfTimer);
+  pfTimer=setInterval(()=>{ if(!document.hidden) refreshProfitFloat(false); }, 3*60*1000);
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) refreshProfitFloat(false); });
+  // tapping anywhere else closes the expanded card
+  document.addEventListener('click',(e)=>{
+    if(!$('#pfcard').classList.contains('on')) return;
+    if(!e.target.closest('#pfloat')) $('#pfcard').classList.remove('on');
+  });
+}
+
 
 /* ================= router ================= */
 let activeTab = jload('tab','today');
@@ -3863,6 +4017,7 @@ showTab(activeTab);
 let lastDay=todayKey();
 setInterval(()=>{ if(todayKey()!==lastDay){ lastDay=todayKey(); ts=jload('tsrun',{mode:'idle'}); ts.mode='idle'; tsSave(); renderAll(); } }, 30000);
 setInterval(checkAlarm, 10000); checkAlarm();
+startProfitFloat();
 </script>
 </body>
 </html>

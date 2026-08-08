@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0e1116">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="K-OS">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
 <title>K-OS</title>
 <style>
   :root{
@@ -578,22 +585,24 @@
       <h2>Daily flow</h2>
       <div class="flowlist" id="flowlist"></div>
     </div>
-    <div class="card cardlink" onclick="showTab('habits')">
-      <h2 class="cardlink-h">Habits <span class="cardlink-go">›</span></h2>
-      <div id="habitsMini" class="sub">—</div>
-    </div>
-    <div class="card cardlink" onclick="showTab('goals')">
-      <h2 class="cardlink-h">Goals <span class="cardlink-go">›</span></h2>
-      <div id="goalsMini" class="sub">—</div>
-    </div>
-    <div class="card cardlink" onclick="openProphit()">
-      <div class="row" style="justify-content:space-between;align-items:flex-start">
-        <div>
-          <div class="lbl">Today's profit</div>
-          <div id="profitBarValue" style="font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:2px">—</div>
-          <div class="sub" id="profitBarSub">—</div>
+    <div id="todayCards">
+      <div class="card cardlink dragblock" data-cid="habits">
+        <h2 class="cardlink-h">Habits <span class="cardlink-go">›</span></h2>
+        <div id="habitsMini" class="sub">—</div>
+      </div>
+      <div class="card cardlink dragblock" data-cid="goals">
+        <h2 class="cardlink-h">Goals <span class="cardlink-go">›</span></h2>
+        <div id="goalsMini" class="sub">—</div>
+      </div>
+      <div class="card cardlink dragblock" data-cid="profit">
+        <div class="row" style="justify-content:space-between;align-items:flex-start">
+          <div>
+            <div class="lbl">Today's profit</div>
+            <div id="profitBarValue" style="font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:2px">—</div>
+            <div class="sub" id="profitBarSub">—</div>
+          </div>
+          <span class="cardlink-go" style="font-size:22px">›</span>
         </div>
-        <span class="cardlink-go" style="font-size:22px">›</span>
       </div>
     </div>
   </section>
@@ -1534,6 +1543,67 @@ function makeDragReorder(containerSel, itemSel, idAttr, getOrder, saveOrder, onD
 
 const bindFlowDrag=makeDragReorder('#flowlist','.fitem','fid',flowOrder,saveFlowOrder,renderToday);
 
+/* ---- the big Today cards (Habits/Goals/Profit): tap opens, HOLD enters move mode
+   (gentle buzz), then drag to reorder — like rearranging home-screen widgets ---- */
+const TODAY_CARDS=['habits','goals','profit'];
+function todayCardOrder(){
+  const saved=kget('todayCardOrder', null);
+  if(!saved) return TODAY_CARDS.slice();
+  const known=saved.filter(x=>TODAY_CARDS.includes(x));
+  TODAY_CARDS.forEach(x=>{ if(!known.includes(x)) known.push(x); });
+  return known;
+}
+function saveTodayCardOrder(o){ kset('todayCardOrder', o); }
+function openTodayCard(id){ if(id==='habits') showTab('habits'); else if(id==='goals') showTab('goals'); else if(id==='profit') openProphit(); }
+function applyTodayCardOrder(){
+  const box=$('#todayCards'); if(!box) return;
+  todayCardOrder().forEach(id=>{ const el=box.querySelector('.card[data-cid="'+id+'"]'); if(el) box.appendChild(el); });
+}
+let cardPress=null, cardDrag=null, cardMoved=false;
+function bindTodayCards(){
+  const box=$('#todayCards'); if(!box) return;
+  box.querySelectorAll('.card[data-cid]').forEach(el=>{
+    el.onpointerdown=e=>{
+      if(e.target.closest('button,input,a,textarea,select')) return;
+      cardMoved=false;
+      cardPress={el, x:e.clientX, y:e.clientY, timer:setTimeout(()=>cardLift(el,e),400)};
+    };
+    el.onpointermove=e=>{
+      if(cardPress && cardPress.timer && (Math.abs(e.clientX-cardPress.x)>10 || Math.abs(e.clientY-cardPress.y)>10)){
+        clearTimeout(cardPress.timer); cardPress=null; // it's a scroll, not a hold
+      }
+      if(cardDrag && cardDrag.el===el){ cardMoved=true; cardDrag.el.style.transform='translateY('+(e.clientY-cardDrag.startY)+'px) scale(1.03)'; }
+    };
+    el.onpointerup=()=>{
+      if(cardPress && cardPress.timer){ clearTimeout(cardPress.timer); cardPress=null; openTodayCard(el.dataset.cid); return; } // quick tap → open
+      if(cardDrag && cardDrag.el===el) cardDrop();
+    };
+    el.onpointercancel=()=>{
+      if(cardPress && cardPress.timer){ clearTimeout(cardPress.timer); cardPress=null; }
+      if(cardDrag){ cardDrag.el.classList.remove('lifted'); cardDrag.el.style.transform=''; cardDrag=null; }
+    };
+  });
+}
+function cardLift(el,e){
+  cardPress=null;
+  try{ el.setPointerCapture(e.pointerId); }catch(_){}
+  el.classList.add('lifted'); buzz(28); beep([[660,.05]]); // gentle vibration on entering move mode
+  cardDrag={el, id:el.dataset.cid, startY:e.clientY};
+}
+function cardDrop(){
+  if(!cardDrag) return;
+  const {el,id}=cardDrag;
+  el.classList.remove('lifted'); el.style.transform='';
+  const box=$('#todayCards'), centerY=el.getBoundingClientRect().top+el.offsetHeight/2;
+  const order=todayCardOrder(), others=order.filter(x=>x!==id);
+  let idx=0;
+  others.forEach(x=>{ const sib=box.querySelector('.card[data-cid="'+x+'"]'); if(sib){ const r=sib.getBoundingClientRect(); if(r.top+r.height/2<centerY) idx++; } });
+  const next=others.slice(); next.splice(idx,0,id);
+  cardDrag=null;
+  if(next.join(',')!==order.join(',')){ saveTodayCardOrder(next); buzz(15); }
+  applyTodayCardOrder();
+}
+
 /* ================= MORNING MISSION =================
    Companion to your phone's real alarm, not a replacement for it — a website can't
    reliably ring through a locked screen or silent mode, so the actual wake-up ring
@@ -1821,6 +1891,7 @@ function renderToday(){
     ? g.slice(0,6).map(x=>'<div class="miniitem'+(x.done?' done':'')+'">'+esc(x.text)+'</div>').join('') +
       (g.length>6?'<div class="sub" style="margin-top:2px">+'+(g.length-6)+' more</div>':'')
     : 'No goals yet — add some.';
+  applyTodayCardOrder(); bindTodayCards();
 }
 
 /* ================= WORK · time study ================= */

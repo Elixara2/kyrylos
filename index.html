@@ -2461,22 +2461,19 @@ function tsNextBreak(){
   return cands.length ? {kind:cands[0][0], leftMs:Math.max(0,cands[0][1]-Date.now())} : null;
 }
 let pipWin=null;
-async function popOutTimer(){
-  if(!('documentPictureInPicture' in window)){
-    toast('Floating window needs desktop Brave/Chrome/Edge — on your phone, add K-OS to the home screen instead.');
-    return;
-  }
+function popOutTimer(){
   if(pipWin && !pipWin.closed){ pipWin.focus(); return; }
-  try{
-    // always a tiny bar — never big. (Chromium sometimes restores a remembered larger
-    // size, so we also force resizeTo + nudge to the bottom-right corner below.)
-    pipWin = await documentPictureInPicture.requestWindow({width:236, height:96, disallowReturnToOpener:true});
-  }catch(e){ toast('Could not open the floating window.'); return; }
-  const PIP_W=236, PIP_H=96;
-  try{ pipWin.resizeTo(PIP_W, PIP_H); }catch(e){}
-  try{ pipWin.moveTo(Math.max(0,(screen.availWidth||screen.width)-PIP_W-8), Math.max(0,(screen.availHeight||screen.height)-PIP_H-8)); }catch(e){}
-  // re-assert the tiny size a couple times — some builds apply the remembered size a tick after open
-  [120,400].forEach(ms=>setTimeout(()=>{ if(pipWin&&!pipWin.closed){ try{ if(pipWin.innerHeight>PIP_H+40||pipWin.innerWidth>PIP_W+40){ pipWin.resizeTo(PIP_W,PIP_H); pipWin.moveTo(Math.max(0,(screen.availWidth||screen.width)-PIP_W-8),Math.max(0,(screen.availHeight||screen.height)-PIP_H-8)); } }catch(e){} } }, ms));
+  // a script-controlled popup (not PiP) so we CAN force it tiny and pin it to the
+  // bottom-right every time — trade-off: it doesn't stay on top of other apps.
+  const PIP_W=240, PIP_H=118;
+  const sw=(screen.availWidth||screen.width), sh=(screen.availHeight||screen.height);
+  const left=Math.max(0, sw-PIP_W-14), top=Math.max(0, sh-PIP_H-14);
+  pipWin = window.open('', 'kosTimer', 'popup=yes,width='+PIP_W+',height='+PIP_H+',left='+left+',top='+top);
+  if(!pipWin){ toast('Allow pop-ups for K-OS, then tap Float timer again.'); return; }
+  try{ pipWin.resizeTo(PIP_W,PIP_H); pipWin.moveTo(left,top); }catch(e){}
+  // re-assert tiny+corner shortly after open (some builds size the popup a tick late)
+  setTimeout(()=>{ if(pipWin&&!pipWin.closed){ try{ pipWin.resizeTo(PIP_W,PIP_H); pipWin.moveTo(left,top); }catch(e){} } }, 150);
+  try{ pipWin.document.title='K-OS'; }catch(e){}
   const st=pipWin.document.createElement('style');
   st.textContent =
     '*{margin:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}'+
@@ -2528,15 +2525,24 @@ async function popOutTimer(){
     if(ev.key==='Enter'){ ev.preventDefault(); pipSubmitLog(true); }
     else if(ev.key==='Escape'){ ev.preventDefault(); pipSubmitLog(false); }
   });
-  pipWin.addEventListener('pagehide',()=>{
-    const wasLogging = ts.mode==='logging'; pipWin=null;
+  const onClosed=()=>{
+    const wasLogging = ts.mode==='logging'; pipWin=null; clearInterval(pipPoll);
     if(wasLogging){ // widget closed mid-log — fall back to the in-app popup so nothing's lost
       $('#tsBlockLbl').textContent='Block '+clock(ts.blockStart)+' – '+clock(Date.now());
       $('#tsNote').value=''; $('#tsScrim').classList.add('show'); setTimeout(()=>$('#tsNote').focus(),60);
     }
-  });
+  };
+  pipWin.addEventListener('pagehide',onClosed);
+  // keep it pinned: snap back to the corner + tiny size if it ever drifts — effectively unmovable
+  const pipPoll=setInterval(()=>{
+    if(!pipWin || pipWin.closed){ onClosed(); return; }
+    try{
+      if(Math.abs((pipWin.screenX||0)-left)>3 || Math.abs((pipWin.screenY||0)-top)>3) pipWin.moveTo(left,top);
+      if(Math.abs((pipWin.outerWidth||PIP_W)-PIP_W)>6 || Math.abs((pipWin.outerHeight||PIP_H)-PIP_H)>6) pipWin.resizeTo(PIP_W,PIP_H);
+    }catch(e){}
+  }, 700);
   updatePip();
-  toast('Floating timer popped out — resize it, it stays on top (bottom-right).');
+  toast('Timer pinned to the bottom-right corner.');
 }
 /* swap the widget into "what did you do?" input mode, then back to the timer */
 function showPipLog(blockLbl){

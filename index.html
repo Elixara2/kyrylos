@@ -208,6 +208,17 @@
   .mod-heat{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;margin-top:8px}
   .mod-heat i{aspect-ratio:1;border-radius:3px;background:var(--panel2)}
   .mod-heat i.h1{background:rgba(34,197,94,.35)}.mod-heat i.h2{background:rgba(34,197,94,.6)}.mod-heat i.h3{background:var(--green)}
+  /* hub cards (Modules built-ins + Track) */
+  .hublist{display:flex;flex-direction:column;gap:10px}
+  .hubcard{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;cursor:pointer}
+  .hubcard:active{border-color:var(--accent)}
+  .hubcard .hub-em{font-size:24px;line-height:1;flex:0 0 auto}
+  .hubcard .ft{flex:1;min-width:0}
+  .hubcard .ft b{display:block;font-size:15.5px;font-weight:650}
+  .hubcard .ft span{font-size:12px;color:var(--dim)}
+  #backBar{position:fixed;left:12px;top:calc(var(--safe-t) + 10px);z-index:35;background:var(--panel2);border:1px solid var(--line);
+    color:var(--txt);font:inherit;font-weight:600;font-size:13px;padding:8px 14px;border-radius:99px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.4)}
+  #backBar:active{transform:scale(.96)}
   .alarm-clock{display:flex;align-items:center;gap:12px;margin-top:6px}
   .alarm-clock input[type=time]{flex:1;font-size:32px;font-weight:800;font-variant-numeric:tabular-nums;
     padding:10px 14px;text-align:center;color-scheme:dark}
@@ -1010,8 +1021,30 @@
       <button class="primary" style="width:100%;margin-top:12px" onclick="openModuleEdit()">＋ New module</button>
     </div>
     <div id="moduleGrid"></div>
+    <div class="lbl" style="margin:18px 0 8px">Built-in modules</div>
+    <div class="hublist">
+      <div class="hubcard cardlink" onclick="showTab('gym')"><span class="hub-em">🏋️</span><div class="ft"><b>Gym</b><span>Split, weights, PRs</span></div><span class="cardlink-go">›</span></div>
+      <div class="hubcard cardlink" onclick="showTab('rap')"><span class="hub-em">🎤</span><div class="ft"><b>Studio</b><span>Beats, bars, voice memos, clip trimmer</span></div><span class="cardlink-go">›</span></div>
+      <div class="hubcard cardlink" onclick="showTab('diet')"><span class="hub-em">🍗</span><div class="ft"><b>Diet</b><span>Meals, macros, water</span></div><span class="cardlink-go">›</span></div>
+    </div>
+  </section>
+
+  <!-- ============ TRACK · metrics & journaling hub ============ -->
+  <section class="panel" id="p-track">
+    <div class="card">
+      <h2 style="margin:0">Track</h2>
+      <div class="sub" style="margin-top:2px">Your numbers and journal — habits, goals, and profit.</div>
+    </div>
+    <div class="hublist">
+      <div class="hubcard cardlink" onclick="showTab('habits')"><span class="hub-em">📈</span><div class="ft"><b>Habits</b><span id="trackHabitsSub">Daily tracker & analytics</span></div><span class="cardlink-go">›</span></div>
+      <div class="hubcard cardlink" onclick="showTab('goals')"><span class="hub-em">✅</span><div class="ft"><b>Goals</b><span id="trackGoalsSub">Your black book of to-dos</span></div><span class="cardlink-go">›</span></div>
+      <div class="hubcard cardlink" onclick="openProphit()"><span class="hub-em">💰</span><div class="ft"><b>Profit</b><span id="trackProfitSub">Today's numbers · Prophit</span></div><span class="cardlink-go">›</span></div>
+    </div>
   </section>
 </div>
+
+<!-- floating back bar for sub-panels opened from a hub -->
+<button id="backBar" onclick="backFromSub()" style="display:none">‹ Back</button>
 
 <!-- module create/edit modal -->
 <div class="scrim" id="modScrim" onclick="if(event.target===this)closeModuleEdit()">
@@ -1105,12 +1138,8 @@
 <nav id="tabbar"><div class="inner">
   <button class="tab" data-tab="today" onclick="showTab('today')"><span class="ic">☀️</span>Today<span class="dotdone"></span></button>
   <button class="tab" data-tab="work" onclick="showTab('work')"><span class="ic">⏱</span>Work<span class="dotdone"></span></button>
-  <button class="tab" data-tab="gym" onclick="showTab('gym')"><span class="ic">🏋️</span>Gym<span class="dotdone"></span></button>
-  <button class="tab" data-tab="rap" onclick="showTab('rap')"><span class="ic">🎤</span>Studio<span class="dotdone"></span></button>
-  <button class="tab" data-tab="diet" onclick="showTab('diet')"><span class="ic">🍗</span>Diet<span class="dotdone"></span></button>
-  <button class="tab" data-tab="habits" onclick="showTab('habits')"><span class="ic">📈</span>Habits<span class="dotdone"></span></button>
-  <button class="tab" data-tab="goals" onclick="showTab('goals')"><span class="ic">✅</span>Goals<span class="dotdone"></span></button>
   <button class="tab" data-tab="modules" onclick="showTab('modules')"><span class="ic">🧩</span>Modules<span class="dotdone"></span></button>
+  <button class="tab" data-tab="track" onclick="showTab('track')"><span class="ic">📈</span>Track<span class="dotdone"></span></button>
   <button class="tab" data-tab="alarm" onclick="showTab('alarm')"><span class="ic">⏰</span>Alarm<span class="dotdone"></span></button>
 </div></nav>
 
@@ -4331,14 +4360,23 @@ function startProfitFloat(){
 
 
 /* ================= router ================= */
+/* nav is 5 tabs; the rich screens (gym/studio/diet/habits/goals) live inside the
+   Modules & Track hubs and open as sub-panels with a back bar */
+const NAV_TABS=['today','work','modules','track','alarm'];
+const SUB_PARENT={gym:'modules', rap:'modules', diet:'modules', habits:'track', goals:'track'};
 let activeTab = jload('tab','today');
+if(!NAV_TABS.includes(activeTab) && !SUB_PARENT[activeTab]) activeTab='today';
 function showTab(name){
   activeTab=name; jsave('tab',name);
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on', p.id==='p-'+name));
-  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on', t.dataset.tab===name));
+  const navHi = NAV_TABS.includes(name) ? name : (SUB_PARENT[name]||'today');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on', t.dataset.tab===navHi));
+  const bb=$('#backBar');
+  if(bb){ const parent=SUB_PARENT[name]; if(parent){ bb.textContent='‹ '+(parent==='modules'?'Modules':'Track'); bb.style.display=''; bb.dataset.parent=parent; } else bb.style.display='none'; }
   renderAll();
   window.scrollTo({top:0});
 }
+function backFromSub(){ const p=$('#backBar').dataset.parent||'today'; showTab(p); }
 function renderTabs(){
   const f=getFlow();
   document.querySelectorAll('.tab').forEach(t=>{

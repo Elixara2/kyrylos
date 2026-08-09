@@ -2467,7 +2467,7 @@ function popOutTimer(){
   // bottom-right every time — trade-off: it doesn't stay on top of other apps.
   const PIP_W=240, PIP_H=118;
   const sw=(screen.availWidth||screen.width), sh=(screen.availHeight||screen.height);
-  const left=Math.max(0, sw-PIP_W-14), top=Math.max(0, sh-PIP_H-14);
+  const left=Math.max(0, sw-PIP_W), top=Math.max(0, sh-PIP_H); // flush to the bottom-right, right above the dock (as low as macOS allows)
   pipWin = window.open('', 'kosTimer', 'popup=yes,width='+PIP_W+',height='+PIP_H+',left='+left+',top='+top);
   if(!pipWin){ toast('Allow pop-ups for K-OS, then tap Float timer again.'); return; }
   try{ pipWin.resizeTo(PIP_W,PIP_H); pipWin.moveTo(left,top); }catch(e){}

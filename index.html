@@ -179,6 +179,35 @@
   .cardlink-go{color:var(--dim);font-size:20px;font-weight:400}
   .miniitem{padding:3px 0;font-size:13.5px;color:var(--txt)}
   .miniitem.done{color:var(--dim);text-decoration:line-through}
+  /* life modules */
+  #moduleGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  @media(max-width:380px){#moduleGrid{grid-template-columns:1fr}}
+  .modcard{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;position:relative;
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;transition:box-shadow .2s,transform .15s;cursor:pointer}
+  .modcard.lifted{box-shadow:0 24px 60px rgba(0,0,0,.55);z-index:40;cursor:grabbing}
+  .modcard.done{border-color:var(--green)}
+  .modcard .m-top{display:flex;align-items:center;gap:8px}
+  .modcard .m-emoji{font-size:22px;line-height:1}
+  .modcard .m-name{font-weight:650;font-size:15px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .modcard .m-streak{font-size:12px;color:var(--dim);font-weight:600;flex:0 0 auto}
+  .modcard .m-val{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:8px}
+  .modcard .m-val span{font-size:13px;color:var(--dim);font-weight:600}
+  .modcard .m-goalbar{height:5px;background:var(--panel2);border-radius:99px;overflow:hidden;margin-top:8px}
+  .modcard .m-goalbar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),#60a5fa);transition:width .4s}
+  .modcard .m-act{margin-top:10px;width:100%;padding:9px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);
+    color:var(--txt);font:inherit;font-weight:600;cursor:pointer}
+  .modcard.done .m-act{background:var(--green);border-color:var(--green);color:#06220f}
+  .modcard .m-act:active{transform:scale(.97)}
+  .emoji-pick{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+  .emoji-pick span{width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:20px;
+    border:1.5px solid var(--line);border-radius:10px;cursor:pointer;background:var(--panel2)}
+  .emoji-pick span.on{border-color:var(--accent);background:rgba(59,130,246,.15)}
+  .mod-stats{display:flex;gap:16px;margin-top:12px}
+  .mod-stats div{font-size:12.5px;color:var(--dim)}
+  .mod-stats b{display:block;font-size:22px;color:var(--txt);font-variant-numeric:tabular-nums}
+  .mod-heat{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;margin-top:8px}
+  .mod-heat i{aspect-ratio:1;border-radius:3px;background:var(--panel2)}
+  .mod-heat i.h1{background:rgba(34,197,94,.35)}.mod-heat i.h2{background:rgba(34,197,94,.6)}.mod-heat i.h3{background:var(--green)}
   .alarm-clock{display:flex;align-items:center;gap:12px;margin-top:6px}
   .alarm-clock input[type=time]{flex:1;font-size:32px;font-weight:800;font-variant-numeric:tabular-nums;
     padding:10px 14px;text-align:center;color-scheme:dark}
@@ -969,6 +998,62 @@
       <button class="setbtn" onclick="registerBarcodeRef()" style="margin-top:14px"><span>Scan reference barcode</span><span class="st" id="missionBarcodeStatus">—</span></button>
     </div>
   </section>
+
+  <!-- ============ MODULES · your customizable must-dos ============ -->
+  <section class="panel" id="p-modules">
+    <div class="card">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <h2 style="margin:0">Life modules</h2>
+        <span class="sub" id="modMomentum"></span>
+      </div>
+      <div class="sub" style="margin-top:2px">Your floating must-dos — Jiu Jitsu, language, anything. Tap to log, hold to reorder.</div>
+      <button class="primary" style="width:100%;margin-top:12px" onclick="openModuleEdit()">＋ New module</button>
+    </div>
+    <div id="moduleGrid"></div>
+  </section>
+</div>
+
+<!-- module create/edit modal -->
+<div class="scrim" id="modScrim" onclick="if(event.target===this)closeModuleEdit()">
+  <div class="modal">
+    <h2 id="modModalTitle">New module</h2>
+    <div class="setgrid">
+      <div><label>Name</label><input type="text" id="modName" placeholder="e.g. Jiu Jitsu" autocomplete="off"></div>
+      <div><label>Icon</label><div class="emoji-pick" id="modEmojiPick"></div></div>
+      <div><label>Type</label>
+        <select id="modType">
+          <option value="check">Done / not done (daily)</option>
+          <option value="count">Count toward a target (reps, pages…)</option>
+          <option value="timer">Time logged (minutes)</option>
+        </select>
+      </div>
+      <div class="row">
+        <div class="grow"><label>Weekly goal (times)</label><input type="number" id="modGoal" min="1" max="21" value="3"></div>
+        <div class="grow" id="modTargetWrap"><label>Daily target</label><input type="number" id="modTarget" min="1" value="1"></div>
+      </div>
+      <div><label>Your why (shown when you open it)</label><input type="text" id="modWhy" placeholder="why this matters to you" autocomplete="off"></div>
+    </div>
+    <div class="foot">
+      <button class="ghost danger" id="modDeleteBtn" style="display:none" onclick="deleteModule()">Delete</button>
+      <button class="ghost" onclick="closeModuleEdit()">Cancel</button>
+      <button class="primary" onclick="saveModuleEdit()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- module detail (log + streak + heatmap) -->
+<div class="scrim" id="modDetailScrim" onclick="if(event.target===this)closeModuleDetail()">
+  <div class="modal">
+    <div class="row" style="justify-content:space-between;align-items:flex-start">
+      <div><h2 id="mdTitle" style="margin:0">Module</h2><div class="sub" id="mdWhy" style="margin-top:2px"></div></div>
+      <button class="sm ghost" onclick="editCurrentModule()">⚙ Edit</button>
+    </div>
+    <div class="mod-stats" id="mdStats"></div>
+    <div id="mdAction" style="margin-top:14px"></div>
+    <div class="lbl" style="margin-top:16px">Last 12 weeks</div>
+    <div class="mod-heat" id="mdHeat"></div>
+    <div class="foot"><button class="primary" onclick="closeModuleDetail()">Done</button></div>
+  </div>
 </div>
 
 <!-- goal detail — black-book page: title, priority, notes, mini-tasks -->
@@ -1025,6 +1110,7 @@
   <button class="tab" data-tab="diet" onclick="showTab('diet')"><span class="ic">🍗</span>Diet<span class="dotdone"></span></button>
   <button class="tab" data-tab="habits" onclick="showTab('habits')"><span class="ic">📈</span>Habits<span class="dotdone"></span></button>
   <button class="tab" data-tab="goals" onclick="showTab('goals')"><span class="ic">✅</span>Goals<span class="dotdone"></span></button>
+  <button class="tab" data-tab="modules" onclick="showTab('modules')"><span class="ic">🧩</span>Modules<span class="dotdone"></span></button>
   <button class="tab" data-tab="alarm" onclick="showTab('alarm')"><span class="ic">⏰</span>Alarm<span class="dotdone"></span></button>
 </div></nav>
 
@@ -3519,6 +3605,179 @@ function deleteGoalFromDetail(){
   renderGoals(); renderToday();
 }
 
+/* ================= LIFE MODULES (customizable must-dos) =================
+   User-defined trackers (Jiu Jitsu, language, anything). type: check | count | timer.
+   Progress lives in module:days:<id> = { 'YYYY-MM-DD': value }. Order = the list array. */
+const MOD_EMOJIS=['🥋','🥊','🧠','📚','🎸','🏃','🧘','💪','🎨','🎧','💻','📝','🌊','⚽','🎯','💰','🛌','💧','🍳','🧗','♟️','🎤'];
+function getModules(){ return kget('modules:list', []); }
+function saveModules(m){ kset('modules:list', m); }
+function getModule(id){ return getModules().find(m=>m.id===id); }
+function modDays(id){ return kget('module:days:'+id, {}); }
+function saveModDays(id,d){ kset('module:days:'+id, d); }
+function modValToday(id){ const d=modDays(id); return d[todayKey()]||0; }
+function modIsDoneToday(mod){
+  const v=modValToday(mod.id);
+  if(mod.type==='check') return v>=1;
+  return v >= (mod.target||1); // count/timer meet the daily target
+}
+function modStreak(mod){
+  const d=modDays(mod.id); let streak=0, probe=new Date();
+  const met=k=>{ const v=d[k]||0; return mod.type==='check' ? v>=1 : v>=(mod.target||1); };
+  if(!met(todayKey())) probe.setDate(probe.getDate()-1); // today not done yet doesn't break the streak
+  while(met(todayKey(probe))){ streak++; probe.setDate(probe.getDate()-1); }
+  return streak;
+}
+function modWeekCount(mod){
+  const d=modDays(mod.id); let n=0;
+  for(let i=0;i<7;i++){ const dt=new Date(); dt.setDate(dt.getDate()-i); const v=d[todayKey(dt)]||0;
+    if(mod.type==='check'?v>=1:v>=(mod.target||1)) n++; }
+  return n;
+}
+/* ---- create / edit modal ---- */
+let modEditId=null, modEditEmoji='🥋';
+function openModuleEdit(id){
+  modEditId=id||null;
+  const m=id?getModule(id):null;
+  $('#modModalTitle').textContent = m?'Edit module':'New module';
+  $('#modName').value = m?m.name:'';
+  $('#modType').value = m?m.type:'check';
+  $('#modGoal').value = m?(m.goalPerWeek||3):3;
+  $('#modTarget').value = m?(m.target||1):1;
+  $('#modWhy').value = m?(m.why||''):'';
+  modEditEmoji = m?m.emoji:'🥋';
+  renderEmojiPick(); syncModTargetVis();
+  $('#modDeleteBtn').style.display = m?'':'none';
+  $('#modType').onchange=syncModTargetVis;
+  $('#modScrim').classList.add('show');
+  setTimeout(()=>$('#modName').focus(),60);
+}
+function syncModTargetVis(){ $('#modTargetWrap').style.display = $('#modType').value==='check' ? 'none' : ''; }
+function renderEmojiPick(){
+  const box=$('#modEmojiPick'); box.innerHTML='';
+  MOD_EMOJIS.forEach(e=>{ const s=document.createElement('span'); s.textContent=e; if(e===modEditEmoji) s.className='on';
+    s.onclick=()=>{ modEditEmoji=e; renderEmojiPick(); }; box.appendChild(s); });
+}
+function closeModuleEdit(){ $('#modScrim').classList.remove('show'); modEditId=null; }
+function saveModuleEdit(){
+  const name=$('#modName').value.trim(); if(!name){ toast('Give it a name'); return; }
+  const type=$('#modType').value;
+  const patch={ name, emoji:modEditEmoji, type,
+    goalPerWeek:Math.max(1,parseInt($('#modGoal').value,10)||3),
+    target: type==='check'?1:Math.max(1,parseInt($('#modTarget').value,10)||1),
+    why:$('#modWhy').value.trim() };
+  const list=getModules();
+  if(modEditId){ const m=list.find(x=>x.id===modEditId); if(m) Object.assign(m,patch); }
+  else { list.push(Object.assign({id:'m'+Date.now().toString(36)+Math.random().toString(36).slice(2,5), createdAt:Date.now()}, patch)); addXP(5,'new module'); }
+  saveModules(list); closeModuleEdit(); renderModules();
+  if(modDetailId) openModuleDetail(modDetailId); // refresh detail if open
+}
+function deleteModule(){
+  if(!modEditId) return;
+  if(!confirm('Delete this module? Its history is removed too.')) return;
+  saveModules(getModules().filter(m=>m.id!==modEditId));
+  kset('module:days:'+modEditId, {});
+  closeModuleEdit(); closeModuleDetail(); renderModules();
+}
+/* ---- quick log (tap the card action) ---- */
+function modQuickLog(id, ev){
+  if(ev){ ev.stopPropagation(); }
+  const m=getModule(id); if(!m) return;
+  const d=modDays(id), k=todayKey();
+  if(m.type==='check'){ d[k]=d[k]?0:1; } // toggle
+  else if(m.type==='count'){ d[k]=(d[k]||0)+1; }
+  else if(m.type==='timer'){ d[k]=(d[k]||0)+5; } // +5 min per tap (detail has finer control)
+  saveModDays(id,d);
+  if(modIsDoneToday(m)){ chimeDone(); buzz(30); addXP(6,m.name); } else buzz(12);
+  renderModules(); if(modDetailId===id) openModuleDetail(id);
+}
+/* ---- render the grid ---- */
+function renderModules(){
+  const list=getModules(), box=$('#moduleGrid'); if(!box) return;
+  // momentum: % of this week's per-module goals met, averaged
+  if(list.length){
+    const pct=Math.round(list.reduce((a,m)=>a+Math.min(1, modWeekCount(m)/(m.goalPerWeek||1)),0)/list.length*100);
+    $('#modMomentum').textContent='🔥 '+pct+'% weekly momentum';
+  } else $('#modMomentum').textContent='';
+  box.innerHTML = list.length ? '' : '<div class="card"><div class="empty">No modules yet — tap ＋ New module to add Jiu Jitsu, a language, anything.</div></div>';
+  list.forEach(m=>{
+    const v=modValToday(m.id), done=modIsDoneToday(m), streak=modStreak(m), wk=modWeekCount(m);
+    const div=document.createElement('div'); div.className='modcard'+(done?' done':''); div.dataset.mid=m.id;
+    let valHtml, actLabel;
+    if(m.type==='check'){ valHtml=''; actLabel=done?'✓ Done today':'Mark done'; }
+    else if(m.type==='count'){ valHtml='<div class="m-val">'+v+' <span>/ '+(m.target||1)+'</span></div>'; actLabel='＋1'; }
+    else { valHtml='<div class="m-val">'+v+' <span>/ '+(m.target||1)+' min</span></div>'; actLabel='＋5 min'; }
+    const goalPct=Math.min(100, wk/(m.goalPerWeek||1)*100);
+    div.innerHTML='<div class="m-top"><span class="m-emoji">'+esc(m.emoji)+'</span>'+
+      '<span class="m-name">'+esc(m.name)+'</span><span class="m-streak">'+(streak?'🔥'+streak:'')+'</span></div>'+
+      valHtml+
+      '<div class="m-goalbar"><i style="width:'+goalPct+'%"></i></div>'+
+      '<div class="sub" style="font-size:11px;margin-top:6px">'+wk+' / '+(m.goalPerWeek||1)+' this week</div>'+
+      '<button class="m-act">'+actLabel+'</button>';
+    div.querySelector('.m-act').onclick=(e)=>modQuickLog(m.id,e);
+    box.appendChild(div);
+  });
+  bindModuleDrag();
+}
+/* ---- hold-to-reorder the module cards ---- */
+let modPress=null, modDrag=null, modMoved=false;
+function bindModuleDrag(){
+  const box=$('#moduleGrid'); if(!box) return;
+  box.querySelectorAll('.modcard').forEach(el=>{
+    el.onpointerdown=e=>{ if(e.target.closest('button')) return; modMoved=false;
+      modPress={el,x:e.clientX,y:e.clientY,timer:setTimeout(()=>modLift(el,e),400)}; };
+    el.onpointermove=e=>{
+      if(modPress&&modPress.timer&&(Math.abs(e.clientX-modPress.x)>10||Math.abs(e.clientY-modPress.y)>10)){ clearTimeout(modPress.timer); modPress=null; }
+      if(modDrag&&modDrag.el===el){ modMoved=true; el.style.transform='translateY('+(e.clientY-modDrag.startY)+'px) scale(1.03)'; }
+    };
+    el.onpointerup=()=>{ if(modPress&&modPress.timer){ clearTimeout(modPress.timer); modPress=null; if(!modMoved) openModuleDetail(el.dataset.mid); return; }
+      if(modDrag&&modDrag.el===el) modDrop(); };
+    el.onpointercancel=()=>{ if(modPress&&modPress.timer){clearTimeout(modPress.timer);modPress=null;} if(modDrag){modDrag.el.classList.remove('lifted');modDrag.el.style.transform='';modDrag=null;} };
+  });
+}
+function modLift(el,e){ modPress=null; try{el.setPointerCapture(e.pointerId);}catch(_){}
+  el.classList.add('lifted'); buzz(28); beep([[660,.05]]); modDrag={el,id:el.dataset.mid,startY:e.clientY}; }
+function modDrop(){
+  if(!modDrag) return; const {el,id}=modDrag; el.classList.remove('lifted'); el.style.transform='';
+  const box=$('#moduleGrid'), cy=el.getBoundingClientRect().top+el.offsetHeight/2;
+  const list=getModules(), others=list.filter(m=>m.id!==id); let idx=0;
+  others.forEach(m=>{ const sib=box.querySelector('.modcard[data-mid="'+m.id+'"]'); if(sib){ const r=sib.getBoundingClientRect(); if(r.top+r.height/2<cy) idx++; } });
+  const moved=list.find(m=>m.id===id); others.splice(idx,0,moved);
+  modDrag=null; saveModules(others); buzz(15); renderModules();
+}
+/* ---- detail (log + streak + heatmap) ---- */
+let modDetailId=null;
+function openModuleDetail(id){
+  const m=getModule(id); if(!m) return; modDetailId=id;
+  $('#mdTitle').textContent=m.emoji+' '+m.name;
+  $('#mdWhy').textContent=m.why||'';
+  const v=modValToday(id), streak=modStreak(m), total=Object.values(modDays(id)).filter(x=> m.type==='check'?x>=1:x>=(m.target||1)).length;
+  $('#mdStats').innerHTML='<div><b>'+streak+'</b>day streak</div><div><b>'+modWeekCount(m)+'/'+(m.goalPerWeek||1)+'</b>this week</div><div><b>'+total+'</b>days done</div>';
+  let act='';
+  if(m.type==='check') act='<button class="primary" style="width:100%" onclick="modQuickLog(\''+id+'\')">'+(modIsDoneToday(m)?'✓ Done today — tap to undo':'Mark done today')+'</button>';
+  else { const unit=m.type==='timer'?' min':''; const step=m.type==='timer'?5:1;
+    act='<div class="row"><button class="sm ghost" onclick="modAdjust(\''+id+'\',-'+step+')">−'+step+unit+'</button>'+
+      '<div class="grow" style="text-align:center;font-size:24px;font-weight:800">'+v+' <span class="sub">/ '+(m.target||1)+unit+'</span></div>'+
+      '<button class="sm" onclick="modAdjust(\''+id+'\','+step+')">＋'+step+unit+'</button></div>'; }
+  $('#mdAction').innerHTML=act;
+  renderModHeat(id,m);
+  $('#modDetailScrim').classList.add('show');
+}
+function modAdjust(id,delta){
+  const m=getModule(id); if(!m) return; const d=modDays(id), k=todayKey();
+  d[k]=Math.max(0,(d[k]||0)+delta); saveModDays(id,d);
+  if(modIsDoneToday(m) && delta>0){ chimeDone(); buzz(30); addXP(6,m.name); } else buzz(10);
+  openModuleDetail(id); renderModules();
+}
+function renderModHeat(id,m){
+  const d=modDays(id), box=$('#mdHeat'); box.innerHTML=''; const cells=84; // 12 weeks
+  for(let i=cells-1;i>=0;i--){ const dt=new Date(); dt.setDate(dt.getDate()-i); const v=d[todayKey(dt)]||0;
+    const met = m.type==='check'? v>=1 : v>=(m.target||1);
+    const partial = !met && v>0;
+    const cell=document.createElement('i'); cell.className = met?'h3':(partial?'h1':''); box.appendChild(cell); }
+}
+function editCurrentModule(){ if(modDetailId) openModuleEdit(modDetailId); }
+function closeModuleDetail(){ $('#modDetailScrim').classList.remove('show'); modDetailId=null; }
+
 /* ================= HABITS (life tracker) ================= */
 const HABITS_SEED = [
   {id:'wake700',label:'Up by 7:00 AM',cat:'Morning',mult:1,unit:'',kind:'check',active:true},
@@ -4093,7 +4352,7 @@ function renderAll(){
   ensureHabitsMigrated();
   renderXPBar();
   autoFlow();
-  renderToday(); renderWork(); renderGym(); renderRapPanel(); renderDiet(); renderHabits(); renderProfitBar(); renderGoals(); renderAlarm(); renderTabs();
+  renderToday(); renderWork(); renderGym(); renderRapPanel(); renderDiet(); renderHabits(); renderProfitBar(); renderGoals(); renderModules(); renderAlarm(); renderTabs();
   checkMissionGate();
 }
 

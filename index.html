@@ -1896,6 +1896,17 @@ function renderToday(){
 
 /* ================= WORK · time study ================= */
 let ts = jload('tsrun', {mode:'idle', nextLogAt:0, blockStart:0, sessionStart:0});
+/* transient overlay states (logging/resting) must never survive a reload — if a log
+   popup or break got orphaned (tab closed, window shut mid-log), the app was left
+   frozen in that mode and Clock in/Pause did nothing. Recover to a usable state. */
+(function recoverTs(){
+  if(ts.mode==='logging' || ts.mode==='resting'){
+    ts.mode = ts.sessionStart ? 'working' : 'idle';
+    if(ts.mode==='working') ts.nextLogAt = Date.now() + ((typeof SET!=='undefined' && SET.tsInt) ? SET.tsInt : 15)*60000;
+    ts.blockStart = ts.blockStart || Date.now();
+    jsave('tsrun', ts);
+  }
+})();
 function tsSave(){ jsave('tsrun',ts); }
 function getTsEntries(){ return kget('ts:entries:'+todayKey(),[]); }
 function tsDayInfo(key){ return kget('ts:day:'+(key||todayKey()),{started:false, firstStart:0}); }
@@ -1978,6 +1989,10 @@ function tsToggle(){
   else if(ts.mode==='paused'){ ts.mode='working'; ts.nextLogAt=Date.now()+Math.max(1000,ts.pausedLeft||0);
     if(ts.miniPausedLeft) ts.miniNextAt=Date.now()+Math.max(1000,ts.miniPausedLeft);
     if(ts.bigPausedLeft) ts.bigNextAt=Date.now()+Math.max(1000,ts.bigPausedLeft); }
+  else { // stuck in a transient state (logging/resting) — recover so the button always works
+    $('#tsScrim').classList.remove('show'); $('#breakov').classList.remove('show');
+    ts.mode='working'; ts.blockStart=ts.blockStart||Date.now(); ts.nextLogAt=Date.now()+SET.tsInt*60000;
+  }
   tsSave(); renderWork();
 }
 function tsAdjust(sec){ if(ts.mode!=='working') return; ts.nextLogAt+=sec*1000; tsSave(); renderWork(); }

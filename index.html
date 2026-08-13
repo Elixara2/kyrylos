@@ -2513,17 +2513,19 @@ function tsNextBreak(){
   return cands.length ? {kind:cands[0][0], leftMs:Math.max(0,cands[0][1]-Date.now())} : null;
 }
 let pipWin=null;
+let pipLocked=jload('pipLocked',false);   // when locked, it stays put wherever you bound it
+let pipLockPos=jload('pipLockPos',null);   // {x,y} of the locked spot
+const PIP_W=240, PIP_H=118;
 function popOutTimer(){
   if(pipWin && !pipWin.closed){ pipWin.focus(); return; }
-  // a script-controlled popup (not PiP) so we CAN force it tiny and pin it to the
-  // bottom-right every time — trade-off: it doesn't stay on top of other apps.
-  const PIP_W=240, PIP_H=118;
+  // a script-controlled popup so it's tiny; the native shell keeps it always-on-top.
   const sw=(screen.availWidth||screen.width), sh=(screen.availHeight||screen.height);
-  const left=Math.max(0, sw-PIP_W), top=Math.max(0, sh-PIP_H); // flush to the bottom-right, right above the dock (as low as macOS allows)
+  // open at the last locked spot if locked, else flush to the bottom-right corner
+  const left=(pipLocked&&pipLockPos)?pipLockPos.x:Math.max(0, sw-PIP_W);
+  const top =(pipLocked&&pipLockPos)?pipLockPos.y:Math.max(0, sh-PIP_H);
   pipWin = window.open('', 'kosTimer', 'popup=yes,width='+PIP_W+',height='+PIP_H+',left='+left+',top='+top);
   if(!pipWin){ toast('Allow pop-ups for K-OS, then tap Float timer again.'); return; }
   try{ pipWin.resizeTo(PIP_W,PIP_H); pipWin.moveTo(left,top); }catch(e){}
-  // re-assert tiny+corner shortly after open (some builds size the popup a tick late)
   setTimeout(()=>{ if(pipWin&&!pipWin.closed){ try{ pipWin.resizeTo(PIP_W,PIP_H); pipWin.moveTo(left,top); }catch(e){} } }, 150);
   try{ pipWin.document.title='K-OS'; }catch(e){}
   const st=pipWin.document.createElement('style');
@@ -2541,6 +2543,7 @@ function popOutTimer(){
     '#pw-ctl button{width:30px;height:30px;border-radius:8px;border:1px solid #2a323d;background:#1c232d;color:#e6edf3;'+
       'font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}'+
     '#pw-ctl button:active{transform:scale(.92)}'+
+    '#pw-lock.on{background:var(--accent,#3b82f6);border-color:var(--accent,#3b82f6);color:#fff}'+
     '#pw-out{color:#ef4444}'+
     '#pw-bar{height:4px;background:#1c232d;border-radius:99px;overflow:hidden}'+
     '#pw-bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#3b82f6,#60a5fa);transition:width .4s}'+
@@ -2561,7 +2564,8 @@ function popOutTimer(){
         '<div id="pw-time">—</div>'+
         '<div id="pw-mid"><div id="pw-top"><span id="pw-state">●</span><span id="pw-brk">—</span></div>'+
           '<div id="pw-lbl">clock in</div></div>'+
-        '<div id="pw-ctl"><button id="pw-toggle" title="Clock in / Pause">▶</button>'+
+        '<div id="pw-ctl"><button id="pw-lock" title="Lock in place">🔓</button>'+
+          '<button id="pw-toggle" title="Clock in / Pause">▶</button>'+
           '<button id="pw-out" title="Clock out">⏹</button></div>'+
       '</div>'+
       '<div id="pw-bar"><i id="pw-barfill"></i></div>'+
@@ -2572,6 +2576,16 @@ function popOutTimer(){
   pd.getElementById('pw-time').addEventListener('click',()=>{ try{ window.focus(); }catch(e){} showTab('work'); });
   pd.getElementById('pw-toggle').addEventListener('click',ev=>{ ev.stopPropagation(); tsToggle(); updatePip(); });
   pd.getElementById('pw-out').addEventListener('click',ev=>{ ev.stopPropagation(); if(ts.mode!=='idle'){ tsClockOut(); updatePip(); } });
+  const lockBtn=pd.getElementById('pw-lock');
+  const paintLock=()=>{ lockBtn.textContent = pipLocked?'🔒':'🔓'; lockBtn.title = pipLocked?'Locked in place — tap to unlock':'Lock in place'; lockBtn.classList.toggle('on',pipLocked); };
+  lockBtn.addEventListener('click',ev=>{ ev.stopPropagation();
+    pipLocked=!pipLocked;
+    if(pipLocked){ try{ pipLockPos={x:pipWin.screenX, y:pipWin.screenY}; }catch(e){} jsave('pipLockPos',pipLockPos); }
+    jsave('pipLocked',pipLocked);
+    paintLock();
+    toast(pipLocked?'📌 Timer locked in place':'Timer unlocked — drag it anywhere');
+  });
+  paintLock();
   const pinp=pd.getElementById('pw-input');
   pinp.addEventListener('keydown',ev=>{
     if(ev.key==='Enter'){ ev.preventDefault(); pipSubmitLog(true); }
@@ -2585,16 +2599,15 @@ function popOutTimer(){
     }
   };
   pipWin.addEventListener('pagehide',onClosed);
-  // keep it pinned: snap back to the corner + tiny size if it ever drifts — effectively unmovable
+  // only re-pin when LOCKED (to the spot you bound it). Unlocked = drag it anywhere freely.
   const pipPoll=setInterval(()=>{
     if(!pipWin || pipWin.closed){ onClosed(); return; }
-    try{
-      if(Math.abs((pipWin.screenX||0)-left)>3 || Math.abs((pipWin.screenY||0)-top)>3) pipWin.moveTo(left,top);
-      if(Math.abs((pipWin.outerWidth||PIP_W)-PIP_W)>6 || Math.abs((pipWin.outerHeight||PIP_H)-PIP_H)>6) pipWin.resizeTo(PIP_W,PIP_H);
-    }catch(e){}
-  }, 700);
+    if(pipLocked && pipLockPos){
+      try{ if(Math.abs((pipWin.screenX||0)-pipLockPos.x)>3 || Math.abs((pipWin.screenY||0)-pipLockPos.y)>3) pipWin.moveTo(pipLockPos.x,pipLockPos.y); }catch(e){}
+    }
+  }, 500);
   updatePip();
-  toast('Timer pinned to the bottom-right corner.');
+  toast('Floating timer opened — drag it, tap 🔓 to lock it in place.');
 }
 /* swap the widget into "what did you do?" input mode, then back to the timer */
 function showPipLog(blockLbl){

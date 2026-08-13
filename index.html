@@ -219,6 +219,20 @@
   #backBar{position:fixed;left:12px;top:calc(var(--safe-t) + 10px);z-index:35;background:var(--panel2);border:1px solid var(--line);
     color:var(--txt);font:inherit;font-weight:600;font-size:13px;padding:8px 14px;border-radius:99px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.4)}
   #backBar:active{transform:scale(.96)}
+  /* rise · morning check-in */
+  .rise-hero{text-align:center;padding:24px 8px 8px}
+  .rise-greet{font-size:26px;font-weight:800;letter-spacing:-.02em}
+  .rise-date{color:var(--dim);font-size:13px;margin-top:2px}
+  .rise-quote{font-size:19px;font-style:italic;line-height:1.5;margin:22px auto 6px;max-width:32ch;color:var(--txt);cursor:pointer;
+    border-left:3px solid var(--accent);padding:4px 0 4px 16px;text-align:left}
+  .rise-quote.empty{color:var(--dim);font-style:normal;border-left-color:var(--line)}
+  .rise-quote-edit{background:none;border:none;color:var(--dim);font:inherit;font-size:12px;cursor:pointer;padding:4px}
+  .rise-btn{width:100%;margin-top:20px;appearance:none;border:none;border-radius:16px;padding:22px;font:inherit;font-size:19px;font-weight:800;
+    color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 10px 30px rgba(59,130,246,.35)}
+  .rise-btn:active{transform:scale(.98)}
+  .rise-locked{text-align:center;padding:22px;border:1px solid var(--green);border-radius:16px;background:rgba(34,197,94,.08);margin-top:16px}
+  .rise-locked-badge{font-size:13px;letter-spacing:.24em;font-weight:800;color:var(--green)}
+  .rise-locked-time{font-size:40px;font-weight:800;font-variant-numeric:tabular-nums;margin:6px 0 4px;letter-spacing:-.02em}
   .alarm-clock{display:flex;align-items:center;gap:12px;margin-top:6px}
   .alarm-clock input[type=time]{flex:1;font-size:32px;font-weight:800;font-variant-numeric:tabular-nums;
     padding:10px 14px;text-align:center;color-scheme:dark}
@@ -605,6 +619,36 @@
   <div class="localnote" id="localnote">
     <b>Local mode</b> — running from a file, no cross-device sync (and voice/mp3 uploads need it too). Deploy via Google Apps Script (see README) so your Mac and S26+ stay in lockstep.
   </div>
+
+  <!-- ============ RISE · morning check-in ============ -->
+  <section class="panel" id="p-rise">
+    <div class="rise-hero">
+      <div class="rise-greet" id="riseGreet">Good morning, Kyryl.</div>
+      <div class="rise-date" id="riseDate"></div>
+      <div class="rise-quote" id="riseQuote" onclick="editRiseQuote()"></div>
+      <button class="rise-quote-edit" onclick="editRiseQuote()">✎ edit my quote</button>
+    </div>
+
+    <div id="riseNotChecked">
+      <button class="rise-btn" onclick="doCheckin()">🔒 Lock in &amp; start my day</button>
+      <div class="sub" style="text-align:center;margin-top:10px" id="riseStreak"></div>
+    </div>
+
+    <div id="riseChecked" style="display:none">
+      <div class="rise-locked">
+        <div class="rise-locked-badge">🔒 LOCKED IN</div>
+        <div class="rise-locked-time" id="riseLockedTime">—</div>
+        <div class="sub" id="riseStreak2"></div>
+      </div>
+      <div class="lbl" style="margin:18px 0 8px">Now flow through your day</div>
+      <div class="hublist">
+        <div class="hubcard" id="riseStep1" onclick="riseOpenAscend()"><span class="hub-em">🌅</span><div class="ft"><b>1 · Morning routine</b><span>ASCEND — breath, meditation, mobility, strength</span></div><span class="cardlink-go">›</span></div>
+        <div class="hubcard" onclick="showTab('work')"><span class="hub-em">⏱</span><div class="ft"><b>2 · Work session 1</b><span>Clock in — deep-work block</span></div><span class="cardlink-go">›</span></div>
+        <div class="hubcard" onclick="showTab('today')"><span class="hub-em">☀️</span><div class="ft"><b>3 · The rest of the day</b><span>Modules, gym, everything else</span></div><span class="cardlink-go">›</span></div>
+      </div>
+      <button class="sm ghost" style="margin-top:14px" onclick="undoCheckin()">↺ Undo check-in</button>
+    </div>
+  </section>
 
   <!-- ============ TODAY ============ -->
   <section class="panel" id="p-today">
@@ -1136,6 +1180,7 @@
 
 <!-- tab bar -->
 <nav id="tabbar"><div class="inner">
+  <button class="tab" data-tab="rise" onclick="showTab('rise')"><span class="ic">🌅</span>Rise<span class="dotdone"></span></button>
   <button class="tab" data-tab="today" onclick="showTab('today')"><span class="ic">☀️</span>Today<span class="dotdone"></span></button>
   <button class="tab" data-tab="work" onclick="showTab('work')"><span class="ic">⏱</span>Work<span class="dotdone"></span></button>
   <button class="tab" data-tab="modules" onclick="showTab('modules')"><span class="ic">🧩</span>Modules<span class="dotdone"></span></button>
@@ -3819,6 +3864,65 @@ function renderModHeat(id,m){
 function editCurrentModule(){ if(modDetailId) openModuleEdit(modDetailId); }
 function closeModuleDetail(){ $('#modDetailScrim').classList.remove('show'); modDetailId=null; }
 
+/* ================= RISE · morning check-in =================
+   A daily lock-in: your own quote + a Brisbane-time stamp that marks the day started,
+   then flows into ASCEND and your first work session. */
+function getRiseQuote(){ return kget('rise:quote',''); }
+function editRiseQuote(){
+  const cur=getRiseQuote();
+  const v=prompt('Write your morning quote — your own words to lock in on each day:', cur);
+  if(v!==null){ kset('rise:quote', v.trim()); renderRise(); }
+}
+/* exact Brisbane wall-clock (AEST, UTC+10, no daylight saving) */
+function brisbaneClock(ts){ return new Date(ts).toLocaleTimeString('en-AU',{timeZone:'Australia/Brisbane',hour:'numeric',minute:'2-digit'}); }
+function brisbaneDateKey(d){ // YYYY-MM-DD in Brisbane time
+  const s=new Date(d||Date.now()).toLocaleDateString('en-CA',{timeZone:'Australia/Brisbane'}); return s;
+}
+function getCheckin(dateKey){ return kget('checkin:'+(dateKey||brisbaneDateKey()), null); }
+function checkinStreak(){
+  let streak=0; const probe=new Date();
+  if(!getCheckin(brisbaneDateKey(probe))) probe.setDate(probe.getDate()-1); // not yet today doesn't break it
+  while(getCheckin(brisbaneDateKey(probe))){ streak++; probe.setDate(probe.getDate()-1); }
+  return streak;
+}
+function doCheckin(){
+  const key=brisbaneDateKey(), now=Date.now();
+  if(getCheckin(key)) return;
+  kset('checkin:'+key, {ts:now, label:brisbaneClock(now)});
+  chimeFanfare(); buzz([40,60,40,60,120]); confettiBurst(innerWidth/2, innerHeight*.35, 90);
+  addXP(15,'morning check-in');
+  toast('🔒 Locked in at '+brisbaneClock(now)+' — let’s go.');
+  renderRise();
+}
+function undoCheckin(){
+  if(!confirm('Undo today’s check-in?')) return;
+  kset('checkin:'+brisbaneDateKey(), null); renderRise();
+}
+function riseOpenAscend(){ if(SET.ascendUrl) window.open(SET.ascendUrl,'_blank'); else { toast('Set your ASCEND link in Settings'); openSettings(); } }
+function renderRise(){
+  const box=$('#p-rise'); if(!box) return;
+  const h=new Date().toLocaleString('en-AU',{timeZone:'Australia/Brisbane',hour:'numeric',hour12:false});
+  const hr=parseInt(h,10)||0;
+  $('#riseGreet').textContent = hr<5?'Still up, Kyryl?':hr<12?'Good morning, Kyryl.':hr<17?'Good afternoon, Kyryl.':'Good evening, Kyryl.';
+  $('#riseDate').textContent = new Date().toLocaleDateString('en-AU',{timeZone:'Australia/Brisbane',weekday:'long',day:'numeric',month:'long'})+' · Brisbane';
+  const q=getRiseQuote();
+  const qEl=$('#riseQuote');
+  qEl.textContent = q || 'Tap to write your morning quote…';
+  qEl.classList.toggle('empty', !q);
+  const ci=getCheckin(), streak=checkinStreak();
+  const streakTxt = streak>1 ? '🔥 '+streak+'-day check-in streak' : (streak===1?'🔥 1 day — keep it going':'Start your streak today');
+  if(ci){
+    $('#riseNotChecked').style.display='none';
+    $('#riseChecked').style.display='';
+    $('#riseLockedTime').textContent=ci.label;
+    $('#riseStreak2').textContent=streakTxt;
+  } else {
+    $('#riseNotChecked').style.display='';
+    $('#riseChecked').style.display='none';
+    $('#riseStreak').textContent=streakTxt;
+  }
+}
+
 /* ================= HABITS (life tracker) ================= */
 const HABITS_SEED = [
   {id:'wake700',label:'Up by 7:00 AM',cat:'Morning',mult:1,unit:'',kind:'check',active:true},
@@ -4374,7 +4478,7 @@ function startProfitFloat(){
 /* ================= router ================= */
 /* nav is 5 tabs; the rich screens (gym/studio/diet/habits/goals) live inside the
    Modules & Track hubs and open as sub-panels with a back bar */
-const NAV_TABS=['today','work','modules','track','alarm'];
+const NAV_TABS=['rise','today','work','modules','track','alarm'];
 const SUB_PARENT={gym:'modules', rap:'modules', diet:'modules', habits:'track', goals:'track'};
 let activeTab = jload('tab','today');
 if(!NAV_TABS.includes(activeTab) && !SUB_PARENT[activeTab]) activeTab='today';
@@ -4402,7 +4506,7 @@ function renderAll(){
   ensureHabitsMigrated();
   renderXPBar();
   autoFlow();
-  renderToday(); renderWork(); renderGym(); renderRapPanel(); renderDiet(); renderHabits(); renderProfitBar(); renderGoals(); renderModules(); renderAlarm(); renderTabs();
+  renderRise(); renderToday(); renderWork(); renderGym(); renderRapPanel(); renderDiet(); renderHabits(); renderProfitBar(); renderGoals(); renderModules(); renderAlarm(); renderTabs();
   checkMissionGate();
 }
 

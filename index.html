@@ -733,8 +733,12 @@
     </div>
 
     <div class="card">
-      <h2>Schedule <span class="sub" id="restStateLbl"></span></h2>
-      <div class="sub">Runs quietly while you work — a log popup takes over the screen when it's time to note what you did, breaks nudge you automatically.</div>
+      <div class="row" style="justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleSchedBody()">
+        <h2 style="margin:0">⚙ Schedule &amp; breaks <span class="sub" id="restStateLbl"></span></h2>
+        <span class="cardlink-go" id="schedChevron">›</span>
+      </div>
+      <div id="schedBody" style="display:none">
+      <div class="sub" style="margin-top:10px">Runs quietly while you work — a log popup takes over the screen when it's time to note what you did, breaks nudge you automatically.</div>
 
       <label class="toggle-inline" style="margin-top:14px"><input type="checkbox" id="logToggle" onchange="toggleLogEnabled(this.checked)"> log reminders on</label>
       <div class="sub" style="margin-top:2px">Off = work straight through for long focus stretches — no popups. Session &amp; committed hours still track.</div>
@@ -772,6 +776,7 @@
         <button class="sm" onclick="startRest('big',true)">🛋 Big break now</button>
         <label class="toggle-inline"><input type="checkbox" id="restToggle" onchange="toggleRestEnabled(this.checked)"> auto-breaks on</label>
       </div>
+      </div><!-- /#schedBody -->
     </div>
 
     <div class="card">
@@ -2197,6 +2202,8 @@ function setTsInt(min){ SET.tsInt=parseFloat(min)||15; kset('settings',SET);
 function toggleLogEnabled(on){ SET.logOn=!!on; kset('settings',SET);
   if(on && ts.mode==='working') ts.nextLogAt=Date.now()+SET.tsInt*60000, tsSave();
   toast(on?'Log reminders on':'Working straight through — no log popups'); renderWork(); }
+function toggleSchedBody(){ const b=$('#schedBody'), c=$('#schedChevron'); const open=b.style.display==='none';
+  b.style.display=open?'':'none'; if(c) c.style.transform=open?'rotate(90deg)':''; }
 
 /* ---- rest / break timer — two tiers: quick "mini" resets, longer "big" breaks ---- */
 let restTicker=null;

@@ -2583,7 +2583,9 @@ function popOutTimer(){
   (function(){
     const drag=pd.getElementById('pw'); if(!drag) return;
     let dragging=false, edgeTimer=null, evx=0, evy=0;
-    const nudge=(dx,dy)=>{ if(dx||dy){ try{ pipWin.kosNative&&pipWin.kosNative.dragBy(dx,dy); }catch(_){} } };
+    // kosNative lives on THIS window (the main K-OS window's own preload) — the timer
+    // popup can't carry its own preload, see main.js's note on setWindowOpenHandler.
+    const nudge=(dx,dy)=>{ if(dx||dy){ try{ window.kosNative&&window.kosNative.dragBy(dx,dy); }catch(_){} } };
     const stopEdge=()=>{ if(edgeTimer){ clearInterval(edgeTimer); edgeTimer=null; } evx=evy=0; };
     drag.addEventListener('pointerdown',e=>{
       if(e.button!==0) return;

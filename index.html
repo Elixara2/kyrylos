@@ -2530,9 +2530,7 @@ function popOutTimer(){
   const st=pipWin.document.createElement('style');
   st.textContent =
     '*{margin:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}'+
-    'body{background:#0e1116;color:#e6edf3;height:100vh;overflow:hidden;-webkit-user-select:none;user-select:none;'+
-      '-webkit-app-region:drag}'+  /* the whole pill is the drag handle (frameless window) */
-    '#pw-time,#pw-ctl button,#pw-input{-webkit-app-region:no-drag}'+  /* but not the controls */
+    'body{background:#0e1116;color:#e6edf3;height:100vh;overflow:hidden;-webkit-user-select:none;user-select:none;cursor:move}'+
     '#pw{height:100vh;display:flex;flex-direction:column;padding:0}'+
     '#pw-brkbar{height:3px;background:#1c232d;flex:0 0 auto}'+
     '#pw-brkbar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#1f9d55,#22c55e);transition:width .5s}'+
@@ -2577,6 +2575,24 @@ function popOutTimer(){
   pd.getElementById('pw-toggle').addEventListener('click',ev=>{ ev.stopPropagation(); tsToggle(); updatePip(); });
   pd.getElementById('pw-out').addEventListener('click',ev=>{ ev.stopPropagation(); if(ts.mode!=='idle'){ tsClockOut(); updatePip(); } });
   pd.getElementById('pw-close').addEventListener('click',ev=>{ ev.stopPropagation(); try{ pipWin.close(); }catch(e){} });
+  // custom drag: move the native window via setPosition (unclamped), so it can be
+  // pushed fully off-screen / over the menu bar. Dragging anywhere on the pill except
+  // the controls. The native shell ignores this while locked.
+  (function(){
+    const drag=pd.getElementById('pw'); if(!drag) return; let orig=null;
+    drag.addEventListener('pointerdown',e=>{
+      if(e.button!==0) return;
+      if(e.target.closest('#pw-ctl')||e.target.id==='pw-time'||e.target.id==='pw-input') return;
+      orig={mx:e.screenX,my:e.screenY};
+      try{ pipWin.kosNative&&pipWin.kosNative.dragStart(); }catch(_){}
+      try{ drag.setPointerCapture(e.pointerId); }catch(_){}
+    });
+    drag.addEventListener('pointermove',e=>{ if(!orig) return;
+      try{ pipWin.kosNative&&pipWin.kosNative.dragMove(e.screenX-orig.mx, e.screenY-orig.my); }catch(_){}
+    });
+    const end=()=>{ orig=null; };
+    drag.addEventListener('pointerup',end); drag.addEventListener('pointercancel',end);
+  })();
   const lockBtn=pd.getElementById('pw-lock');
   const paintLock=()=>{ lockBtn.textContent = pipLocked?'🔒':'🔓'; lockBtn.title = pipLocked?'Locked in place — tap to unlock':'Lock in place'; lockBtn.classList.toggle('on',pipLocked); };
   lockBtn.addEventListener('click',ev=>{ ev.stopPropagation();

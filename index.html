@@ -2530,7 +2530,9 @@ function popOutTimer(){
   const st=pipWin.document.createElement('style');
   st.textContent =
     '*{margin:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}'+
-    'body{background:#0e1116;color:#e6edf3;height:100vh;overflow:hidden;-webkit-user-select:none;user-select:none}'+
+    'body{background:#0e1116;color:#e6edf3;height:100vh;overflow:hidden;-webkit-user-select:none;user-select:none;'+
+      '-webkit-app-region:drag}'+  /* the whole pill is the drag handle (frameless window) */
+    '#pw-time,#pw-ctl button,#pw-input{-webkit-app-region:no-drag}'+  /* but not the controls */
     '#pw{height:100vh;display:flex;flex-direction:column;padding:0}'+
     '#pw-brkbar{height:3px;background:#1c232d;flex:0 0 auto}'+
     '#pw-brkbar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#1f9d55,#22c55e);transition:width .5s}'+
@@ -2546,6 +2548,7 @@ function popOutTimer(){
     '#pw-ctl button:active{transform:scale(.9)}'+
     '#pw-lock.on{background:#3b82f6;border-color:#3b82f6;color:#fff}'+
     '#pw-out{color:#ef4444}'+
+    '#pw-close{color:#8b949e;font-size:10px}'+
     '@media(max-height:40px){#pw-lbl{display:none}}'+
     /* in-widget log input — same slim sliver, inline */
     '#pw-log{display:none;height:100vh;flex-direction:row;align-items:center;padding:0 8px;gap:6px}'+
@@ -2563,7 +2566,8 @@ function popOutTimer(){
           '<div id="pw-lbl">clock in</div></div>'+
         '<div id="pw-ctl"><button id="pw-lock" title="Lock in place">🔓</button>'+
           '<button id="pw-toggle" title="Clock in / Pause">▶</button>'+
-          '<button id="pw-out" title="Clock out">⏹</button></div>'+
+          '<button id="pw-out" title="Clock out">⏹</button>'+
+          '<button id="pw-close" title="Close timer">✕</button></div>'+
       '</div>'+
     '</div>'+
     '<div id="pw-log"><div id="pw-logq">What did you do?</div><div id="pw-block"></div>'+
@@ -2572,6 +2576,7 @@ function popOutTimer(){
   pd.getElementById('pw-time').addEventListener('click',()=>{ try{ window.focus(); }catch(e){} showTab('work'); });
   pd.getElementById('pw-toggle').addEventListener('click',ev=>{ ev.stopPropagation(); tsToggle(); updatePip(); });
   pd.getElementById('pw-out').addEventListener('click',ev=>{ ev.stopPropagation(); if(ts.mode!=='idle'){ tsClockOut(); updatePip(); } });
+  pd.getElementById('pw-close').addEventListener('click',ev=>{ ev.stopPropagation(); try{ pipWin.close(); }catch(e){} });
   const lockBtn=pd.getElementById('pw-lock');
   const paintLock=()=>{ lockBtn.textContent = pipLocked?'🔒':'🔓'; lockBtn.title = pipLocked?'Locked in place — tap to unlock':'Lock in place'; lockBtn.classList.toggle('on',pipLocked); };
   lockBtn.addEventListener('click',ev=>{ ev.stopPropagation();

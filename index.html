@@ -2575,22 +2575,30 @@ function popOutTimer(){
   pd.getElementById('pw-toggle').addEventListener('click',ev=>{ ev.stopPropagation(); tsToggle(); updatePip(); });
   pd.getElementById('pw-out').addEventListener('click',ev=>{ ev.stopPropagation(); if(ts.mode!=='idle'){ tsClockOut(); updatePip(); } });
   pd.getElementById('pw-close').addEventListener('click',ev=>{ ev.stopPropagation(); try{ pipWin.close(); }catch(e){} });
-  // custom drag: move the native window via setPosition (unclamped), so it can be
-  // pushed fully off-screen / over the menu bar. Dragging anywhere on the pill except
-  // the controls. The native shell ignores this while locked.
+  // custom drag. The OS clamps the cursor to the screen, so a plain cursor-drag can
+  // never push the window past an edge. So: move 1:1 with the mouse on-screen, and
+  // when the cursor pins against a screen edge, AUTO-SLIDE the window that way until
+  // release — that's how it goes fully off-screen / up over the menu bar. The native
+  // shell moves via setPosition (unclamped) and ignores all this while locked.
   (function(){
-    const drag=pd.getElementById('pw'); if(!drag) return; let orig=null;
+    const drag=pd.getElementById('pw'); if(!drag) return;
+    let dragging=false, edgeTimer=null, evx=0, evy=0;
+    const nudge=(dx,dy)=>{ if(dx||dy){ try{ pipWin.kosNative&&pipWin.kosNative.dragBy(dx,dy); }catch(_){} } };
+    const stopEdge=()=>{ if(edgeTimer){ clearInterval(edgeTimer); edgeTimer=null; } evx=evy=0; };
     drag.addEventListener('pointerdown',e=>{
       if(e.button!==0) return;
       if(e.target.closest('#pw-ctl')||e.target.id==='pw-time'||e.target.id==='pw-input') return;
-      orig={mx:e.screenX,my:e.screenY};
-      try{ pipWin.kosNative&&pipWin.kosNative.dragStart(); }catch(_){}
-      try{ drag.setPointerCapture(e.pointerId); }catch(_){}
+      dragging=true; try{ drag.setPointerCapture(e.pointerId); }catch(_){}
     });
-    drag.addEventListener('pointermove',e=>{ if(!orig) return;
-      try{ pipWin.kosNative&&pipWin.kosNative.dragMove(e.screenX-orig.mx, e.screenY-orig.my); }catch(_){}
+    drag.addEventListener('pointermove',e=>{ if(!dragging) return;
+      nudge(e.movementX||0, e.movementY||0);   // 1:1 while the cursor can still move
+      const sw=pipWin.screen.width, sh=pipWin.screen.height, EDGE=2, STEP=7;
+      evx = e.screenX<=EDGE ? -STEP : (e.screenX>=sw-1-EDGE ? STEP : 0);
+      evy = e.screenY<=EDGE ? -STEP : (e.screenY>=sh-1-EDGE ? STEP : 0);
+      if((evx||evy) && !edgeTimer){ edgeTimer=setInterval(()=>nudge(evx,evy),16); }
+      else if(!evx && !evy){ stopEdge(); }
     });
-    const end=()=>{ orig=null; };
+    const end=()=>{ dragging=false; stopEdge(); };
     drag.addEventListener('pointerup',end); drag.addEventListener('pointercancel',end);
   })();
   const lockBtn=pd.getElementById('pw-lock');

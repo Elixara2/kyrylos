@@ -2520,13 +2520,12 @@ const PIP_W=240, PIP_H=60;
 function pipSetTitle(){ try{ pipWin.document.title = pipLocked ? 'K-OS·LOCK' : 'K-OS'; }catch(e){} }
 function popOutTimer(){
   if(pipWin && !pipWin.closed){ pipWin.focus(); return; }
-  // a script-controlled popup so it's tiny; the native shell keeps it always-on-top
-  // and owns its position (reopens wherever you last parked it).
+  // the native shell owns the geometry: it sizes this window to exactly fill the
+  // strip between the main window and the screen edge, and keeps it always-on-top.
   const sw=(screen.availWidth||screen.width), sh=(screen.availHeight||screen.height);
   const left=Math.max(0, sw-PIP_W), top=Math.max(0, sh-PIP_H);
   pipWin = window.open('', 'kosTimer', 'popup=yes,width='+PIP_W+',height='+PIP_H+',left='+left+',top='+top);
   if(!pipWin){ toast('Allow pop-ups for K-OS, then tap Float timer again.'); return; }
-  try{ pipWin.resizeTo(PIP_W,PIP_H); }catch(e){}
   pipSetTitle();
   const st=pipWin.document.createElement('style');
   st.textContent =

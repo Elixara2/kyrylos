@@ -2519,7 +2519,12 @@ const PIP_W=240, PIP_H=60;
 // itself movable / immovable — no JS repositioning, so it never snaps to a corner.
 function pipSetTitle(){ try{ pipWin.document.title = pipLocked ? 'K-OS·LOCK' : 'K-OS'; }catch(e){} }
 function popOutTimer(){
-  if(pipWin && !pipWin.closed){ pipWin.focus(); return; }
+  // already floating? then this is a "bring it back" — snap it into view and focus.
+  // (that's the rescue if it's been pushed mostly off the edge)
+  if(pipWin && !pipWin.closed){
+    try{ window.kosNative&&window.kosNative.recallPip(); }catch(_){}
+    pipWin.focus(); return;
+  }
   // the native shell owns the geometry: it sizes this window to exactly fill the
   // strip between the main window and the screen edge, and keeps it always-on-top.
   const sw=(screen.availWidth||screen.width), sh=(screen.availHeight||screen.height);
@@ -2575,32 +2580,26 @@ function popOutTimer(){
   pd.getElementById('pw-toggle').addEventListener('click',ev=>{ ev.stopPropagation(); tsToggle(); updatePip(); });
   pd.getElementById('pw-out').addEventListener('click',ev=>{ ev.stopPropagation(); if(ts.mode!=='idle'){ tsClockOut(); updatePip(); } });
   pd.getElementById('pw-close').addEventListener('click',ev=>{ ev.stopPropagation(); try{ pipWin.close(); }catch(e){} });
-  // custom drag. The OS clamps the cursor to the screen, so a plain cursor-drag can
-  // never push the window past an edge. So: move 1:1 with the mouse on-screen, and
-  // when the cursor pins against a screen edge, AUTO-SLIDE the window that way until
-  // release — that's how it goes fully off-screen / up over the menu bar. The native
-  // shell moves via setPosition (unclamped) and ignores all this while locked.
+  // custom drag: 1:1 with the mouse, moved natively via setPosition. The native side
+  // uses enableLargerThanScreen so it CAN sit flush to the edge / hang off it, but it
+  // also keeps a grabbable sliver on screen so the pill can never be lost. (There's no
+  // edge auto-slide: it ran away off-screen. Grabbing the pill near its top edge is
+  // enough to push nearly all of it past the bottom.)
   (function(){
     const drag=pd.getElementById('pw'); if(!drag) return;
-    let dragging=false, edgeTimer=null, evx=0, evy=0;
+    let dragging=false;
     // kosNative lives on THIS window (the main K-OS window's own preload) — the timer
     // popup can't carry its own preload, see main.js's note on setWindowOpenHandler.
     const nudge=(dx,dy)=>{ if(dx||dy){ try{ window.kosNative&&window.kosNative.dragBy(dx,dy); }catch(_){} } };
-    const stopEdge=()=>{ if(edgeTimer){ clearInterval(edgeTimer); edgeTimer=null; } evx=evy=0; };
     drag.addEventListener('pointerdown',e=>{
       if(e.button!==0) return;
       if(e.target.closest('#pw-ctl')||e.target.id==='pw-time'||e.target.id==='pw-input') return;
       dragging=true; try{ drag.setPointerCapture(e.pointerId); }catch(_){}
     });
     drag.addEventListener('pointermove',e=>{ if(!dragging) return;
-      nudge(e.movementX||0, e.movementY||0);   // 1:1 while the cursor can still move
-      const sw=pipWin.screen.width, sh=pipWin.screen.height, EDGE=2, STEP=7;
-      evx = e.screenX<=EDGE ? -STEP : (e.screenX>=sw-1-EDGE ? STEP : 0);
-      evy = e.screenY<=EDGE ? -STEP : (e.screenY>=sh-1-EDGE ? STEP : 0);
-      if((evx||evy) && !edgeTimer){ edgeTimer=setInterval(()=>nudge(evx,evy),16); }
-      else if(!evx && !evy){ stopEdge(); }
+      nudge(e.movementX||0, e.movementY||0);
     });
-    const end=()=>{ dragging=false; stopEdge(); };
+    const end=()=>{ dragging=false; };
     drag.addEventListener('pointerup',end); drag.addEventListener('pointercancel',end);
   })();
   const lockBtn=pd.getElementById('pw-lock');

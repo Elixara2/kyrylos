@@ -1025,7 +1025,7 @@
         <button class="sm ghost" onclick="clearAlarmTime()">Clear</button>
       </div>
       <div class="sub" id="alarmNext" style="margin-top:8px">No alarm set</div>
-      <div class="sub warn-note" style="margin-top:10px">⚠︎ Rings only while K-OS is open on your phone — a website can't wake a locked/sleeping phone. Keep your phone's built-in alarm as the real wake-up; K-OS then runs the mission.</div>
+      <div class="sub warn-note" id="alarmWarnNote" style="margin-top:10px"></div>
     </div>
 
     <div class="card">
@@ -1330,7 +1330,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260815-155941';
+const KOS_BUILD='20260815-181609';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -1854,11 +1854,17 @@ function renderAlarm(){
       nx.innerHTML='⏰ Next alarm: <b>'+when+' '+fmtClock(d)+'</b> · in '+h+'h '+mm+'m';
     }
   }
+  const wn=$('#alarmWarnNote');
+  if(wn){
+    wn.textContent = NATIVE
+      ? '✓ Runs as a real Android alarm — rings on time even if K-OS is fully closed or your phone is locked.'
+      : "⚠︎ Rings only while K-OS is open on your phone — a website can't wake a locked/sleeping phone. Keep your phone's built-in alarm as the real wake-up; K-OS then runs the mission.";
+  }
 }
 function fmtClock(d){ return d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}); }
 function setAlarmTime(v){ SET.mission=Object.assign({}, getMission(), {alarmTime:v||''}); kset('settings',SET); renderAlarm();
-  if(v) toast('Alarm set for '+fmtClock(nextAlarmDate(v))); }
-function clearAlarmTime(){ SET.mission=Object.assign({}, getMission(), {alarmTime:''}); kset('settings',SET); renderAlarm(); toast('Alarm cleared'); }
+  if(v){ toast('Alarm set for '+fmtClock(nextAlarmDate(v))); scheduleNativeAlarm(v); } else { cancelNativeAlarm(); } }
+function clearAlarmTime(){ SET.mission=Object.assign({}, getMission(), {alarmTime:''}); kset('settings',SET); renderAlarm(); toast('Alarm cleared'); cancelNativeAlarm(); }
 /* next occurrence of HH:MM — today if still ahead, otherwise tomorrow */
 function nextAlarmDate(hhmm){
   const [h,m]=hhmm.split(':').map(Number);
@@ -1892,6 +1898,59 @@ function ringAlarm(){
   else { toast('⏰ Wake up — good morning, Kyryl.'); }
   // stop the ringing once the mission overlay is engaged or after ~13s
   setTimeout(()=>{ alarmRinging=false; }, 13000);
+}
+
+/* ---- native alarm (Android app only) ----
+   A web page genuinely cannot wake a locked/sleeping phone — checkAlarm() above only
+   fires while K-OS is already open. Inside the native Android shell, Capacitor
+   auto-injects window.Capacitor into every page it loads, so this same App.html can
+   also schedule a REAL system alarm via AlarmManager (survives the app being fully
+   closed, rings with sound+vibration, and reschedules itself daily). It's inert
+   everywhere else (desktop, plain browser) since window.Capacitor won't exist there. */
+const NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+const ALARM_NOTIF_ID = 424242;
+function LN(){ return window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications; }
+async function nativeAlarmInit(){
+  if(!NATIVE || !LN()) return;
+  try{
+    await LN().requestPermissions();
+    await LN().createChannel({
+      id:'kos-alarm', name:'K-OS Alarm', importance:5, visibility:1,
+      vibration:true, sound:'default',
+    });
+  }catch(e){}
+  syncNativeAlarm();   // re-arm whatever's currently set (survives app updates/reinstalls)
+}
+async function syncNativeAlarm(){
+  if(!NATIVE || !LN()) return;
+  const t=getMission().alarmTime;
+  if(t) scheduleNativeAlarm(t); else cancelNativeAlarm();
+}
+async function scheduleNativeAlarm(hhmm){
+  if(!NATIVE || !LN()) return;
+  const [h,m]=hhmm.split(':').map(Number);
+  try{
+    await LN().schedule({ notifications:[{
+      id: ALARM_NOTIF_ID,
+      title: '⏰ K-OS — wake up',
+      body: "Time to start your day. Tap to begin this morning's mission.",
+      channelId: 'kos-alarm',
+      schedule: { on:{ hour:h, minute:m }, allowWhileIdle:true },
+    }]});
+  }catch(e){}
+}
+async function cancelNativeAlarm(){
+  if(!NATIVE || !LN()) return;
+  try{ await LN().cancel({ notifications:[{ id: ALARM_NOTIF_ID }] }); }catch(e){}
+}
+// tapping the notification opens the app — jump straight to the mission, regardless
+// of how long ago the alarm fired (checkAlarm()'s 2-min window is for foreground-only)
+if(NATIVE && LN()){
+  LN().addListener('localNotificationActionPerformed', ()=>{
+    kset('mission:alarmFired:'+todayKey(), true);
+    const m=getMission();
+    if(m.enabled && m.types.length) openMission(); else showTab('alarm');
+  });
 }
 
 /* ---- the gate itself ---- */
@@ -4595,6 +4654,7 @@ showTab(activeTab);
 let lastDay=todayKey();
 setInterval(()=>{ if(todayKey()!==lastDay){ lastDay=todayKey(); ts=jload('tsrun',{mode:'idle'}); ts.mode='idle'; tsSave(); renderAll(); } }, 30000);
 setInterval(checkAlarm, 10000); checkAlarm();
+nativeAlarmInit();
 startProfitFloat();
 </script>
 </body>

@@ -46,11 +46,15 @@
   body.pipboy, body.pipboy input, body.pipboy textarea, body.pipboy select, body.pipboy button{
     font-family:ui-monospace,'SF Mono','Cascadia Code','Courier New',monospace !important;
   }
-  body.pipboy h1, body.pipboy h2, body.pipboy .lbl, body.pipboy b, body.pipboy strong, body.pipboy .t{
-    text-shadow:0 0 4px currentColor, 0 0 12px rgba(var(--pip-rgb),.45);
+  /* glow is reserved for section headers only — glowing every bold number/label
+     app-wide (the original cut) is exactly what made it hard to look at. Ordinary
+     bold text and small labels (b, strong, .t — used constantly for timestamps and
+     values throughout K-OS) stay plain, readable --txt with no blur. */
+  body.pipboy h1, body.pipboy h2{
+    text-shadow:0 0 2px currentColor, 0 0 6px rgba(var(--pip-rgb),.3);
   }
   body.pipboy .card, body.pipboy .panel{
-    background:rgba(var(--pip-rgb),.06); box-shadow:inset 0 0 24px rgba(0,0,0,.65), 0 0 0 1px rgba(var(--pip-rgb),.14);
+    background:rgba(var(--pip-rgb),.045); box-shadow:inset 0 0 24px rgba(0,0,0,.65), 0 0 0 1px rgba(var(--pip-rgb),.12);
   }
   body.pipboy .icobtn, body.pipboy input, body.pipboy textarea, body.pipboy select{ border-color:rgba(var(--pip-rgb),.35) !important; }
   #pipfx{position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:0;transition:opacity .4s}
@@ -67,7 +71,7 @@
   body.pipboy #tabbar{ background:rgba(3,9,3,.95); border-top:1px solid rgba(var(--pip-rgb),.4); backdrop-filter:none; }
   body.pipboy .tab{ color:rgba(var(--pip-rgb),.4); text-transform:uppercase; letter-spacing:.5px; }
   body.pipboy .tab .lbl{ position:relative; }
-  body.pipboy .tab.on{ color:rgb(var(--pip-rgb,77,255,106)); text-shadow:0 0 6px currentColor, 0 0 16px rgba(var(--pip-rgb),.6); }
+  body.pipboy .tab.on{ color:rgb(var(--pip-rgb,77,255,106)); text-shadow:0 0 3px currentColor, 0 0 9px rgba(var(--pip-rgb),.45); }
   body.pipboy .tab.on .lbl::before{ content:'[ '; }
   body.pipboy .tab.on .lbl::after{ content:' ]'; }
   body.pipboy .tab .dotdone{ background:transparent; }
@@ -1410,7 +1414,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260815-214441';
+const KOS_BUILD='20260815-214702';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -1704,11 +1708,17 @@ function pipHslToRgbStr(h,s,l){ s/=100; l/=100;
   const k=n=>(n+h/30)%12, a=s*Math.min(l,1-l);
   const f=n=>l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1)));
   return Math.round(255*f(0))+','+Math.round(255*f(8))+','+Math.round(255*f(4)); }
+/* Muted phosphor, not neon: real Pip-Boy screens are a soft, slightly desaturated
+   green — the glare came from cranking saturation/lightness to the max AND glowing
+   almost every bold number on screen. --accent (72/58) stays vivid enough for the
+   selected-item highlight (the one thing that SHOULD pop, same as the reference
+   screenshot's highlighted quest row); --txt is deliberately calmer (38/54, much
+   less saturated) since that's what ordinary body copy inherits everywhere. */
 function pipboyPalette(h){ return {
-  rgb: pipHslToRgbStr(h,90,62),
-  accent: themeHsl(h,90,62), accent2: themeHsl(h,80,40),
-  txt: themeHsl(h,90,62), dim: themeHsl(h,55,34),
-  bg: themeHsl(h,55,3), panel: themeHsl(h,45,6), panel2: themeHsl(h,45,8), line: themeHsl(h,50,18),
+  rgb: pipHslToRgbStr(h,72,58),
+  accent: themeHsl(h,72,58), accent2: themeHsl(h,62,38),
+  txt: themeHsl(h,38,54), dim: themeHsl(h,26,36),
+  bg: themeHsl(h,40,4), panel: themeHsl(h,32,7), panel2: themeHsl(h,32,9), line: themeHsl(h,36,20),
 }; }
 function applyPipboy(){
   document.body.classList.toggle('pipboy', !!SET.pipboySkin);

@@ -1330,7 +1330,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260815-181609';
+const KOS_BUILD='20260815-182608';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -1953,6 +1953,54 @@ if(NATIVE && LN()){
   });
 }
 
+/* ---- native persistent work-timer notification (Android) ----
+   The float timer's phone equivalent: a real ongoing notification with the live
+   session time, and Pause/Resume + Clock out buttons that work without opening the
+   app. Uses Android's built-in chronometer notification field, so the OS itself
+   ticks the display — we only touch it on START/PAUSE/RESUME/STOP, never per-second.
+   wtDisplayBase is a wall-clock instant such that (now - wtDisplayBase) is the
+   elapsed time shown, with paused stretches excluded (shifted forward on resume) —
+   mirrors how tsToggle() already excludes pause time from the next-log countdown. */
+function WT(){ return window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.WorkTimer; }
+let wtDisplayBase=0, wtFrozenElapsed=0;
+function wtStart(){
+  if(!NATIVE || !WT()) return;
+  wtDisplayBase = ts.sessionStart || Date.now();
+  WT().start({ label:'K-OS — Working', sessionStart: wtDisplayBase }).catch(()=>{});
+}
+function wtPause(){
+  if(!NATIVE || !WT()) return;
+  wtFrozenElapsed = Math.max(0, Date.now()-wtDisplayBase);
+  WT().update({ label:'K-OS — Paused', state:'paused', pausedElapsedMs: wtFrozenElapsed }).catch(()=>{});
+}
+function wtResume(){
+  if(!NATIVE || !WT()) return;
+  wtDisplayBase = Date.now()-wtFrozenElapsed;
+  WT().update({ label:'K-OS — Working', state:'working', sessionStart: wtDisplayBase }).catch(()=>{});
+}
+function wtStop(){
+  if(!NATIVE || !WT()) return;
+  WT().stop().catch(()=>{});
+}
+// re-arm the persistent notification to match whatever state we're actually in —
+// covers relaunching the app while a session was already running/paused. (Best
+// effort for the paused case: we don't persist a separate "elapsed excluding past
+// pauses" figure, so this shows time-since-session-start, which is exact except
+// across a relaunch that lands mid-pause — a rare, cosmetic-only edge case.)
+function wtSync(){
+  if(!NATIVE || !WT()) return;
+  if(ts.mode==='working'){ wtStart(); }
+  else if(ts.mode==='paused'){ wtDisplayBase = ts.sessionStart||Date.now(); wtPause(); }
+  else wtStop();
+}
+// notification buttons fire this — bring the app's own state and the OS's in sync
+if(NATIVE && WT()){
+  WT().addListener('workTimerAction', (data)=>{
+    if(data.type==='pause' || data.type==='resume'){ tsToggle(); }
+    else if(data.type==='clockout'){ tsClockOut(); }
+  });
+}
+
 /* ---- the gate itself ---- */
 let missionActiveType=null, missionStream=null, missionBarcodeTimer=null, missionRegisterMode=false;
 function checkMissionGate(){
@@ -2237,14 +2285,20 @@ function tsToggle(){
     if(!st.started){ st.started=true; st.firstStart=Date.now(); kset('ts:day:'+todayKey(),st); }
     else if(!st.firstStart){ st.firstStart=tsEffectiveDayStart(todayKey())||Date.now(); kset('ts:day:'+todayKey(),st); }
     try{ if('Notification' in window && Notification.permission==='default') Notification.requestPermission(); }catch(e){}
+    wtStart();
   } else if(ts.mode==='working'){ ts.mode='paused'; ts.pausedLeft=ts.nextLogAt-Date.now();
-    ts.miniPausedLeft=(ts.miniNextAt||0)-Date.now(); ts.bigPausedLeft=(ts.bigNextAt||0)-Date.now(); }
+    ts.miniPausedLeft=(ts.miniNextAt||0)-Date.now(); ts.bigPausedLeft=(ts.bigNextAt||0)-Date.now();
+    wtPause();
+  }
   else if(ts.mode==='paused'){ ts.mode='working'; ts.nextLogAt=Date.now()+Math.max(1000,ts.pausedLeft||0);
     if(ts.miniPausedLeft) ts.miniNextAt=Date.now()+Math.max(1000,ts.miniPausedLeft);
-    if(ts.bigPausedLeft) ts.bigNextAt=Date.now()+Math.max(1000,ts.bigPausedLeft); }
+    if(ts.bigPausedLeft) ts.bigNextAt=Date.now()+Math.max(1000,ts.bigPausedLeft);
+    wtResume();
+  }
   else { // stuck in a transient state (logging/resting) — recover so the button always works
     $('#tsScrim').classList.remove('show'); $('#breakov').classList.remove('show');
     ts.mode='working'; ts.blockStart=ts.blockStart||Date.now(); ts.nextLogAt=Date.now()+SET.tsInt*60000;
+    wtStart();
   }
   tsSave(); renderWork();
 }
@@ -2264,6 +2318,7 @@ function tsClockOut(){
   clearInterval(restTicker);
   ts={mode:'idle', nextLogAt:0, blockStart:0, sessionStart:0};
   tsSave();
+  wtStop();
   autoFlow(); renderWork(); renderToday();
 }
 
@@ -4655,6 +4710,12 @@ let lastDay=todayKey();
 setInterval(()=>{ if(todayKey()!==lastDay){ lastDay=todayKey(); ts=jload('tsrun',{mode:'idle'}); ts.mode='idle'; tsSave(); renderAll(); } }, 30000);
 setInterval(checkAlarm, 10000); checkAlarm();
 nativeAlarmInit();
+wtSync();
+if(NATIVE && window.Capacitor.Plugins.App){
+  // came back to K-OS (e.g. tapped the notification, or switched back from another
+  // app) — make sure the persistent notification still matches reality
+  window.Capacitor.Plugins.App.addListener('resume', wtSync);
+}
 startProfitFloat();
 </script>
 </body>

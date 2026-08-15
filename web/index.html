@@ -28,43 +28,52 @@
      app re-colors for free. On top of that: monospace everywhere, phosphor glow on
      headings/emphasis, a fixed scanline+vignette+flicker overlay (#pipfx, pure decor,
      pointer-events:none so it never blocks a tap), and a bracketed [ TAB ] selector
-     in the nav bar with a brief brightness-pulse on every tab switch (see showTab()). */
+     in the nav bar with a brief brightness-pulse on every tab switch (see showTab()).
+     Colour + brightness are adjustable (Settings), so the --bg/--accent/etc values
+     below are only the DEFAULT (classic green) — applyPipboy() in JS overrides them
+     with inline styles on <body> once a hue/brightness is picked, which win over
+     these plain (non-!important) class rules automatically. --pip-rgb holds the
+     phosphor colour as "r,g,b" so glow/overlay rgba()s can reuse it at any alpha. */
   body.pipboy{
+    --pip-rgb:77,255,106;
     --bg:#050a05; --panel:#0a1a0a; --panel2:#0d220d; --line:#1d4d1d;
     --txt:#4dff6a; --dim:#2f8f42; --accent:#4dff6a; --accent2:#1f9d3f;
     --green:#4dff6a; --amber:#4dff6a; --red:#ff6a5a; --purple:#4dff6a;
     --chart1:#4dff6a; --chart2:#2fbf50; --chart3:#1f9d3f;
     background:radial-gradient(ellipse at 50% 35%, #0c220c 0%, #030603 100%);
+    filter:brightness(var(--pip-bright,1));
   }
   body.pipboy, body.pipboy input, body.pipboy textarea, body.pipboy select, body.pipboy button{
     font-family:ui-monospace,'SF Mono','Cascadia Code','Courier New',monospace !important;
   }
   body.pipboy h1, body.pipboy h2, body.pipboy .lbl, body.pipboy b, body.pipboy strong, body.pipboy .t{
-    text-shadow:0 0 4px currentColor, 0 0 12px rgba(77,255,106,.45);
+    text-shadow:0 0 4px currentColor, 0 0 12px rgba(var(--pip-rgb),.45);
   }
   body.pipboy .card, body.pipboy .panel{
-    background:rgba(10,25,10,.5); box-shadow:inset 0 0 24px rgba(0,0,0,.65), 0 0 0 1px rgba(77,255,106,.14);
+    background:rgba(var(--pip-rgb),.06); box-shadow:inset 0 0 24px rgba(0,0,0,.65), 0 0 0 1px rgba(var(--pip-rgb),.14);
   }
-  body.pipboy .icobtn, body.pipboy input, body.pipboy textarea, body.pipboy select{ border-color:rgba(77,255,106,.35) !important; }
+  body.pipboy .icobtn, body.pipboy input, body.pipboy textarea, body.pipboy select{ border-color:rgba(var(--pip-rgb),.35) !important; }
   #pipfx{position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:0;transition:opacity .4s}
   body.pipboy #pipfx{opacity:1}
   #pipfx .scan{position:absolute;inset:-4px;
     background:repeating-linear-gradient(to bottom, rgba(0,0,0,.2) 0px, rgba(0,0,0,.2) 1px, transparent 2px, transparent 3px);
     mix-blend-mode:multiply; animation:pipScanDrift 10s linear infinite;}
   #pipfx .vig{position:absolute;inset:0; background:radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(0,0,0,.5) 100%);}
-  #pipfx .flicker{position:absolute;inset:0; background:#4dff6a; opacity:0; mix-blend-mode:overlay; animation:pipFlicker 6.5s ease-in-out infinite;}
+  #pipfx .flicker{position:absolute;inset:0; background:rgb(var(--pip-rgb,77,255,106)); opacity:0; mix-blend-mode:overlay; animation:pipFlicker 6.5s ease-in-out infinite;}
   @keyframes pipScanDrift{ 0%{background-position-y:0} 100%{background-position-y:120px} }
   @keyframes pipFlicker{ 0%,96%,100%{opacity:0} 97%{opacity:.06} 97.4%{opacity:0} 98.3%{opacity:.09} 98.7%{opacity:0} }
   @keyframes pipTabPulse{ 0%{filter:brightness(2) contrast(1.3)} 100%{filter:brightness(1) contrast(1)} }
   body.pipboy #wrap.pip-pulse{ animation:pipTabPulse .16s ease-out; }
-  body.pipboy #tabbar{ background:rgba(3,9,3,.95); border-top:1px solid rgba(77,255,106,.4); backdrop-filter:none; }
-  body.pipboy .tab{ color:rgba(77,255,106,.4); text-transform:uppercase; letter-spacing:.5px; }
+  body.pipboy #tabbar{ background:rgba(3,9,3,.95); border-top:1px solid rgba(var(--pip-rgb),.4); backdrop-filter:none; }
+  body.pipboy .tab{ color:rgba(var(--pip-rgb),.4); text-transform:uppercase; letter-spacing:.5px; }
   body.pipboy .tab .lbl{ position:relative; }
-  body.pipboy .tab.on{ color:#4dff6a; text-shadow:0 0 6px #4dff6a, 0 0 16px rgba(77,255,106,.6); }
+  body.pipboy .tab.on{ color:rgb(var(--pip-rgb,77,255,106)); text-shadow:0 0 6px currentColor, 0 0 16px rgba(var(--pip-rgb),.6); }
   body.pipboy .tab.on .lbl::before{ content:'[ '; }
   body.pipboy .tab.on .lbl::after{ content:' ]'; }
   body.pipboy .tab .dotdone{ background:transparent; }
-  body.pipboy .tab.done .dotdone{ background:#4dff6a; box-shadow:0 0 4px #4dff6a; }
+  body.pipboy .tab.done .dotdone{ background:rgb(var(--pip-rgb,77,255,106)); box-shadow:0 0 4px currentColor; }
+  body.pipboy .pip-colorwrap{ display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:10px; }
+  .pip-brightwrap{ margin-top:10px; }
 
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;height:100%}
@@ -1354,8 +1363,19 @@
         <div class="switch" id="themeLiveToggle"><i></i></div>
       </div>
       <div class="toggle-row" onclick="togglePipboy()">
-        <div><b>🟢 Pip-Boy mode</b><span>Full CRT-green terminal skin, scanlines and all — overrides the colours above</span></div>
+        <div><b>🟢 Pip-Boy mode</b><span>Full CRT terminal skin, scanlines and all — overrides the colours above</span></div>
         <div class="switch" id="pipboyToggle"><i></i></div>
+      </div>
+      <div id="pipboyControls" style="display:none">
+        <div class="lbl" style="margin-top:12px">Pip-Boy colour</div>
+        <div class="swatches pip-colorwrap" id="pipboySwatches"></div>
+        <div class="huerange-wrap">
+          <input type="range" id="pipboyHueSlider" class="huerange" min="0" max="360" oninput="setPipboyHueSlider(this.value)">
+        </div>
+        <div class="lbl pip-brightwrap">Brightness — <span id="pipboyBrightVal">100%</span></div>
+        <div class="huerange-wrap">
+          <input type="range" id="pipboyBrightSlider" min="50" max="150" oninput="setPipboyBrightness(this.value/100); $('#pipboyBrightVal').textContent=this.value+'%'">
+        </div>
       </div>
     </div>
 
@@ -1390,7 +1410,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260815-211816';
+const KOS_BUILD='20260815-212338';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -1627,7 +1647,7 @@ const DEF_SETTINGS = {
   tsInt:15,
   miniEvery:25, miniLen:45, bigEvery:120, bigLen:15, restOn:true, logOn:true,
   tankMl:1500, rapGoal:60, unit:'kg', dayAName:'Day A', dayBName:'Day B',
-  theme:{mode:'default', hue:220, live:false}, pipboySkin:false,
+  theme:{mode:'default', hue:220, live:false}, pipboySkin:false, pipboyHue:145, pipboyBright:1,
   mission:{enabled:false, types:['math'], mathDiff:'medium', phrases:[], barcodeRef:'', alarmTime:''}
 };
 let SET = {};
@@ -1673,17 +1693,44 @@ function applyTheme(){
     themeRoot.style.setProperty('--accent',a1); themeRoot.style.setProperty('--accent2',a2); }
   else{ themeRoot.style.removeProperty('--accent'); themeRoot.style.removeProperty('--accent2'); }
 }
-/* ---- Pip-Boy skin: a full CRT-green reskin (see body.pipboy CSS), independent of
-   the accent-hue system above — it overrides --accent itself, so the hue picker is
-   irrelevant while it's on. Applied as a body class so every var(--x) in the sheet
-   just re-colors for free. ---- */
-function applyPipboy(){ document.body.classList.toggle('pipboy', !!SET.pipboySkin); }
+/* ---- Pip-Boy skin: a full CRT reskin (see body.pipboy CSS), independent of the
+   normal accent-hue system above but reusing its same hue→colour math and swatch
+   list — "any colour from normal mode" here just means the phosphor tint (classic
+   green by default; try the amber/gold swatch for a Fallout-3-style display, or any
+   other hue). Applied as a body class + inline CSS vars set on <body>, which win
+   over the (non-!important) class defaults in the stylesheet — that's what lets a
+   picked hue/brightness override the plain green fallback. ---- */
+function pipHslToRgbStr(h,s,l){ s/=100; l/=100;
+  const k=n=>(n+h/30)%12, a=s*Math.min(l,1-l);
+  const f=n=>l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1)));
+  return Math.round(255*f(0))+','+Math.round(255*f(8))+','+Math.round(255*f(4)); }
+function pipboyPalette(h){ return {
+  rgb: pipHslToRgbStr(h,90,62),
+  accent: themeHsl(h,90,62), accent2: themeHsl(h,80,40),
+  txt: themeHsl(h,90,62), dim: themeHsl(h,55,34),
+  bg: themeHsl(h,55,3), panel: themeHsl(h,45,6), panel2: themeHsl(h,45,8), line: themeHsl(h,50,18),
+}; }
+function applyPipboy(){
+  document.body.classList.toggle('pipboy', !!SET.pipboySkin);
+  if(!SET.pipboySkin) return;
+  const h = SET.pipboyHue!=null ? SET.pipboyHue : 145;
+  const p = pipboyPalette(h), s = document.body.style;
+  s.setProperty('--pip-rgb', p.rgb);
+  s.setProperty('--accent', p.accent); s.setProperty('--accent2', p.accent2);
+  s.setProperty('--txt', p.txt); s.setProperty('--dim', p.dim);
+  s.setProperty('--bg', p.bg); s.setProperty('--panel', p.panel); s.setProperty('--panel2', p.panel2); s.setProperty('--line', p.line);
+  s.setProperty('--green', p.accent); s.setProperty('--amber', p.accent); s.setProperty('--purple', p.accent);
+  s.setProperty('--pip-bright', SET.pipboyBright!=null ? SET.pipboyBright : 1);
+}
 function togglePipboy(){
   SET.pipboySkin=!SET.pipboySkin; kset('settings',SET); applyPipboy();
   toast(SET.pipboySkin ? '🟢 Pip-Boy mode engaged' : 'Pip-Boy mode off');
   if(SET.pipboySkin) beep([[220,.04],[0,.02],[880,.05],[0,.02],[660,.08]]);
   renderThemeUI();
 }
+function pickPipboyHue(h){ SET.pipboyHue=h; kset('settings',SET); applyPipboy(); renderThemeUI(); }
+function setPipboyHueSlider(h){ pickPipboyHue(parseInt(h,10)||0); }
+function setPipboyBrightness(v){ SET.pipboyBright=parseFloat(v)||1; kset('settings',SET); applyPipboy(); }
 function pickThemeSwatch(mode){
   const preset=THEME_PRESETS.find(p=>p[0]===mode);
   const patch={mode, live:false};
@@ -1704,6 +1751,18 @@ function renderThemeUI(){
   const hs=$('#themeHue'); if(hs) hs.value=t.hue||220;
   const lt=$('#themeLiveToggle'); if(lt) lt.classList.toggle('on', !!t.live);
   const pt=$('#pipboyToggle'); if(pt) pt.classList.toggle('on', !!SET.pipboySkin);
+  const pc=$('#pipboyControls'); if(pc) pc.style.display = SET.pipboySkin ? '' : 'none';
+  const pHue = SET.pipboyHue!=null ? SET.pipboyHue : 145;
+  const pBox=$('#pipboySwatches'); if(pBox){ pBox.innerHTML='';
+    THEME_PRESETS.forEach(([key,name,hue])=>{ if(hue==null) return; const d=document.createElement('div');
+      d.className='sw'+(pHue===hue?' on':''); d.title=name;
+      d.style.background='linear-gradient(135deg,'+themeColorsForHue(hue).join(',')+')';
+      d.onclick=()=>pickPipboyHue(hue); pBox.appendChild(d); });
+  }
+  const phs=$('#pipboyHueSlider'); if(phs) phs.value=pHue;
+  const pbv=SET.pipboyBright!=null ? SET.pipboyBright : 1;
+  const pbs=$('#pipboyBrightSlider'); if(pbs) pbs.value=Math.round(pbv*100);
+  const pbl=$('#pipboyBrightVal'); if(pbl) pbl.textContent=Math.round(pbv*100)+'%';
 }
 function openSettings(){
   $('#setAscend').value=SET.ascendUrl; $('#setLife').value=SET.lifeUrl;
@@ -4850,6 +4909,37 @@ function showTab(name){
   }
 }
 function backFromSub(){ const p=$('#backBar').dataset.parent||'today'; showTab(p); }
+
+/* ---- native edge-swipe-back (Android) ----
+   Android's system back gesture (swipe in from the screen edge) reaches the app as
+   Capacitor's 'backButton' event — same event a hardware/gesture-nav back always
+   fires, so this is the correct hook rather than hand-rolling touch-edge detection
+   (which would fight the OS's own gesture recognizer). Three-tier, same as any
+   native Android app: close whatever's open on top → back out of a sub-panel (e.g.
+   Gym → Modules) → minimize at the root, never a raw exit.
+   #missionov is deliberately excluded UNLESS it's in "register a new mission"
+   mode — the live morning gate has no dismiss button on purpose; swiping must not
+   be a way to skip your own accountability check. */
+const OVERLAY_CLOSERS=[
+  ['setScrim', closeSettings], ['tsSheetView', closeTsSheet], ['splitScrim', closeSplit],
+  ['mealScrim', closeMealBuilder], ['goalScrim', closeGoalDetail], ['modScrim', closeModuleEdit],
+  ['modDetailScrim', closeModuleDetail], ['habScrim', closeHabitManage], ['trimov', closeTrim],
+  ['tsScrim', ()=>tsCloseLog(false)], ['breakov', ()=>endRest(true)],
+];
+function closeAnyOpenOverlay(){
+  const mv=$('#missionov');
+  if(mv && mv.classList.contains('show') && missionRegisterMode){ closeMissionRegister(); return true; }
+  for(const [id,fn] of OVERLAY_CLOSERS){
+    const el=$('#'+id);
+    if(el && el.classList.contains('show')){ fn(); return true; }
+  }
+  return false;
+}
+function handleNativeBack(){
+  if(closeAnyOpenOverlay()) return;
+  if(SUB_PARENT[activeTab]){ backFromSub(); return; }
+  try{ window.Capacitor.Plugins.App.minimizeApp(); }catch(e){}
+}
 function renderTabs(){
   const f=getFlow();
   document.querySelectorAll('.tab').forEach(t=>{
@@ -4880,6 +4970,8 @@ if(NATIVE && window.Capacitor.Plugins.App){
   // came back to K-OS (e.g. tapped the notification, or switched back from another
   // app) — make sure the persistent notification still matches reality
   window.Capacitor.Plugins.App.addListener('resume', ()=>{ wtSync(); hcRefreshSteps(); });
+  // the system back gesture (edge swipe) / hardware back button
+  window.Capacitor.Plugins.App.addListener('backButton', handleNativeBack);
 }
 if(NATIVE){ hcRefreshSteps(); setInterval(hcRefreshSteps, 15*60000); }
 startProfitFloat();

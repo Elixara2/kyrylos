@@ -905,6 +905,16 @@
       </div>
     </div>
     <div class="card"><h2>Streak</h2><div class="sub" id="dietStreak">—</div></div>
+    <div class="card" id="hcCard">
+      <h2>Steps · Health Connect</h2>
+      <div class="sub" id="hcStatus">—</div>
+      <div id="hcStepsRow" style="display:none;margin-top:8px">
+        <div style="font-size:28px;font-weight:800" id="hcSteps">—</div>
+        <div class="sub">steps today</div>
+      </div>
+      <button class="sm" id="hcConnectBtn" onclick="hcConnect()" style="margin-top:10px;display:none">Connect Health Connect</button>
+      <div class="sub" style="margin-top:8px;opacity:.7">Sleep and workouts aren't available yet — the Android plugin only exposes steps so far.</div>
+    </div>
   </section>
 
   <!-- ============ HABITS (life tracker) ============ -->
@@ -1330,7 +1340,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260815-182841';
+const KOS_BUILD='20260815-183304';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -3741,6 +3751,46 @@ function renderDiet(){
   if(!full(todayKey())) probe.setDate(probe.getDate()-1);
   while(full(todayKey(probe))){ streak++; probe.setDate(probe.getDate()-1); }
   $('#dietStreak').textContent = streak ? '🔥 '+streak+' day'+(streak>1?'s':'')+' of perfect diet in a row' : 'Complete every meal + 3L water to start a streak.';
+  renderHealthConnect();
+}
+
+/* ---- Health Connect (Android only) ----
+   The plugin currently exposes Steps only — no Sleep or workout/exercise session
+   record types yet (capacitor-health-connect v0.7.0). Wired honestly: only steps
+   show up, and the card says so, rather than pretending sleep/workouts work. */
+function HC(){ return window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.HealthConnect; }
+async function hcConnect(){
+  if(!NATIVE || !HC()){ toast('Health Connect needs the Android app'); return; }
+  try{
+    const avail=await HC().checkAvailability();
+    if(avail.availability!=='Available'){ toast('Install Health Connect from the Play Store, then try again'); return; }
+    const res=await HC().requestHealthPermissions({read:['Steps'], write:[]});
+    if(!res.hasAllPermissions){ toast('Steps permission not granted'); return; }
+    kset('hc:connected', true);
+    toast('Health Connect connected ✓');
+    hcRefreshSteps();
+  }catch(e){ toast('Health Connect setup failed'); }
+}
+async function hcRefreshSteps(){
+  if(!NATIVE || !HC() || !kget('hc:connected',false)) return;
+  try{
+    const start=new Date(); start.setHours(0,0,0,0);
+    const res=await HC().readRecords({ type:'Steps',
+      timeRangeFilter:{ type:'between', startTime:start.toISOString(), endTime:new Date().toISOString() } });
+    const total=(res.records||[]).reduce((a,r)=>a+(r.count||0),0);
+    kset('hc:stepsToday', total);
+    renderHealthConnect();
+  }catch(e){}
+}
+function renderHealthConnect(){
+  const card=$('#hcCard'); if(!card) return;
+  const connected=kget('hc:connected',false);
+  const st=$('#hcStatus'), btn=$('#hcConnectBtn'), row=$('#hcStepsRow');
+  if(!NATIVE){ st.textContent='Native Android app only'; btn.style.display='none'; row.style.display='none'; return; }
+  st.textContent = connected ? 'Connected' : 'Not connected';
+  btn.style.display = connected ? 'none' : '';
+  row.style.display = connected ? '' : 'none';
+  if(connected) $('#hcSteps').textContent=(kget('hc:stepsToday',0)||0).toLocaleString();
 }
 
 /* ================= GOALS ================= */
@@ -4742,8 +4792,9 @@ wtSync();
 if(NATIVE && window.Capacitor.Plugins.App){
   // came back to K-OS (e.g. tapped the notification, or switched back from another
   // app) — make sure the persistent notification still matches reality
-  window.Capacitor.Plugins.App.addListener('resume', wtSync);
+  window.Capacitor.Plugins.App.addListener('resume', ()=>{ wtSync(); hcRefreshSteps(); });
 }
+if(NATIVE){ hcRefreshSteps(); setInterval(hcRefreshSteps, 15*60000); }
 startProfitFloat();
 </script>
 </body>

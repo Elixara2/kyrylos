@@ -2,3 +2,6 @@ App.html
 Code.gs
 K-OS.app/
 .DS_Store
+# mobile/ holds the Android signing keystore (with plaintext passwords) and heavy
+# build output — this repo is PUBLIC (GitHub Pages), so it must never be pushed.
+mobile/

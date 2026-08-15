@@ -162,11 +162,17 @@
   .ring-wrap.tring .ring-fg{stroke-width:9}
 
   /* strength countdown bar across the top */
-  .sBar{position:absolute;top:0;left:0;right:0;z-index:6;pointer-events:none;padding:calc(var(--safe-t) + 12px) 16px 0}
-  .sBar-track{height:16px;border-radius:99px;background:rgba(255,255,255,.16);overflow:hidden;box-shadow:0 3px 14px rgba(0,0,0,.35)}
+  /* One thin strip at the very top edge. The time used to sit BELOW the track
+     at 22px, and that block landed on the first rep count. Laying the bar and
+     the time out as a row keeps the whole thing to one line, clear of the
+     exercise blocks whatever the screen height. */
+  .sBar{position:absolute;top:0;left:0;right:0;z-index:6;pointer-events:none;
+        padding:calc(var(--safe-t) + 4px) 12px 0;
+        display:flex;align-items:center;gap:10px}
+  .sBar-track{flex:1;min-width:0;height:10px;border-radius:99px;background:rgba(255,255,255,.16);overflow:hidden;box-shadow:0 3px 14px rgba(0,0,0,.35)}
   .sBar-track>i{display:block;height:100%;width:100%;border-radius:99px;
     background:linear-gradient(90deg,var(--exc),var(--exc2));box-shadow:0 0 18px var(--exc);transition:width .18s linear}
-  .sBar-t{text-align:center;margin-top:7px;font-weight:800;font-variant-numeric:tabular-nums;font-size:22px;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.55)}
+  .sBar-t{flex:0 0 auto;text-align:right;margin-top:0;font-weight:800;font-variant-numeric:tabular-nums;font-size:15px;min-width:46px;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.55)}
   .sBar-t.punch{animation:tpunch .45s var(--ease)}
   .sBar.warn .sBar-track>i{background:linear-gradient(90deg,#ffd27a,#ff9f43);box-shadow:0 0 20px rgba(255,170,60,.7)}
   .sBar.over .sBar-track>i{background:linear-gradient(90deg,#ff6b6b,#ff2d2d);box-shadow:0 0 22px rgba(255,60,60,.85);animation:barpulse .7s ease infinite}
@@ -731,7 +737,10 @@ function startMind(){
 function startBody(){
   path='body'; stagesOrder=PATH_STAGES.body; buildRail(stagesOrder);
   sessionStart=Date.now();keepAwake();chime(520,.4);
-  showScreen('stretch');startStretch();
+  /* Every other stage transition goes through toBuffer(); this one jumped
+     straight in, so the body path started cold with no chance to get ready.
+     Same 30s countdown, same "Skip rest →" button. */
+  toBuffer('stretch');
 }
 function next(){
   if(current==='breath'){clearTimeout(breathBackup);stopVideo();toBuffer('meditation');}

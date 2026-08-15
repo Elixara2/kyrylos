@@ -1323,6 +1323,35 @@
 
 <script>
 "use strict";
+/* ================= auto-update =================
+   K-OS is one file served from a live URL, so the phone/desktop always fetch the
+   newest deploy — EXCEPT that an installed home-screen app (iOS especially) can sit
+   on an already-loaded page for days. So: stamp each deploy, and whenever the app is
+   opened or brought back to the foreground, compare against version.txt. If the
+   deploy changed, silently reload. Nothing to ever do by hand on the phone.
+   KOS_BUILD is rewritten by deploy.sh at publish time. */
+const KOS_BUILD='20260815-155941';
+(function(){
+  if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
+  let checking=false;
+  async function checkForUpdate(){
+    if(checking || !navigator.onLine) return; checking=true;
+    try{
+      const r=await fetch('version.txt?ts='+Date.now(),{cache:'no-store'});
+      if(r.ok){
+        const live=(await r.text()).trim();
+        // never yank the page out from under a half-typed note — catch it next time
+        const el=document.activeElement, busy=el&&/^(INPUT|TEXTAREA)$/.test(el.tagName)&&el.value;
+        if(live && live!==KOS_BUILD && !busy) location.reload();
+      }
+    }catch(e){}
+    checking=false;
+  }
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) checkForUpdate(); });
+  window.addEventListener('focus',checkForUpdate);
+  setTimeout(checkForUpdate,3000);            // and shortly after launch
+  setInterval(checkForUpdate,10*60*1000);     // plus a quiet 10-min heartbeat
+})();
 /* ================= utils ================= */
 const $ = s => document.querySelector(s);
 const pad = n => String(n).padStart(2,'0');

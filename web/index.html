@@ -1330,7 +1330,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260815-182608';
+const KOS_BUILD='20260815-182841';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -3279,7 +3279,35 @@ function setRecUI(recording, elapsedSec){
     padBtn.classList.toggle('recording', recording);
     padBtn.title = recording ? 'Recording · '+hms(elapsedSec||0)+' — tap to stop' : 'Record a voice note'; }
 }
+/* Background recording (Android): the WebView's getUserMedia() mic stream is NOT
+   guaranteed to keep capturing once the screen turns off or the app is backgrounded
+   — Android can suspend it. The native RapRecorder plugin uses a real mic foreground
+   service instead (see RapRecorderService.java), which genuinely survives that.
+   Desktop/browser keeps the original MediaRecorder path untouched below. */
+function RR(){ return window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.RapRecorder; }
+let nativeRecActive=false;
+function b64ToBlob(b64, mimeType){
+  const bytes=atob(b64), arr=new Uint8Array(bytes.length);
+  for(let i=0;i<bytes.length;i++) arr[i]=bytes.charCodeAt(i);
+  return new Blob([arr], {type:mimeType});
+}
 async function toggleRecording(){
+  if(NATIVE && RR()){
+    if(nativeRecActive){
+      clearInterval(recTicker); setRecUI(false); nativeRecActive=false;
+      try{
+        const res=await RR().stop();
+        const proj=getActiveProj(); if(!proj) return;
+        uploadAndAttach(b64ToBlob(res.base64,res.mimeType||'audio/mp4'), 'voice-'+Date.now()+'.m4a', res.durationSec||0, proj, 'recording');
+      }catch(e){ toast('Recording failed — try again'); }
+      return;
+    }
+    try{ await RR().start(); }
+    catch(e){ toast('Microphone permission needed'); return; }
+    nativeRecActive=true; recStartTs=Date.now(); setRecUI(true,0);
+    recTicker=setInterval(()=>setRecUI(true, (Date.now()-recStartTs)/1000),1000);
+    return;
+  }
   if(mediaRec && mediaRec.state==='recording'){ mediaRec.stop(); return; }
   if(!navigator.mediaDevices || !window.MediaRecorder){ toast('Voice recording needs your deployed HTTPS link, not local mode'); return; }
   try{ mediaStream=await navigator.mediaDevices.getUserMedia({audio:true}); }

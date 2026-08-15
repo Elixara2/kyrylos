@@ -84,6 +84,38 @@
   .flow .t{font-size:18px;font-weight:700;letter-spacing:-.01em}
   .flow .d{font-size:13.5px;color:var(--muted);margin-top:2px}
 
+  /* ---- Mind / Body hub: the two big path buttons on Welcome ---- */
+  .hub{width:100%;max-width:440px;display:flex;flex-direction:column;gap:16px;margin:18px 0 22px}
+  .hubcard2{position:relative;border-radius:28px;padding:26px 22px;overflow:hidden;cursor:pointer;border:1px solid var(--line);
+    text-align:left;display:flex;align-items:center;gap:18px;transition:transform .18s var(--ease);touch-action:manipulation}
+  .hubcard2:active{transform:scale(.97)}
+  .hubcard2.mind{background:radial-gradient(120% 140% at 15% 0%,rgba(84,198,255,.22),transparent 60%),
+    radial-gradient(120% 140% at 100% 100%,rgba(154,123,255,.22),transparent 60%),var(--card)}
+  .hubcard2.body{background:radial-gradient(120% 140% at 15% 0%,rgba(255,178,84,.22),transparent 60%),
+    radial-gradient(120% 140% at 100% 100%,rgba(255,107,107,.22),transparent 60%),var(--card)}
+  .hubmark{flex:0 0 auto;width:64px;height:64px;border-radius:20px;display:flex;align-items:center;justify-content:center;
+    box-shadow:0 8px 22px var(--shadow)}
+  .hubmark.mind{background:linear-gradient(135deg,#54c6ff,#9a7bff)}
+  .hubmark.body{background:linear-gradient(135deg,#ffb254,#ff6b6b)}
+  .hubmark svg{width:36px;height:36px}
+  .hubtext{flex:1;min-width:0}
+  .hubtext .ht{font-size:22px;font-weight:800;letter-spacing:-.01em}
+  .hubtext .hd{font-size:13.5px;color:var(--muted);margin-top:3px;line-height:1.4}
+  .hubgo{flex:0 0 auto;font-size:22px;color:var(--muted);opacity:.7}
+
+  /* ---- streak flame: intensity scales with consecutive days ---- */
+  .flamewrap{display:flex;flex-direction:column;align-items:center;gap:4px;margin:2px 0 8px}
+  .flamewrap svg{width:var(--flame-size,44px);height:var(--flame-size,44px);
+    filter:drop-shadow(0 0 var(--flame-glow,4px) var(--flame-color,#ff9a3d));transition:width .5s var(--ease),height .5s var(--ease),filter .5s var(--ease)}
+  .flamewrap .fcore{fill:var(--flame-color,#ff9a3d)}
+  .flamewrap .fcore2{fill:var(--flame-color2,#ffd23d)}
+  .flame-anim svg{animation:flameflicker var(--flame-speed,2.6s) ease-in-out infinite}
+  @keyframes flameflicker{0%,100%{transform:scale(1) rotate(-1deg)}25%{transform:scale(1.05,.97) rotate(1deg)}
+    50%{transform:scale(.97,1.04) rotate(-1.5deg)}75%{transform:scale(1.03,.98) rotate(1deg)}}
+  .flamelbl{font-size:13px;color:var(--muted);font-weight:600;letter-spacing:.03em}
+  .flamelbl b{color:var(--ink);font-variant-numeric:tabular-nums}
+  .flow .d{font-size:13.5px;color:var(--muted);margin-top:2px}
+
   .ring-wrap{position:relative;width:min(84vmin,430px);aspect-ratio:1;margin:8px 0 6px;--ringGlow:var(--accent)}
   .ring-wrap svg{width:100%;height:100%;transform:rotate(-90deg);overflow:visible}
   .ring-bg{fill:none;stroke:var(--line);stroke-width:11}
@@ -181,7 +213,7 @@
   .tile{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px 18px;text-align:left}
   .tile .v{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
   .tile .k{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-top:6px}
-  .repgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;width:100%;max-width:520px;margin:4px 0 6px}
+  .repgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;max-width:520px;margin:4px 0 6px}
   .repgrid .tile{text-align:center;padding:14px 8px}
   .repgrid .v{font-size:26px}
   .chartcard{width:100%;max-width:520px;background:var(--card);border:1px solid var(--line);border-radius:22px;padding:18px 16px 12px;margin:10px 0}
@@ -293,19 +325,29 @@
 <div id="app">
   <div id="rail"></div>
 
-  <!-- WELCOME -->
+  <!-- WELCOME / HUB -->
   <section class="screen" data-screen="welcome">
     <button class="icobtn gear" onclick="openMenu()">⚙</button>
     <div class="kicker fadeup">Daily Sequence</div>
     <h1 class="hero-title fadeup" style="animation-delay:.05s">ASCEND</h1>
-    <p class="sub fadeup" style="animation-delay:.1s">One tap. It flows on its own.<br>Breath · stillness · mobility · strength.</p>
-    <div class="flow fadeup" style="animation-delay:.15s">
-      <div class="item" style="--fc:#54c6ff;--fcbg:rgba(84,198,255,.16)"><div class="n">1</div><div><div class="t">Breathe</div><div class="d">Guided video · 11 min</div></div></div>
-      <div class="item" style="--fc:#9a7bff;--fcbg:rgba(154,123,255,.16)"><div class="n">2</div><div><div class="t">Meditate</div><div class="d">Waking Up · 10 min</div></div></div>
-      <div class="item" style="--fc:#ffb254;--fcbg:rgba(255,178,84,.16)"><div class="n">3</div><div><div class="t">Mobility</div><div class="d">10 stretches · 10 min</div></div></div>
-      <div class="item" style="--fc:#ff6b6b;--fcbg:rgba(255,107,107,.16)"><div class="n">4</div><div><div class="t">Strength</div><div class="d">40 push · 40 squat · 40 v-sit</div></div></div>
+    <div class="flamewrap fadeup" id="hubFlameWrap" style="animation-delay:.08s">
+      <svg viewBox="0 0 24 24"><path class="fcore" d="M12,2 C12,2 5,10 5,15 C5,18.87 8.13,22 12,22 C15.87,22 19,18.87 19,15 C19,10 12,2 12,2 Z"/>
+        <path class="fcore2" d="M12,8 C12,8 9,13 9,16 C9,17.66 10.34,19 12,19 C13.66,19 15,17.66 15,16 C15,13 12,8 12,8 Z"/></svg>
+      <div class="flamelbl" id="hubFlameLbl">Start today's streak</div>
     </div>
-    <button class="btn btn-hero fadeup" style="animation-delay:.2s" onclick="start()">Begin</button>
+    <p class="sub fadeup" style="animation-delay:.1s">Pick your path. It flows on its own from there.</p>
+    <div class="hub fadeup" style="animation-delay:.15s">
+      <div class="hubcard2 mind" onclick="startMind()">
+        <div class="hubmark mind"><svg viewBox="0 0 24 24" fill="#fff"><circle cx="12" cy="12" r="9" opacity=".3"/><circle cx="12" cy="12" r="6" opacity=".55"/><circle cx="12" cy="12" r="3"/></svg></div>
+        <div class="hubtext"><div class="ht">Mind</div><div class="hd">Breathe · Meditate — 21 min</div></div>
+        <div class="hubgo">›</div>
+      </div>
+      <div class="hubcard2 body" onclick="startBody()">
+        <div class="hubmark body"><svg viewBox="0 0 24 24" fill="#fff"><rect x="2" y="9" width="4" height="6" rx="1.5"/><rect x="18" y="9" width="4" height="6" rx="1.5"/><rect x="6" y="10.5" width="3" height="3" rx="1"/><rect x="15" y="10.5" width="3" height="3" rx="1"/><rect x="9" y="11" width="6" height="2" rx="1"/></svg></div>
+        <div class="hubtext"><div class="ht">Body</div><div class="hd">Stretch · Push, squat, pull, chin</div></div>
+        <div class="hubgo">›</div>
+      </div>
+    </div>
     <div class="foot">
       <button class="link" onclick="openProgress()">◔ Progress</button>
       <button class="link" onclick="openMenu()">⚙ Settings</button>
@@ -402,17 +444,22 @@
     <div class="blocks">
       <div class="block" data-ex="push" style="--c1:rgba(255,107,107,.18);--c1b:#ff6b6b;--c2b:#d13f5b" onclick="complete('push',event)">
         <div class="fill"></div>
-        <div class="binner"><div class="bnum">40</div><div class="blabel">Push-ups</div><div class="bhint">Tap when done</div></div>
+        <div class="binner"><div class="bnum">50</div><div class="blabel">Push-ups</div><div class="bhint">Tap when done</div></div>
         <div class="bchk">✓</div>
       </div>
       <div class="block" data-ex="squat" style="--c1:rgba(255,178,84,.18);--c1b:#ffb254;--c2b:#e07b2b" onclick="complete('squat',event)">
         <div class="fill"></div>
-        <div class="binner"><div class="bnum">40</div><div class="blabel">Squats</div><div class="bhint">Tap when done</div></div>
+        <div class="binner"><div class="bnum">50</div><div class="blabel">Squats</div><div class="bhint">Tap when done</div></div>
         <div class="bchk">✓</div>
       </div>
-      <div class="block" data-ex="vsit" style="--c1:rgba(154,123,255,.18);--c1b:#9a7bff;--c2b:#5b3fd1" onclick="complete('vsit',event)">
+      <div class="block" data-ex="pullup" style="--c1:rgba(154,123,255,.18);--c1b:#9a7bff;--c2b:#5b3fd1" onclick="complete('pullup',event)">
         <div class="fill"></div>
-        <div class="binner"><div class="bnum">40</div><div class="blabel">V-sits</div><div class="bhint">Tap when done</div></div>
+        <div class="binner"><div class="bnum">10</div><div class="blabel">Pull-ups</div><div class="bhint">Tap when done</div></div>
+        <div class="bchk">✓</div>
+      </div>
+      <div class="block" data-ex="chinup" style="--c1:rgba(84,198,255,.18);--c1b:#54c6ff;--c2b:#2b7fd4" onclick="complete('chinup',event)">
+        <div class="fill"></div>
+        <div class="binner"><div class="bnum">10</div><div class="blabel">Chin-ups</div><div class="bhint">Tap when done</div></div>
         <div class="bchk">✓</div>
       </div>
     </div>
@@ -451,14 +498,15 @@
     <div class="repgrid">
       <div class="tile"><div class="v" id="tPush">0</div><div class="k">Push-ups</div></div>
       <div class="tile"><div class="v" id="tSquat">0</div><div class="k">Squats</div></div>
-      <div class="tile"><div class="v" id="tVsit">0</div><div class="k">V-sits</div></div>
+      <div class="tile"><div class="v" id="tPullup">0</div><div class="k">Pull-ups</div></div>
+      <div class="tile"><div class="v" id="tChinup">0</div><div class="k">Chin-ups</div></div>
     </div>
     <div class="chartcard">
       <h3>Last 14 days</h3>
       <div class="csub">Reps logged per day · tap a bar</div>
       <svg id="chart"></svg>
     </div>
-    <button class="btn tint" style="margin:6px 0 10px" onclick="closeProgress();start()">Start a session</button>
+    <button class="btn tint" style="margin:6px 0 10px" onclick="closeProgress()">Choose Mind or Body</button>
   </section>
 
   <!-- COLOURS: live-preview timer wheel picker -->
@@ -586,8 +634,10 @@ const STRETCHES = [
   {name:"Slow shoulder stretch", phases:[["Ease it open, breathe slow",60]]},
 ];
 let MED_SECONDS = 10*60; // default every session — bump to 20 via the on-screen chip when a class runs long
-const TARGET = 40;
-const EXERCISES = {push:"Push-ups", squat:"Squats", vsit:"V-sits"};
+/* Body · Part 2 — each exercise has its own rep target now (was one TARGET=40
+   shared by all three). Order here also drives the strength-stage tap order. */
+const TARGETS = {push:50, squat:50, pullup:10, chinup:10};
+const EXERCISES = {push:"Push-ups", squat:"Squats", pullup:"Pull-ups", chinup:"Chin-ups"};
 const TINTS = {
   welcome:["#6ea8ff","#3f6fd1"], progress:["#54e0a0","#2bd47f"], breath:["#54c6ff","#2b7fd4"],
   meditation:["#9a7bff","#5b3fd1"], stretch:["#ffb254","#e07b2b"],
@@ -596,12 +646,22 @@ const TINTS = {
 /* ===================================================== */
 
 const R=54, CIRC=2*Math.PI*R;
-const stagesOrder=["breath","meditation","stretch","strength"];
+/* Two independent paths from the hub — Mind (breathe+meditate) and Body
+   (stretch+strength). `path` tracks which one is running so next()/finish()
+   route correctly and the rail only shows that path's two stages. */
+const PATH_STAGES = {mind:["breath","meditation"], body:["stretch","strength"]};
+let path=null, stagesOrder=PATH_STAGES.mind;
 let current="welcome", pending=null, sessionStart=0, wakeLock=null, audioCtx=null;
 const $=id=>document.getElementById(id);
 
 const rail=$("rail");
-stagesOrder.forEach(()=>{const s=document.createElement('div');s.className='seg';s.innerHTML='<i></i>';rail.appendChild(s);});
+// rail segments now match whichever path (Mind or Body, 2 stages each) is
+// running — rebuilt fresh each time a path starts, not fixed at 4 like before.
+function buildRail(stages){
+  rail.innerHTML='';
+  stages.forEach(()=>{const s=document.createElement('div');s.className='seg';s.innerHTML='<i></i>';rail.appendChild(s);});
+}
+buildRail(stagesOrder);
 
 function setTint(name){
   // A custom colour (swatch/hue/live) is already applied to --accent via
@@ -658,13 +718,24 @@ const BUFFER_SECONDS=30;
 const STAGE_INFO={
   meditation:{t:"Sam Harris Meditation", d:"10 minutes of stillness"},
   stretch:{t:"Mobility Flow", d:"10 stretches · get to the floor"},
-  strength:{t:"Strength", d:"40 push-ups · 40 squats · 40 v-sits"},
+  strength:{t:"Strength", d:"50 push-ups · 50 squats · 10 pull-ups · 10 chin-ups"},
 };
 let bufEnd=0, bufTimer=null;
-function start(){sessionStart=Date.now();MED_SECONDS=10*60;keepAwake();chime(520,.4);showScreen('breath');loadVideo();startBreathBackup();}
+/* ---- Mind path: Breathe → Meditate ---- */
+function startMind(){
+  path='mind'; stagesOrder=PATH_STAGES.mind; buildRail(stagesOrder);
+  sessionStart=Date.now();MED_SECONDS=10*60;keepAwake();chime(520,.4);
+  showScreen('breath');loadVideo();startBreathBackup();
+}
+/* ---- Body path: Stretch (Part 1) → Strength (Part 2) ---- */
+function startBody(){
+  path='body'; stagesOrder=PATH_STAGES.body; buildRail(stagesOrder);
+  sessionStart=Date.now();keepAwake();chime(520,.4);
+  showScreen('stretch');startStretch();
+}
 function next(){
   if(current==='breath'){clearTimeout(breathBackup);stopVideo();toBuffer('meditation');}
-  else if(current==='meditation'){stopMed();toBuffer('stretch');}
+  else if(current==='meditation'){stopMed();finish();}
   else if(current==='stretch'){stopStretch();toBuffer('strength');}
   else if(current==='strength'){finish();}}
 function toBuffer(stage){
@@ -691,9 +762,9 @@ let strTimerEnd=0, strTimerTO=null, strTimerDur=60;
 function getStrSecs(){return Math.min(600,Math.max(60,+(localStorage.getItem('ascend_strsecs')||60)));}
 function setStrSecs(v){localStorage.setItem('ascend_strsecs',String(+v));const l=$("strSecsLbl");if(l)l.textContent=fmt(+v);}
 function startStrength(){
-  reps={push:0,squat:0,vsit:0}; counting={};
+  reps={push:0,squat:0,pullup:0,chinup:0}; counting={};
   document.querySelectorAll('.block').forEach(b=>{b.classList.remove('done');
-    const n=b.querySelector('.bnum');if(n){n.textContent='40';n.style.transform='';}});
+    const n=b.querySelector('.bnum');if(n){n.textContent=String(TARGETS[b.dataset.ex]||0);n.style.transform='';}});
   strTimerDur=getStrSecs(); strTimerEnd=Date.now()+strTimerDur*1000;
   const bar=$("strengthBar");bar.classList.remove('warn','over');
   const f=$("strengthFill");if(f)f.style.width='100%';
@@ -882,11 +953,12 @@ function skipStretch(){chime(600,.2);sIdx++;sPhase=0;
 function stopStretch(){clearInterval(sTimer);sRunning=false;}
 
 /* ---------- Stage 4: strength (one-tap) ---------- */
-let reps={push:0,squat:0,vsit:0}, counting={};
-const EXCOLOR={push:'#ff2e7e',squat:'#ff2e7e',vsit:'#ff2e7e'};
+let reps={push:0,squat:0,pullup:0,chinup:0}, counting={};
+const EXCOLOR={push:'#ff2e7e',squat:'#ff2e7e',pullup:'#ff2e7e',chinup:'#ff2e7e'};
 function complete(k,ev){const card=document.querySelector('.block[data-ex="'+k+'"]');
   if(card.classList.contains('done')||counting[k])return;
   counting[k]=true;
+  const target=TARGETS[k]||1;
   const rect=card.getBoundingClientRect();
   let px=rect.left+rect.width/2, py=rect.top+rect.height/2;
   if(ev&&ev.clientX){px=ev.clientX;py=ev.clientY;}
@@ -895,23 +967,23 @@ function complete(k,ev){const card=document.querySelector('.block[data-ex="'+k+'
   const tick=()=>{
     i++;
     numEl.textContent=i;
-    numEl.style.transform='scale('+(1+i/TARGET*0.26)+')';
+    numEl.style.transform='scale('+(1+i/target*0.26)+')';
     chime((300+i*17)/2,.05,'triangle');        // original rising-pitch arpeggio, one octave lower
     if(i%4===0)buzz(6);
-    if(i>=TARGET){finishRep(k,card,px,py);return;}
+    if(i>=target){finishRep(k,card,px,py);return;}
     setTimeout(tick, 13 + i*0.75);              // slows near the end → anticipation
   };
   tick();}
 function finishRep(k,card,px,py){
-  reps[k]=TARGET;counting[k]=false;
+  reps[k]=TARGETS[k]||1;counting[k]=false;
   const rect=card.getBoundingClientRect(),fill=card.querySelector('.fill');
   fill.style.left=(px-rect.left)+'px';fill.style.top=(py-rect.top)+'px';
   card.classList.add('done');
   chime(720,.12);setTimeout(()=>chime(1080,.16),80);setTimeout(()=>chime(1620,.55),180);
   buzz([18,50,25]);
   dust(px,py,EXCOLOR[k]);
-  const doneCount=Object.values(reps).filter(v=>v>=TARGET).length;
-  if(doneCount===3){setTimeout(finish,1200);}}
+  const doneCount=Object.keys(TARGETS).filter(ex=>reps[ex]>=TARGETS[ex]).length;
+  if(doneCount===Object.keys(TARGETS).length){setTimeout(finish,1200);}}
 
 /* ---------- finish + record ---------- */
 function finish(){
@@ -925,34 +997,71 @@ function finish(){
   if(wakeLock){try{wakeLock.release()}catch(e){}}}
 function recordSession(){
   const now=new Date(),h=loadHist();
-  const rec={ts:now.getTime(),day:dayKey(now),push:TARGET,squat:TARGET,vsit:TARGET,
-    minutes:31,seconds:Math.round((Date.now()-sessionStart)/1000)};
+  // rep fields only apply to a Body session — a Mind session logs 0 reps but still
+  // counts as a day for the streak (showing up for either path keeps the flame lit)
+  const rec={ts:now.getTime(),day:dayKey(now),path:path,
+    push: path==='body'?(reps.push||0):0, squat: path==='body'?(reps.squat||0):0,
+    pullup: path==='body'?(reps.pullup||0):0, chinup: path==='body'?(reps.chinup||0):0,
+    minutes:Math.max(1,Math.round((Date.now()-sessionStart)/60000)),
+    seconds:Math.round((Date.now()-sessionStart)/1000)};
   h.push(rec);
   localStorage.setItem('ascend_history',JSON.stringify(h));
   kosReportSession(rec.day, rec);}
 function loadHist(){try{return JSON.parse(localStorage.getItem('ascend_history')||'[]');}catch(e){return[];}}
 function dayKey(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 
-/* ---------- progress page ---------- */
-function openProgress(){showScreen('progress');renderProgress();}
-function closeProgress(){showScreen('welcome');}
-function renderProgress(){
-  const h=loadHist();
-  const totals=h.reduce((a,s)=>{a.push+=s.push;a.squat+=s.squat;a.vsit+=s.vsit;a.min+=s.minutes;return a;},{push:0,squat:0,vsit:0,min:0});
+/* ---------- streak — shared by the hub flame and the progress page ---------- */
+function computeStreak(h){
+  h = h || loadHist();
   const days=[...new Set(h.map(s=>s.day))].sort();
-  // streaks
   let best=0,cur=0,prev=null;
   days.forEach(dk=>{const d=new Date(dk);if(prev&&(d-prev)===86400000)cur++;else cur=1;best=Math.max(best,cur);prev=d;});
-  // current streak counting back from today/yesterday
   const dset=new Set(days);let streak=0,probe=new Date();
   if(!dset.has(dayKey(probe)))probe.setDate(probe.getDate()-1);
   while(dset.has(dayKey(probe))){streak++;probe.setDate(probe.getDate()-1);}
+  return {streak,best,days,dset};
+}
+
+/* ---- the streak flame — replaces a numeric-only "level": it gets progressively
+   more enflamed (bigger, hotter colour, faster flicker, stronger glow) purely as a
+   function of consecutive days. No cap on what streak can reach; the tier table
+   just stops escalating visuals past 30 days ("INFERNO" is the ceiling look). ---- */
+const FLAME_TIERS=[
+  {min:0,  size:36, glow:0,  c1:'#4a5568', c2:'#626b7d', speed:0,   anim:false, word:null},
+  {min:1,  size:48, glow:6,  c1:'#ff9a3d', c2:'#ffd23d', speed:3.2, anim:true,  word:'smoldering'},
+  {min:3,  size:60, glow:10, c1:'#ff7a1f', c2:'#ffc23d', speed:2.8, anim:true,  word:'burning'},
+  {min:7,  size:74, glow:16, c1:'#ff5a1f', c2:'#ffae3d', speed:2.4, anim:true,  word:'blazing'},
+  {min:14, size:90, glow:24, c1:'#ff3d1f', c2:'#ff8a3d', speed:2.0, anim:true,  word:'raging'},
+  {min:30, size:108,glow:34, c1:'#ff2b1f', c2:'#fff066', speed:1.6, anim:true,  word:'INFERNO'},
+];
+function flameTierFor(streak){let t=FLAME_TIERS[0];for(const tier of FLAME_TIERS){if(streak>=tier.min)t=tier;}return t;}
+function renderStreakFlame(){
+  const {streak}=computeStreak();
+  const tier=flameTierFor(streak);
+  const wrap=$("hubFlameWrap"); if(!wrap) return;
+  wrap.style.setProperty('--flame-size',tier.size+'px');
+  wrap.style.setProperty('--flame-glow',tier.glow+'px');
+  wrap.style.setProperty('--flame-color',tier.c1);
+  wrap.style.setProperty('--flame-color2',tier.c2);
+  wrap.style.setProperty('--flame-speed',tier.speed+'s');
+  wrap.classList.toggle('flame-anim',!!tier.anim);
+  const lbl=$("hubFlameLbl");
+  if(lbl) lbl.innerHTML = streak>0 ? (tier.word?tier.word+' · ':'')+'<b>'+streak+'</b> day streak' : "Start today's streak";
+}
+
+/* ---------- progress page ---------- */
+function openProgress(){showScreen('progress');renderProgress();}
+function closeProgress(){showScreen('welcome');renderStreakFlame();}
+function renderProgress(){
+  const h=loadHist();
+  const totals=h.reduce((a,s)=>{a.push+=s.push||0;a.squat+=s.squat||0;a.pullup+=s.pullup||0;a.chinup+=s.chinup||0;a.min+=s.minutes||0;return a;},{push:0,squat:0,pullup:0,chinup:0,min:0});
+  const {streak,best,dset}=computeStreak(h);
   // this week (last 7 days)
   const wk=new Set();for(let i=0;i<7;i++){const d=new Date();d.setDate(d.getDate()-i);if(dset.has(dayKey(d)))wk.add(dayKey(d));}
   const pct=Math.round(wk.size/7*100);
   countTo($("pctVal"),pct,'%');setRing('pctRing',pct/100);
   countTo($("tSessions"),h.length);countTo($("tStreak"),streak);countTo($("tBest"),best);countTo($("tMin"),totals.min);
-  countTo($("tPush"),totals.push);countTo($("tSquat"),totals.squat);countTo($("tVsit"),totals.vsit);
+  countTo($("tPush"),totals.push);countTo($("tSquat"),totals.squat);countTo($("tPullup"),totals.pullup);countTo($("tChinup"),totals.chinup);
   drawChart(h,dset);
 }
 function countTo(el,to,suffix=''){const from=0,dur=800,t0=performance.now();
@@ -962,7 +1071,7 @@ function drawChart(h,dset){
   const svg=$("chart");svg.innerHTML='';
   const W=Math.round(svg.clientWidth||340),H=150,pad=14,base=H-20,n=14;
   svg.setAttribute('viewBox','0 0 '+W+' '+H);
-  const byDay={};h.forEach(s=>{byDay[s.day]=(byDay[s.day]||0)+s.push+s.squat+s.vsit;});
+  const byDay={};h.forEach(s=>{byDay[s.day]=(byDay[s.day]||0)+(s.push||0)+(s.squat||0)+(s.pullup||0)+(s.chinup||0);});
   const dayList=[];for(let i=n-1;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);dayList.push(d);}
   const max=Math.max(120,...dayList.map(d=>byDay[dayKey(d)]||0));
   const gap=6,bw=(W-pad*2-gap*(n-1))/n;
@@ -1152,7 +1261,7 @@ function syncWheelMenu(){renderWheelSwatches('meditation','wheelSwMed');renderWh
 /* ---------- Colours screen: live-preview timer wheel picker ---------- */
 let colourStage='meditation', demoRAF=null;
 function openColours(){closeMenu();colourStage='meditation';showScreen('colours');selectColourStage('meditation');startDemoRing();}
-function closeColours(){stopDemoRing();showScreen('welcome');openMenu();}
+function closeColours(){stopDemoRing();showScreen('welcome');renderStreakFlame();openMenu();}
 function selectColourStage(stage){colourStage=stage;
   document.querySelectorAll('#colourStageSeg button').forEach(b=>b.classList.toggle('on',b.dataset.cstage===stage));
   const ring=$("colourDemoRing");if(ring)ring.style.stroke='url(#wheelGrad-'+(stage==='meditation'?'med':'str')+')';
@@ -1221,6 +1330,7 @@ function setTime(id,txt){const el=$(id);if(el&&el.textContent!==txt){el.textCont
 preloadVideo();
 preloadMedVideo();
 showScreen('welcome');
+renderStreakFlame();
 applyTheme();
 applyWheelTheme();
 matchMedia('(prefers-color-scheme: light)').addEventListener('change',()=>{if(loadTheme().mode==='auto')applyTheme();});

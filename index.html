@@ -1410,7 +1410,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260815-212338';
+const KOS_BUILD='20260815-214441';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -4342,10 +4342,10 @@ const HABITS_SEED = [
   {id:'breathe',label:'Breathe',cat:'Mind',mult:10,unit:'min',kind:'check',active:true},
   {id:'meditate',label:'Meditate',cat:'Mind',mult:10,unit:'min',kind:'check',active:true},
   {id:'stretch',label:'Stretch',cat:'Mind',mult:10,unit:'min',kind:'check',active:true},
-  {id:'pushups40',label:'40 Push Ups',cat:'Workout',mult:40,unit:'reps',kind:'check',active:true},
-  {id:'squats30',label:'30 Squats',cat:'Workout',mult:30,unit:'reps',kind:'check',active:true},
-  {id:'vsits30',label:'30 V Sits',cat:'Workout',mult:30,unit:'reps',kind:'check',active:true},
+  {id:'pushups50',label:'50 Push Ups',cat:'Workout',mult:50,unit:'reps',kind:'check',active:true},
+  {id:'squats50',label:'50 Squats',cat:'Workout',mult:50,unit:'reps',kind:'check',active:true},
   {id:'pullups10',label:'10 Pull Ups',cat:'Workout',mult:10,unit:'reps',kind:'check',active:true},
+  {id:'chinups10',label:'10 Chin Ups',cat:'Workout',mult:10,unit:'reps',kind:'check',active:true},
   {id:'gym',label:'Gym',cat:'Workout',mult:1,unit:'',kind:'tri',active:true},
   {id:'run1km',label:'1KM Run',cat:'Workout',mult:1,unit:'',kind:'check',active:true},
   {id:'supplements',label:'Supplements',cat:'Diet',mult:1,unit:'',kind:'check',active:false},
@@ -4520,7 +4520,7 @@ function renderHabits(){
   $('#habWorkHoursLbl').textContent = whAuto ? 'Work hours this month · auto from Work tab' : 'Work hours this month';
 
   const autoIds=new Set();
-  if(day.auto.ascend) ['breathe','meditate','stretch','pushups40','squats30','vsits30'].forEach(id=>autoIds.add(id));
+  if(day.auto.ascend) ['breathe','meditate','stretch','pushups50','squats50','pullups10','chinups10'].forEach(id=>autoIds.add(id));
   if(day.auto.gym) autoIds.add('gym');
   if(day.auto.rap) autoIds.add('write');
 

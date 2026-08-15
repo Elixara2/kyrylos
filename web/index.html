@@ -533,14 +533,19 @@
   .goal-datenav button{padding:6px 14px;border-radius:10px}
   .goal-date{flex:1;text-align:center}
   .goal-date b{font-size:17px}
-  .goal{display:flex;align-items:center;gap:10px;padding:11px 2px;border-bottom:1px solid var(--line);animation:fade .25s var(--ease)}
+  /* ---- Quests: list rows keep a quest-log feel (square markers, monospace
+     titles) in any theme — Pip-Boy mode layers its own colours/glow on top for
+     free via the existing var(--accent) etc, same as every other tab. ---- */
+  .goal{display:flex;align-items:center;gap:10px;padding:11px 8px;border-radius:10px;border-bottom:1px solid var(--line);
+    animation:fade .25s var(--ease);transition:background .25s}
   .goal:last-child{border-bottom:none}
+  .goal.selected{background:rgba(var(--pip-rgb,120,140,255),.12)}
   .gflag{width:4px;align-self:stretch;border-radius:99px;flex:0 0 auto;min-height:24px}
-  .gchk{width:24px;height:24px;border-radius:8px;border:1.5px solid var(--line);flex:0 0 auto;cursor:pointer;
+  .gchk{width:22px;height:22px;border-radius:5px;border:1.5px solid var(--line);flex:0 0 auto;cursor:pointer;
     display:flex;align-items:center;justify-content:center;color:transparent;font-size:13px;transition:.18s}
-  .goal.done .gchk{background:var(--green);border-color:var(--green);color:#06220f}
+  .goal.done .gchk{background:var(--accent);border-color:var(--accent);color:var(--bg)}
   .gbody{flex:1;cursor:pointer;min-width:0}
-  .gtext{flex:1;font-size:15px;position:relative;transition:color .3s;word-break:break-word}
+  .gtext{flex:1;font-size:15px;font-family:ui-monospace,'SF Mono','Courier New',monospace;position:relative;transition:color .3s;word-break:break-word}
   .gtext::after{content:"";position:absolute;left:0;top:52%;height:1.5px;width:0;background:var(--dim);transition:width .35s var(--ease)}
   .goal.done .gtext{color:var(--dim)}
   .goal.done .gtext::after{width:100%}
@@ -551,6 +556,16 @@
   .prio-btn.on{background:var(--accent2);border-color:var(--accent2)}
   .subtask{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
   .subtask:last-child{border-bottom:none}
+  .subchk{width:20px;height:20px;border-radius:4px;border:1.5px solid var(--line);flex:0 0 auto;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;color:transparent;font-size:12px;transition:.18s}
+  .subtask.done .subchk{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+  .subtext{flex:1;font-size:14.5px;font-family:ui-monospace,'SF Mono','Courier New',monospace}
+  .subtask.done .subtext{color:var(--dim);text-decoration:line-through}
+  .addbtn-round{width:40px;height:40px;border-radius:50%;border:none;background:var(--accent);color:var(--bg);
+    font-size:22px;line-height:1;cursor:pointer;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-weight:700}
+  .addbtn-round:active{transform:scale(.92)}
+  .qhead{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .qhead h2{margin:0}
   .subchk{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--line);flex:0 0 auto;cursor:pointer;
     display:flex;align-items:center;justify-content:center;color:transparent;font-size:11px;transition:.18s}
   .subtask.done .subchk{background:var(--green);border-color:var(--green);color:#06220f}
@@ -734,7 +749,7 @@
         <div id="habitsMini" class="sub">—</div>
       </div>
       <div class="card cardlink dragblock" data-cid="goals">
-        <h2 class="cardlink-h">Goals <span class="cardlink-go">›</span></h2>
+        <h2 class="cardlink-h">Quests <span class="cardlink-go">›</span></h2>
         <div id="goalsMini" class="sub">—</div>
       </div>
       <div class="card cardlink dragblock" data-cid="profit">
@@ -1074,11 +1089,11 @@
         <button class="sm ghost" id="goalTodayBtn" onclick="goalDateToday()" style="display:none">Today</button>
       </div>
       <div class="sub" id="goalStreak" style="margin-top:6px"></div>
-      <div class="goalrow" style="margin-top:12px">
-        <input type="text" id="goalInput" class="grow" placeholder="Write a goal, to-do or note…">
-        <button class="primary" onclick="addGoal()">Add</button>
+      <div class="qhead" style="margin-top:14px">
+        <input type="text" id="goalInput" class="grow" placeholder="New quest…" onkeydown="if(event.key==='Enter')addGoal()">
+        <button class="addbtn-round" onclick="addGoal()" title="Add quest">+</button>
       </div>
-      <div class="glist" id="glist"><div class="empty">Blank page — write your first goal or note.</div></div>
+      <div class="glist" id="glist" style="margin-top:10px"><div class="empty">No active quests — add your first one above.</div></div>
       <div class="row" style="margin-top:12px">
         <button class="sm ghost" onclick="carryOverAll()">↩ Carry over all unfinished</button>
       </div>
@@ -1151,11 +1166,11 @@
   <section class="panel" id="p-track">
     <div class="card">
       <h2 style="margin:0">Track</h2>
-      <div class="sub" style="margin-top:2px">Your numbers and journal — habits, goals, and profit.</div>
+      <div class="sub" style="margin-top:2px">Your numbers and journal — habits, quests, and profit.</div>
     </div>
     <div class="hublist">
       <div class="hubcard cardlink" onclick="showTab('habits')"><span class="hub-em">📈</span><div class="ft"><b>Habits</b><span id="trackHabitsSub">Daily tracker & analytics</span></div><span class="cardlink-go">›</span></div>
-      <div class="hubcard cardlink" onclick="showTab('goals')"><span class="hub-em">✅</span><div class="ft"><b>Goals</b><span id="trackGoalsSub">Your black book of to-dos</span></div><span class="cardlink-go">›</span></div>
+      <div class="hubcard cardlink" onclick="showTab('goals')"><span class="hub-em">✅</span><div class="ft"><b>Quests</b><span id="trackGoalsSub">Your quest log</span></div><span class="cardlink-go">›</span></div>
       <div class="hubcard cardlink" onclick="openProphit()"><span class="hub-em">💰</span><div class="ft"><b>Profit</b><span id="trackProfitSub">Today's numbers · Prophit</span></div><span class="cardlink-go">›</span></div>
     </div>
   </section>
@@ -1210,19 +1225,19 @@
 <!-- goal detail — black-book page: title, priority, notes, mini-tasks -->
 <div class="scrim" id="goalScrim" onclick="if(event.target===this)closeGoalDetail()">
   <div class="modal">
-    <input type="text" id="gdTitle" placeholder="Goal title" style="font-size:17px;font-weight:600">
+    <input type="text" id="gdTitle" placeholder="Quest title" style="font-size:17px;font-weight:600;font-family:ui-monospace,'SF Mono','Courier New',monospace">
     <div class="lbl" style="margin-top:14px">Priority</div>
     <div class="prio-row" id="gdPriority"></div>
-    <div class="lbl" style="margin-top:14px">Notes</div>
-    <textarea id="gdNotes" rows="4" placeholder="Extra info, quick thoughts, links…" style="width:100%;margin-top:4px"></textarea>
-    <div class="lbl" style="margin-top:14px">Mini-tasks</div>
+    <div class="lbl" style="margin-top:14px">Objectives</div>
     <div id="gdSubs" style="margin-top:4px"></div>
-    <div class="goalrow" style="margin-top:8px">
-      <input type="text" id="gdSubInput" class="grow" placeholder="Add a mini-task…" onkeydown="if(event.key==='Enter')addSubtask()">
-      <button class="sm" onclick="addSubtask()">Add</button>
+    <div class="qhead" style="margin-top:8px">
+      <input type="text" id="gdSubInput" class="grow" placeholder="New objective…" onkeydown="if(event.key==='Enter')addSubtask()">
+      <button class="addbtn-round" onclick="addSubtask()" title="Add objective">+</button>
     </div>
+    <div class="lbl" style="margin-top:16px">Notes</div>
+    <textarea id="gdNotes" rows="3" placeholder="Small notes…" style="width:100%;margin-top:4px"></textarea>
     <div class="foot">
-      <button class="ghost danger" onclick="deleteGoalFromDetail()">Delete goal</button>
+      <button class="ghost danger" onclick="deleteGoalFromDetail()">Delete quest</button>
       <button class="primary" onclick="closeGoalDetail()">Done</button>
     </div>
   </div>
@@ -1414,7 +1429,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260815-214702';
+const KOS_BUILD='20260815-215300';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -1800,7 +1815,7 @@ const FLOW_STAGES = [
   {id:'gym', em:'🏋️', t:'Gym', d:'Exercises, weights, progress', open:()=>showTab('gym')},
   {id:'rap', em:'🎤', t:'Studio · writing', d:'Beat on, mumble, write bars', open:()=>showTab('rap')},
   {id:'diet', em:'🍽', t:'Diet', d:'All meals + 3L water', open:()=>showTab('diet')},
-  {id:'goals', em:'✅', t:'Goals', d:'All ticked off', open:()=>showTab('goals')},
+  {id:'goals', em:'✅', t:'Quests', d:'All ticked off', open:()=>showTab('goals')},
   {id:'alarm', em:'⏰', t:'Alarm', d:'Morning wake-up mission', open:()=>showTab('alarm')},
 ];
 function flowOrder(){
@@ -2348,7 +2363,7 @@ function renderToday(){
   $('#goalsMini').innerHTML = g.length
     ? g.slice(0,6).map(x=>'<div class="miniitem'+(x.done?' done':'')+'">'+esc(x.text)+'</div>').join('') +
       (g.length>6?'<div class="sub" style="margin-top:2px">+'+(g.length-6)+' more</div>':'')
-    : 'No goals yet — add some.';
+    : 'No quests yet — add some.';
   applyTodayCardOrder(); bindTodayCards();
 }
 
@@ -3981,7 +3996,7 @@ $('#goalInput').addEventListener('keydown',e=>{ if(e.key==='Enter') addGoal(); }
 function toggleGoal(id,ev){
   const g=viewGoals(); const x=g.find(y=>y.id===id); if(!x) return;
   x.done=!x.done; saveViewGoals(g);
-  if(x.done){ chimeDone(); buzz(30); addXP(10,'goal'); confettiBurst(ev?ev.clientX:undefined, ev?ev.clientY:undefined, 34); toast(affirm()); }
+  if(x.done){ chimeDone(); buzz(30); addXP(10,'quest'); confettiBurst(ev?ev.clientX:undefined, ev?ev.clientY:undefined, 34); toast(affirm()); }
   autoFlow(); renderGoals(); renderToday(); renderTabs();
 }
 function delGoal(id){
@@ -4009,7 +4024,7 @@ function carryOverAll(){
   if(!added){ toast('Nothing unfinished to carry over'); return; }
   kset('goals:'+today, cur); doSync(false);
   goalDate=today; renderGoals(); renderToday();
-  toast('Carried over '+added+' unfinished goal'+(added===1?'':'s'));
+  toast('Carried over '+added+' unfinished quest'+(added===1?'':'s'));
 }
 function reorderGoals(newIdOrder){
   const g=viewGoals();
@@ -4026,12 +4041,12 @@ function renderGoals(){
   $('#goalDateLbl').textContent = isToday ? 'Today' : d.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'});
   $('#goalTodayBtn').style.display = isToday ? 'none' : '';
   $('#goalCount').textContent = g.length ? '· '+g.filter(x=>x.done).length+'/'+g.length+' done' : '';
-  box.innerHTML = g.length?'':'<div class="empty">'+(isToday?'Blank page — write your first goal or note.':'Nothing written on this day.')+'</div>';
+  box.innerHTML = g.length?'':'<div class="empty">'+(isToday?'No active quests — add your first one above.':'No quests logged on this day.')+'</div>';
   g.forEach(x=>{
     const pm=prioMeta(x.priority);
     const subDone=x.subtasks.filter(s=>s.done).length, subN=x.subtasks.length;
     const meta=[]; if(subN) meta.push('☑ '+subDone+'/'+subN); if(x.notes.trim()) meta.push('📝');
-    const div=document.createElement('div'); div.className='goal dragblock'+(x.done?' done':'');
+    const div=document.createElement('div'); div.className='goal dragblock'+(x.done?' done':'')+(x.id===gdCurrentId?' selected':'');
     div.dataset.gid=x.id;
     div.innerHTML='<div class="drag-handle">'+DRAG_HANDLE_SVG+'</div>'+
       '<div class="gflag" style="background:'+(x.priority==='none'?'transparent':pm.color)+'"></div>'+
@@ -4049,10 +4064,10 @@ function renderGoals(){
   const full=k=>{ const gg=kget('goals:'+k,null); return gg && gg.length>0 && gg.every(x=>x.done); };
   if(!full(todayKey())) probe.setDate(probe.getDate()-1);
   while(full(todayKey(probe))){ streak++; probe.setDate(probe.getDate()-1); }
-  $('#goalStreak').textContent = streak? '🔥 '+streak+' day streak of clearing every goal' : 'Clear all your goals today to start a streak.';
+  $('#goalStreak').textContent = streak? '🔥 '+streak+' day streak of clearing every quest' : 'Clear all your quests today to start a streak.';
 }
 
-/* ---- goal detail: title, priority, notes, mini-tasks ---- */
+/* ---- quest detail: title, priority, notes, objectives (sub-tasks) ---- */
 let gdCurrentId=null;
 function openGoalDetail(id){
   const g=viewGoals(), x=g.find(y=>y.id===id); if(!x) return;
@@ -4062,10 +4077,12 @@ function openGoalDetail(id){
   $('#gdNotes').value=x.notes;
   renderGdPriority(x.priority);
   renderGdSubs(x.subtasks);
+  document.querySelectorAll('.goal').forEach(el=>el.classList.toggle('selected', el.dataset.gid===id));
   $('#gdSubInput').value='';
   $('#goalScrim').classList.add('show');
 }
-function closeGoalDetail(){ saveGoalDetail(); $('#goalScrim').classList.remove('show'); gdCurrentId=null; }
+function closeGoalDetail(){ saveGoalDetail(); $('#goalScrim').classList.remove('show'); gdCurrentId=null;
+  document.querySelectorAll('.goal.selected').forEach(el=>el.classList.remove('selected')); }
 function gdGoal(){ return viewGoals().find(y=>y.id===gdCurrentId); }
 function gdMutate(fn){
   const g=viewGoals(), x=g.find(y=>y.id===gdCurrentId); if(!x) return;
@@ -4088,7 +4105,7 @@ function renderGdPriority(cur){
   });
 }
 function renderGdSubs(subs){
-  const box=$('#gdSubs'); box.innerHTML = subs.length?'':'<div class="sub" style="padding:4px 0">No mini-tasks yet.</div>';
+  const box=$('#gdSubs'); box.innerHTML = subs.length?'':'<div class="sub" style="padding:4px 0">No objectives yet.</div>';
   subs.forEach(s=>{
     const row=document.createElement('div'); row.className='subtask'+(s.done?' done':'');
     row.innerHTML='<div class="subchk">✓</div><div class="subtext">'+esc(s.text)+'</div><button class="subdel">✕</button>';

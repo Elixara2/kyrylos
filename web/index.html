@@ -1010,6 +1010,7 @@
           <div class="sub" id="habStreak" style="margin-top:4px">—</div>
         </div>
       </div>
+      <div class="tiles" id="habTodayStats" style="margin-top:12px"></div>
       <div class="habrow-extra">
         <div class="fld"><label>Money made today</label><input type="number" id="habMoney" placeholder="$" step="1" onchange="setHabitMoney(todayKey(),parseFloat(this.value)||0);renderHabits()"></div>
         <div class="fld"><label id="habWorkHoursLbl">Work hours this month</label><input type="number" id="habWorkHours" placeholder="hrs" step="0.25" onchange="setWorkHours(monthKey(),parseFloat(this.value)||0);renderHabits()"></div>
@@ -1400,7 +1401,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260816-213236';
+const KOS_BUILD='20260816-213728';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -4358,38 +4359,44 @@ function renderRise(){
   }
 }
 
-/* ================= HABITS (life tracker) ================= */
+/* ================= HABITS (life tracker) =================
+   Pared down deliberately (2026-08-16): meals, water, gym, ASCEND's morning-routine
+   sub-tasks, and studio time — nothing else. Old entries (hygiene, avoid-list, etc.)
+   stay in the array as active:false rather than being deleted outright, so historical
+   habits:day:* records referencing their ids still resolve to a real label instead
+   of showing blank. See HABITS_MIGRATIONS below for how this reaches EXISTING
+   accounts (Kyryl's included) — editing this array alone only affects fresh installs. */
 const HABITS_SEED = [
-  {id:'wake700',label:'Up by 7:00 AM',cat:'Morning',mult:1,unit:'',kind:'check',active:true},
+  {id:'breathe',label:'Breathe',cat:'Morning routine',mult:10,unit:'min',kind:'check',active:true},
+  {id:'meditate',label:'Meditate',cat:'Morning routine',mult:10,unit:'min',kind:'check',active:true},
+  {id:'stretch',label:'Stretch',cat:'Morning routine',mult:10,unit:'min',kind:'check',active:true},
+  {id:'pushups50',label:'50 Push Ups',cat:'Morning routine',mult:50,unit:'reps',kind:'check',active:true},
+  {id:'squats50',label:'50 Squats',cat:'Morning routine',mult:50,unit:'reps',kind:'check',active:true},
+  {id:'pullups10',label:'10 Pull Ups',cat:'Morning routine',mult:10,unit:'reps',kind:'check',active:true},
+  {id:'chinups10',label:'10 Chin Ups',cat:'Morning routine',mult:10,unit:'reps',kind:'check',active:true},
+  {id:'gym',label:'Gym',cat:'Health',mult:1,unit:'',kind:'tri',active:true},
+  {id:'meal1',label:'Meal 1',cat:'Health',mult:1,unit:'',kind:'check',active:true},
+  {id:'meal2',label:'Meal 2',cat:'Health',mult:1,unit:'',kind:'check',active:true},
+  {id:'meal3',label:'Meal 3',cat:'Health',mult:1,unit:'',kind:'check',active:true},
+  {id:'water3l',label:'3L Water (2 tanks)',cat:'Health',mult:3,unit:'L',kind:'check',active:true},
+  // retired — kept inactive so old history still has a label, not deleted
+  {id:'wake700',label:'Up by 7:00 AM',cat:'Morning',mult:1,unit:'',kind:'check',active:false},
   {id:'teeth1',label:'Teeth (AM)',cat:'Morning',mult:1,unit:'',kind:'check',active:false},
   {id:'minox1',label:'Minoxidil (AM)',cat:'Morning',mult:1,unit:'',kind:'check',active:false},
-  {id:'dutasteride',label:'Dutasteride',cat:'Morning',mult:1,unit:'',kind:'check',active:true},
-  {id:'breathe',label:'Breathe',cat:'Mind',mult:10,unit:'min',kind:'check',active:true},
-  {id:'meditate',label:'Meditate',cat:'Mind',mult:10,unit:'min',kind:'check',active:true},
-  {id:'stretch',label:'Stretch',cat:'Mind',mult:10,unit:'min',kind:'check',active:true},
-  {id:'pushups50',label:'50 Push Ups',cat:'Workout',mult:50,unit:'reps',kind:'check',active:true},
-  {id:'squats50',label:'50 Squats',cat:'Workout',mult:50,unit:'reps',kind:'check',active:true},
-  {id:'pullups10',label:'10 Pull Ups',cat:'Workout',mult:10,unit:'reps',kind:'check',active:true},
-  {id:'chinups10',label:'10 Chin Ups',cat:'Workout',mult:10,unit:'reps',kind:'check',active:true},
-  {id:'gym',label:'Gym',cat:'Workout',mult:1,unit:'',kind:'tri',active:true},
-  {id:'run1km',label:'1KM Run',cat:'Workout',mult:1,unit:'',kind:'check',active:true},
+  {id:'dutasteride',label:'Dutasteride',cat:'Morning',mult:1,unit:'',kind:'check',active:false},
+  {id:'run1km',label:'1KM Run',cat:'Workout',mult:1,unit:'',kind:'check',active:false},
   {id:'supplements',label:'Supplements',cat:'Diet',mult:1,unit:'',kind:'check',active:false},
-  {id:'shake',label:'Shake',cat:'Diet',mult:1,unit:'',kind:'check',active:true},
-  {id:'meal1',label:'Meal 1',cat:'Diet',mult:1,unit:'',kind:'check',active:true},
-  {id:'meal2',label:'Meal 2',cat:'Diet',mult:1,unit:'',kind:'check',active:true},
-  {id:'water3l',label:'3L Water',cat:'Diet',mult:3,unit:'L',kind:'check',active:true},
-  {id:'write',label:'Write',cat:'Craft',mult:1,unit:'',kind:'check',active:true},
-  {id:'read',label:'Read',cat:'Craft',mult:1,unit:'',kind:'check',active:true},
-  {id:'noBooze',label:'No Booze',cat:'Avoid',mult:1,unit:'',kind:'check',active:true},
-  {id:'noWeed',label:'No Weed',cat:'Avoid',mult:1,unit:'',kind:'check',active:true},
-  {id:'noJunk',label:'No Junk Food',cat:'Avoid',mult:1,unit:'',kind:'check',active:true},
-  {id:'noCorn',label:'No Corn',cat:'Avoid',mult:1,unit:'',kind:'check',active:true},
-  {id:'noGames',label:'No Games',cat:'Avoid',mult:1,unit:'',kind:'check',active:true},
-  {id:'moisturise',label:'Moisturise',cat:'Evening',mult:1,unit:'',kind:'check',active:true},
+  {id:'shake',label:'Shake',cat:'Diet',mult:1,unit:'',kind:'check',active:false},
+  {id:'write',label:'Write',cat:'Craft',mult:1,unit:'',kind:'check',active:false},
+  {id:'read',label:'Read',cat:'Craft',mult:1,unit:'',kind:'check',active:false},
+  {id:'noBooze',label:'No Booze',cat:'Avoid',mult:1,unit:'',kind:'check',active:false},
+  {id:'noWeed',label:'No Weed',cat:'Avoid',mult:1,unit:'',kind:'check',active:false},
+  {id:'noJunk',label:'No Junk Food',cat:'Avoid',mult:1,unit:'',kind:'check',active:false},
+  {id:'noCorn',label:'No Corn',cat:'Avoid',mult:1,unit:'',kind:'check',active:false},
+  {id:'noGames',label:'No Games',cat:'Avoid',mult:1,unit:'',kind:'check',active:false},
+  {id:'moisturise',label:'Moisturise',cat:'Evening',mult:1,unit:'',kind:'check',active:false},
   {id:'teeth2',label:'Teeth (PM)',cat:'Evening',mult:1,unit:'',kind:'check',active:false},
   {id:'minox2',label:'Minoxidil (PM)',cat:'Evening',mult:1,unit:'',kind:'check',active:false},
-  {id:'pushups50',label:'50 Push Ups',cat:'Workout',mult:50,unit:'reps',kind:'check',active:false},
-  {id:'squats50',label:'50 Squats',cat:'Workout',mult:50,unit:'reps',kind:'check',active:false},
   {id:'vsits50',label:'50 V Sits',cat:'Workout',mult:50,unit:'reps',kind:'check',active:false},
   {id:'row1km',label:'1KM Row',cat:'Workout',mult:1,unit:'',kind:'check',active:false},
   {id:'scrub',label:'Scrub',cat:'Evening',mult:1,unit:'',kind:'check',active:false},
@@ -4403,6 +4410,14 @@ function activeHabits(){ return (getHabits()||[]).filter(h=>h.active); }
 function habitById(id){ return (getHabits()||[]).find(h=>h.id===id); }
 function getHabitDay(key){ const d=kget('habits:day:'+key, {checks:{}}); d.checks=d.checks||{}; d.auto=d.auto||{}; return d; }
 function setHabitDay(key,obj){ kset('habits:day:'+key, obj); }
+/* was called from the "Money made today" input but never defined — that field has
+   been silently dead the whole time. Typing a value here also stops the Prophit
+   auto-sync below from overwriting it for the rest of the day. */
+function setHabitMoney(key,val){
+  const day=getHabitDay(key);
+  day.money=val; day.auto=day.auto||{}; day.auto.moneyManual=true;
+  setHabitDay(key,day);
+}
 function tsMinutesForDay(key){ return (kget('ts:entries:'+key,[])||[]).reduce((sum,e)=>sum+Math.max(0,(e.e||0)-(e.s||0)),0)/60000; }
 function autoWorkHoursForMonth(mKey){
   const [y,m]=mKey.split('-').map(Number);
@@ -4440,6 +4455,22 @@ const HABITS_MIGRATIONS = [
       const drop=['teeth1','teeth2','minox1','minox2','supplements'];
       let changed=false;
       list.forEach(h=>{ if(drop.includes(h.id) && h.active){ h.active=false; changed=true; } });
+      if(changed) saveHabits(list);
+  } },
+  { id:'v3-slim-habits', run(){
+      // Pare down to exactly: morning-routine sub-tasks, gym, 3 meals, water.
+      // Everything else goes inactive (not deleted — old history keeps its label).
+      const list=getHabits(); if(!list) return;
+      const keep=['breathe','meditate','stretch','pushups50','squats50','pullups10','chinups10',
+        'gym','meal1','meal2','meal3','water3l'];
+      let changed=false;
+      list.forEach(h=>{ const should=keep.includes(h.id); if(h.active!==should){ h.active=should; changed=true; } });
+      keep.forEach(id=>{
+        if(!list.some(h=>h.id===id)){
+          const seed=HABITS_SEED.find(h=>h.id===id);
+          if(seed){ list.push(Object.assign({},seed)); changed=true; }
+        }
+      });
       if(changed) saveHabits(list);
   } },
 ];
@@ -4496,6 +4527,12 @@ function autoDeriveHabits(){
     day.checks.gym=true; day.auto.gym=true; changed=true;
     setTimeout(()=>{ addXP(6,'gym'); toast('🏋️ Gym auto-marked done'); },50);
   }
+  // money made today: kept live-synced from Prophit's cached profit every render,
+  // UNLESS the user has typed their own figure today (setHabitMoney flags that).
+  if(prophitConnected && pfCache && !day.auto.moneyManual){
+    const p=Math.round(pfCache.profit||0);
+    if(day.money!==p){ day.money=p; changed=true; }
+  }
   if(changed) setHabitDay(key,day);
 }
 
@@ -4543,7 +4580,15 @@ function renderHabits(){
   const autoIds=new Set();
   if(day.auto.ascend) ['breathe','meditate','stretch','pushups50','squats50','pullups10','chinups10'].forEach(id=>autoIds.add(id));
   if(day.auto.gym) autoIds.add('gym');
-  if(day.auto.rap) autoIds.add('write');
+
+  // Studio + work hours today — live figures, not checkboxes (real durations vary
+  // too much day to day for a yes/no tick to mean anything).
+  const workedTodayHrs=Math.round(tsMinutesForDay(key)/60*10)/10;
+  const studioTodayMin=Math.round(rapMinsToday());
+  const tt=$('#habTodayStats');
+  if(tt) tt.innerHTML =
+    '<div class="tile"><b>'+workedTodayHrs+'h</b><span>worked today</span></div>'+
+    '<div class="tile"><b>'+studioTodayMin+'m</b><span>studio today</span></div>';
 
   const box=$('#hablist'); box.innerHTML='';
   if(!acts.length){ box.innerHTML='<div class="empty">No habits yet — add some via Manage habits.</div>'; }

@@ -72,8 +72,7 @@
   body.pipboy .tab{ color:rgba(var(--pip-rgb),.4); text-transform:uppercase; letter-spacing:.5px; }
   body.pipboy .tab .lbl{ position:relative; }
   body.pipboy .tab.on{ color:rgb(var(--pip-rgb,77,255,106)); text-shadow:0 0 3px currentColor, 0 0 9px rgba(var(--pip-rgb),.45); }
-  body.pipboy .tab.on .lbl::before{ content:'[ '; }
-  body.pipboy .tab.on .lbl::after{ content:' ]'; }
+  body.pipboy .tab.on .lbl{ font-size:12px; font-weight:800; }
   body.pipboy .tab .dotdone{ background:transparent; }
   body.pipboy .tab.done .dotdone{ background:rgb(var(--pip-rgb,77,255,106)); box-shadow:0 0 4px currentColor; }
   body.pipboy .pip-colorwrap{ display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:10px; }
@@ -1401,7 +1400,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260816-213728';
+const KOS_BUILD='20260816-214224';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;

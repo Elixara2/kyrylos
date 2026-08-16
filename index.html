@@ -96,14 +96,12 @@
   .syncdot.err{background:var(--amber)}
   .icobtn{background:var(--panel);border:1px solid var(--line);color:var(--txt);width:38px;height:38px;
     border-radius:11px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-  .xpwrap{display:flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line);
-    border-radius:99px;padding:6px 11px;cursor:pointer}
-  .xplvl{font-size:11px;font-weight:800;color:var(--accent);white-space:nowrap}
-  .xplvl b{font-size:12.5px}
-  .xprank{font-size:10px;font-weight:700;color:var(--purple);white-space:nowrap;letter-spacing:.03em}
-  @media(max-width:420px){.xprank{display:none}}
-  .xpbar{width:54px;height:6px;border-radius:99px;background:var(--panel2);overflow:hidden;display:block}
-  .xpbar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),#60a5fa);transition:width .5s var(--ease)}
+  .xpwrap{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);
+    border-radius:99px;padding:6px 11px;cursor:default}
+  .streakflame{font-size:14px;line-height:1}
+  .xpwrap b{font-size:13px;font-weight:800;color:var(--accent)}
+  .streaklbl{font-size:10px;font-weight:700;color:var(--dim);white-space:nowrap;letter-spacing:.03em}
+  @media(max-width:420px){.streaklbl{display:none}}
   @keyframes xpfloat{0%{opacity:0;transform:translate(-50%,10px) scale(.9)}15%{opacity:1;transform:translate(-50%,-10px) scale(1)}
     75%{opacity:1;transform:translate(-50%,-56px) scale(1)}100%{opacity:0;transform:translate(-50%,-76px) scale(.96)}}
   .xppop{position:fixed;left:50%;top:18%;background:var(--panel2);border:1px solid var(--accent);color:var(--accent);
@@ -161,29 +159,26 @@
   .tab .dotdone{width:4px;height:4px;border-radius:50%;background:transparent;margin-top:1px}
   .tab.done .dotdone{background:var(--green)}
 
-  /* ── floating Prophit tab ──────────────────────────────────────────────
-     Always-visible profit pill, parked just above the tab bar. Collapsed it
-     is today's net profit and nothing else; tapped, it expands upward into
-     the supporting numbers. Sits at z-index 40 — over the page, under the
-     full-screen overlays (80+) so it can never trap a modal. */
-  #pfloat{position:fixed;right:14px;bottom:calc(var(--safe-b) + 74px);z-index:40;
-    display:flex;flex-direction:column;align-items:flex-end;gap:8px;pointer-events:none}
-  #pfloat > *{pointer-events:auto}
-
-  #pfpill{display:flex;align-items:center;gap:9px;padding:9px 14px;border-radius:999px;
-    background:rgba(28,35,45,.92);backdrop-filter:blur(14px) saturate(1.3);
-    border:1px solid var(--line);color:var(--txt);font:inherit;
-    box-shadow:0 2px 6px rgba(0,0,0,.24),0 12px 32px -12px rgba(0,0,0,.6);
+  /* ── Prophit profit pill — now woven into the header next to the logo/date,
+     not a separate floating corner widget. Collapsed it's today's net profit
+     and nothing else; tapped, the detail card drops down from underneath it.
+     #pfloat is the positioning context (position:relative) so #pfcard can
+     anchor via position:absolute without disturbing header layout. */
+  #pfloat{position:relative;display:inline-block;margin-top:6px}
+  #pfpill{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;
+    background:var(--panel);border:1px solid var(--line);color:var(--txt);font:inherit;
+    box-shadow:0 2px 6px rgba(0,0,0,.18);cursor:pointer;
     transition:transform .18s var(--ease),border-color .18s ease}
   #pfpill:active{transform:scale(.96)}
   #pfpill.up{border-color:rgba(34,197,94,.45)}
   #pfpill.down{border-color:rgba(239,68,68,.45)}
-  #pfpill .lbl{font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
-  #pfpill .val{font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
-  #pfpill .dot{width:7px;height:7px;border-radius:50%;background:var(--dim);flex:0 0 auto}
+  #pfpill .lbl{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+  #pfpill .val{font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
+  #pfpill .dot{width:6px;height:6px;border-radius:50%;background:var(--dim);flex:0 0 auto}
   #pfpill .dot.live{background:var(--green);box-shadow:0 0 0 3px rgba(34,197,94,.16)}
 
-  #pfcard{width:min(320px,calc(100vw - 28px));padding:14px 15px 13px;border-radius:16px;
+  #pfcard{position:absolute;top:calc(100% + 8px);left:0;z-index:40;
+    width:min(320px,calc(100vw - 28px));padding:14px 15px 13px;border-radius:16px;
     background:rgba(22,27,34,.97);backdrop-filter:blur(16px);border:1px solid var(--line);
     box-shadow:0 8px 24px -8px rgba(0,0,0,.5),0 30px 60px -30px rgba(0,0,0,.8);
     display:none;animation:pfIn .22s var(--ease)}
@@ -202,9 +197,6 @@
   #pfcard .warn{margin-top:9px;font-size:10.5px;line-height:1.4;color:var(--amber)}
   #pfcard .refresh{background:none;border:1px solid var(--line);color:var(--dim);
     border-radius:8px;padding:4px 9px;font-size:11px;font-weight:600}
-
-  /* the pill would sit on top of the tab bar in landscape on small phones */
-  @media (max-height:460px){ #pfloat{display:none} }
 
   .panel{display:none;animation:fade .25s var(--ease)}
   .panel.on{display:block}
@@ -679,12 +671,33 @@
     <div>
       <h1>K<span style="color:var(--accent)">-OS</span></h1>
       <div class="date" id="hdrDate"></div>
+      <div id="pfloat">
+        <button id="pfpill" onclick="toggleProfitFloat()" aria-label="Today's profit">
+          <span class="dot" id="pfDot"></span>
+          <span class="lbl">Profit</span>
+          <span class="val" id="pfVal">—</span>
+        </button>
+        <div id="pfcard" role="dialog" aria-label="Profit detail">
+          <div class="hd"><b>Today</b><span id="pfDate">—</span></div>
+          <div id="pfgrid">
+            <div><div class="k">Revenue</div><div class="v" id="pfRev">—</div></div>
+            <div><div class="k">Ad spend</div><div class="v" id="pfAd">—</div></div>
+            <div><div class="k">Orders</div><div class="v" id="pfOrd">—</div></div>
+            <div><div class="k">AOV</div><div class="v" id="pfAov">—</div></div>
+            <div><div class="k">CAC</div><div class="v" id="pfCac">—</div></div>
+            <div><div class="k">ROAS</div><div class="v" id="pfRoas">—</div></div>
+          </div>
+          <div class="ft">
+            <div class="wk">7 days: <b id="pfWeek">—</b></div>
+            <button class="refresh" onclick="refreshProfitFloat(true)">Refresh</button>
+          </div>
+          <div class="warn" id="pfWarn" style="display:none"></div>
+        </div>
+      </div>
     </div>
     <div class="hbtns">
-      <div class="xpwrap" id="xpwrap" title="Your level">
-        <span class="xplvl">Lv <b id="xpLvlNum">1</b></span>
-        <span class="xpbar"><i id="xpBarFill"></i></span>
-        <span class="xprank" id="xpRank">Rookie</span>
+      <div class="xpwrap" id="streakBadge" title="Days at 90%+ complete">
+        <span class="streakflame">🔥</span><b id="streakNum">0</b><span class="streaklbl">day streak</span>
       </div>
       <span class="syncdot" id="syncdot"></span>
       <button class="icobtn" onclick="openSettings()">⚙</button>
@@ -1245,29 +1258,6 @@
 </div>
 
 <!-- floating Prophit tab — live on every screen -->
-<div id="pfloat">
-  <div id="pfcard" role="dialog" aria-label="Profit detail">
-    <div class="hd"><b>Today</b><span id="pfDate">—</span></div>
-    <div id="pfgrid">
-      <div><div class="k">Revenue</div><div class="v" id="pfRev">—</div></div>
-      <div><div class="k">Ad spend</div><div class="v" id="pfAd">—</div></div>
-      <div><div class="k">Orders</div><div class="v" id="pfOrd">—</div></div>
-      <div><div class="k">AOV</div><div class="v" id="pfAov">—</div></div>
-      <div><div class="k">CAC</div><div class="v" id="pfCac">—</div></div>
-      <div><div class="k">ROAS</div><div class="v" id="pfRoas">—</div></div>
-    </div>
-    <div class="ft">
-      <div class="wk">7 days: <b id="pfWeek">—</b></div>
-      <button class="refresh" onclick="refreshProfitFloat(true)">Refresh</button>
-    </div>
-    <div class="warn" id="pfWarn" style="display:none"></div>
-  </div>
-  <button id="pfpill" onclick="toggleProfitFloat()" aria-label="Today's profit">
-    <span class="dot" id="pfDot"></span>
-    <span><span class="lbl">Profit today</span><br><span class="val" id="pfVal">—</span></span>
-  </button>
-</div>
-
 <!-- tab bar -->
 <nav id="tabbar"><div class="inner">
   <button class="tab" data-tab="rise" onclick="showTab('rise')"><span class="ic">🌅</span><span class="lbl">Rise</span><span class="dotdone"></span></button>
@@ -1430,7 +1420,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260816-131704';
+const KOS_BUILD='20260816-141833';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -1638,16 +1628,31 @@ function addXP(amt, reason){
   const before=getXP(), after=before+amt;
   kset('profile:xp', after);
   if(amt>=5) popXP(amt,reason);
-  renderXPBar();
   const lb=levelForXP(before), la=levelForXP(after);
   if(la.level>lb.level) setTimeout(()=>levelUp(la.level),350);
 }
-function renderXPBar(){
-  const l=levelForXP(getXP());
-  $('#xpLvlNum').textContent=l.level;
-  $('#xpBarFill').style.width=Math.round(100*l.into/l.need)+'%';
-  const rk=$('#xpRank'); if(rk) rk.textContent=rankFor(l.level);
-  $('#xpwrap').title=rankFor(l.level)+' · '+l.into+' / '+l.need+' XP to level '+(l.level+1);
+
+/* ================= day streak (replaces the old Lv/rank header badge) =================
+   Counts consecutive days where FLOW_STAGES completion was >= 90% — same
+   walk-back-from-today-or-yesterday pattern already used for the goals/diet/
+   habit streaks elsewhere in this file, just driven by the flow record instead. */
+function flowPctFor(key){
+  const f=kget('flow:'+key,{});
+  if(!FLOW_STAGES.length) return 0;
+  return Math.round(FLOW_STAGES.filter(s=>f[s.id]).length/FLOW_STAGES.length*100);
+}
+function computeDayStreak(threshold){
+  threshold = threshold==null ? 90 : threshold;
+  let streak=0, probe=new Date();
+  if(flowPctFor(todayKey(probe)) < threshold) probe.setDate(probe.getDate()-1);
+  while(flowPctFor(todayKey(probe)) >= threshold){ streak++; probe.setDate(probe.getDate()-1); }
+  return streak;
+}
+function renderDayStreak(){
+  const streak=computeDayStreak(90);
+  const n=$('#streakNum'); if(n) n.textContent=streak;
+  const w=$('#streakBadge');
+  if(w) w.title = streak>0 ? streak+' day'+(streak===1?'':'s')+' at 90%+ of your flow complete' : 'Complete 90%+ of your flow to start a streak';
 }
 function levelUp(level){
   chimeFanfare(); buzz([40,60,40,60,40,120]);
@@ -4992,8 +4997,8 @@ function renderAll(){
   applyPipboy();
   ensureHabitsSeeded();
   ensureHabitsMigrated();
-  renderXPBar();
   autoFlow();
+  renderDayStreak();
   renderRise(); renderToday(); renderWork(); renderGym(); renderRapPanel(); renderDiet(); renderHabits(); renderProfitBar(); renderGoals(); renderModules(); renderAlarm(); renderTabs();
   checkMissionGate();
 }

@@ -556,21 +556,20 @@
   .prio-btn.on{background:var(--accent2);border-color:var(--accent2)}
   .subtask{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
   .subtask:last-child{border-bottom:none}
-  .subchk{width:20px;height:20px;border-radius:4px;border:1.5px solid var(--line);flex:0 0 auto;cursor:pointer;
+  .subchk{width:20px;height:20px;border-radius:5px;border:1.5px solid var(--line);flex:0 0 auto;cursor:pointer;
     display:flex;align-items:center;justify-content:center;color:transparent;font-size:12px;transition:.18s}
   .subtask.done .subchk{background:var(--accent);border-color:var(--accent);color:var(--bg)}
-  .subtext{flex:1;font-size:14.5px;font-family:ui-monospace,'SF Mono','Courier New',monospace}
+  /* a real <input> now (was static text) — reset it to look like plain text until
+     tapped, so editing an objective feels the same as editing the quest title */
+  .subtext{flex:1;min-width:0;font-size:14.5px;font-family:ui-monospace,'SF Mono','Courier New',monospace;word-break:break-word;
+    background:none;border:none;outline:none;color:var(--txt);padding:4px 2px;border-radius:6px;transition:background .15s}
+  .subtext:focus{background:var(--panel2)}
   .subtask.done .subtext{color:var(--dim);text-decoration:line-through}
   .addbtn-round{width:40px;height:40px;border-radius:50%;border:none;background:var(--accent);color:var(--bg);
     font-size:22px;line-height:1;cursor:pointer;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-weight:700}
   .addbtn-round:active{transform:scale(.92)}
   .qhead{display:flex;align-items:center;justify-content:space-between;gap:10px}
   .qhead h2{margin:0}
-  .subchk{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--line);flex:0 0 auto;cursor:pointer;
-    display:flex;align-items:center;justify-content:center;color:transparent;font-size:11px;transition:.18s}
-  .subtask.done .subchk{background:var(--green);border-color:var(--green);color:#06220f}
-  .subtext{flex:1;font-size:14px;word-break:break-word}
-  .subtask.done .subtext{color:var(--dim);text-decoration:line-through}
   .subdel{background:none;border:none;color:var(--dim);font-size:14px;padding:4px;flex:0 0 auto}
 
   /* habits */
@@ -1429,7 +1428,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260815-215300';
+const KOS_BUILD='20260816-131140';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -4108,9 +4107,16 @@ function renderGdSubs(subs){
   const box=$('#gdSubs'); box.innerHTML = subs.length?'':'<div class="sub" style="padding:4px 0">No objectives yet.</div>';
   subs.forEach(s=>{
     const row=document.createElement('div'); row.className='subtask'+(s.done?' done':'');
-    row.innerHTML='<div class="subchk">✓</div><div class="subtext">'+esc(s.text)+'</div><button class="subdel">✕</button>';
+    row.innerHTML='<div class="subchk">✓</div><button class="subdel">✕</button>';
+    // an editable field (not static text) — set via .value, not HTML interpolation,
+    // so any character (quotes included) in the objective text is always safe
+    const inp=document.createElement('input'); inp.type='text'; inp.className='subtext'; inp.value=s.text;
+    row.insertBefore(inp, row.querySelector('.subdel'));
     row.querySelector('.subchk').onclick=()=>{ gdMutate(x=>{ const t=x.subtasks.find(y=>y.id===s.id); if(t) t.done=!t.done; }); refreshGdSubs(); };
     row.querySelector('.subdel').onclick=()=>{ gdMutate(x=>{ x.subtasks=x.subtasks.filter(y=>y.id!==s.id); }); refreshGdSubs(); };
+    inp.onkeydown=e=>{ if(e.key==='Enter') inp.blur(); };
+    inp.onchange=()=>{ const v=inp.value.trim(); if(!v){ inp.value=s.text; return; }
+      gdMutate(x=>{ const t=x.subtasks.find(y=>y.id===s.id); if(t) t.text=v; }); renderGoals(); };
     box.appendChild(row);
   });
 }

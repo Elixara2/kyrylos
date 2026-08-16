@@ -709,7 +709,8 @@
   </div>
 
   <!-- ============ RISE · morning check-in ============ -->
-  <section class="panel" id="p-rise">
+  <!-- ============ TODAY (dashboard) — Rise's check-in now lives at the top ============ -->
+  <section class="panel" id="p-today">
     <div class="rise-hero">
       <div class="rise-greet" id="riseGreet">Good morning, Kyryl.</div>
       <div class="rise-date" id="riseDate"></div>
@@ -728,18 +729,9 @@
         <div class="rise-locked-time" id="riseLockedTime">—</div>
         <div class="sub" id="riseStreak2"></div>
       </div>
-      <div class="lbl" style="margin:18px 0 8px">Now flow through your day</div>
-      <div class="hublist">
-        <div class="hubcard" id="riseStep1" onclick="riseOpenAscend()"><span class="hub-em">🌅</span><div class="ft"><b>1 · Morning routine</b><span>ASCEND — breath, meditation, mobility, strength</span></div><span class="cardlink-go">›</span></div>
-        <div class="hubcard" onclick="showTab('work')"><span class="hub-em">⏱</span><div class="ft"><b>2 · Work session 1</b><span>Clock in — deep-work block</span></div><span class="cardlink-go">›</span></div>
-        <div class="hubcard" onclick="showTab('today')"><span class="hub-em">☀️</span><div class="ft"><b>3 · The rest of the day</b><span>Modules, gym, everything else</span></div><span class="cardlink-go">›</span></div>
-      </div>
       <button class="sm ghost" style="margin-top:14px" onclick="undoCheckin()">↺ Undo check-in</button>
     </div>
-  </section>
 
-  <!-- ============ TODAY ============ -->
-  <section class="panel" id="p-today">
     <div class="card">
       <div class="ringrow">
         <div class="ringbox">
@@ -920,8 +912,9 @@
     <div class="mission-err" id="missionErr"></div>
   </div>
 
-  <!-- ============ GYM ============ -->
-  <section class="panel" id="p-gym">
+  <!-- ============ HEALTH (Gym + Diet, combined) ============ -->
+  <section class="panel" id="p-health">
+    <div class="lbl" style="margin-bottom:2px">🏋️ Gym</div>
     <div class="card">
       <div class="row" style="justify-content:space-between">
         <h2 style="margin:0">Today's workout <span class="sub" id="gymDateLbl"></span></h2>
@@ -945,28 +938,8 @@
       </div>
       <div class="sub" id="gymHistList" style="margin-top:10px"></div>
     </div>
-  </section>
 
-  <!-- ============ RAP ============ -->
-  <section class="panel" id="p-rap">
-    <div id="projPanel"></div>
-    <div class="card">
-      <div class="row" style="justify-content:space-between">
-        <h2 style="margin:0">Projects</h2>
-        <button class="sm primary" onclick="newProject()">+ New</button>
-      </div>
-      <div class="chips" id="projChips" style="margin-top:10px"></div>
-    </div>
-    <div class="card">
-      <h2>All-time</h2>
-      <div class="tiles" id="rapTotals"></div>
-    </div>
-  </section>
-  <input type="file" id="beatFile" accept="audio/*" style="display:none" onchange="onBeatFilePicked(event)">
-  <input type="file" id="beatVideoFile" accept="video/*" style="display:none" onchange="onBeatVideoFilePicked(event)">
-
-  <!-- ============ DIET ============ -->
-  <section class="panel" id="p-diet">
+    <div class="lbl" style="margin:18px 0 2px">🍗 Diet</div>
     <div class="card">
       <div class="row" style="justify-content:space-between">
         <h2 style="margin:0">Meals</h2>
@@ -1004,6 +977,24 @@
       <div class="sub" style="margin-top:8px;opacity:.7">Sleep and workouts aren't available yet — the Android plugin only exposes steps so far.</div>
     </div>
   </section>
+
+  <!-- ============ STUDIO (rap/writing) ============ -->
+  <section class="panel" id="p-rap">
+    <div id="projPanel"></div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <h2 style="margin:0">Projects</h2>
+        <button class="sm primary" onclick="newProject()">+ New</button>
+      </div>
+      <div class="chips" id="projChips" style="margin-top:10px"></div>
+    </div>
+    <div class="card">
+      <h2>All-time</h2>
+      <div class="tiles" id="rapTotals"></div>
+    </div>
+  </section>
+  <input type="file" id="beatFile" accept="audio/*" style="display:none" onchange="onBeatFilePicked(event)">
+  <input type="file" id="beatVideoFile" accept="video/*" style="display:none" onchange="onBeatVideoFilePicked(event)">
 
   <!-- ============ HABITS (life tracker) ============ -->
   <section class="panel" id="p-habits">
@@ -1115,47 +1106,6 @@
   </section>
 
   <!-- ============ ALARM · morning mission ============ -->
-  <section class="panel" id="p-alarm">
-    <div class="card">
-      <div class="lbl">Wake-up time</div>
-      <div class="alarm-clock">
-        <input type="time" id="alarmTimeInput" onchange="setAlarmTime(this.value)">
-        <button class="sm ghost" onclick="clearAlarmTime()">Clear</button>
-      </div>
-      <div class="sub" id="alarmNext" style="margin-top:8px">No alarm set</div>
-      <div class="sub warn-note" id="alarmWarnNote" style="margin-top:10px"></div>
-    </div>
-
-    <div class="card">
-      <div class="row" style="justify-content:space-between;align-items:center">
-        <h2 style="margin:0">Morning Mission ⏰</h2>
-        <span class="sub" id="missionStatus"></span>
-      </div>
-      <div class="sub" style="margin-top:4px">When your alarm goes off you have to complete a mission to unlock the app.</div>
-      <div class="toggle-row" onclick="toggleMissionEnabled()" style="margin-top:12px">
-        <div><b>Require a mission each morning</b><span>Blocks the whole app until solved</span></div>
-        <div class="switch" id="missionEnabledToggle"><i></i></div>
-      </div>
-      <button class="primary" onclick="openMission()" style="width:100%;margin-top:14px">▶ Run mission now</button>
-    </div>
-
-    <div class="card">
-      <div class="lbl">Mission types</div>
-      <div class="sub" style="margin-top:2px">Tap to toggle — one is picked at random each morning.</div>
-      <div class="chips" id="missionTypeChips" style="margin-top:10px"></div>
-
-      <div class="lbl" style="margin-top:16px">Math difficulty</div>
-      <select id="missionMathDiff" onchange="setMissionMathDiff(this.value)" style="width:100%;margin-top:6px">
-        <option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option>
-      </select>
-
-      <div class="lbl" style="margin-top:16px">Phrases to type</div>
-      <div class="sub" style="margin-top:2px">One per line — leave blank for defaults.</div>
-      <textarea id="missionPhrases" rows="3" style="width:100%;margin-top:6px" onblur="saveMissionPhrases(this.value)" placeholder="I choose discipline over comfort"></textarea>
-
-      <button class="setbtn" onclick="registerBarcodeRef()" style="margin-top:14px"><span>Scan reference barcode</span><span class="st" id="missionBarcodeStatus">—</span></button>
-    </div>
-  </section>
 
   <!-- ============ MODULES · your customizable must-dos ============ -->
   <section class="panel" id="p-modules">
@@ -1168,23 +1118,17 @@
       <button class="primary" style="width:100%;margin-top:12px" onclick="openModuleEdit()">＋ New module</button>
     </div>
     <div id="moduleGrid"></div>
-    <div class="lbl" style="margin:18px 0 8px">Built-in modules</div>
-    <div class="hublist">
-      <div class="hubcard cardlink" onclick="showTab('gym')"><span class="hub-em">🏋️</span><div class="ft"><b>Gym</b><span>Split, weights, PRs</span></div><span class="cardlink-go">›</span></div>
-      <div class="hubcard cardlink" onclick="showTab('rap')"><span class="hub-em">🎤</span><div class="ft"><b>Studio</b><span>Beats, bars, voice memos, clip trimmer</span></div><span class="cardlink-go">›</span></div>
-      <div class="hubcard cardlink" onclick="showTab('diet')"><span class="hub-em">🍗</span><div class="ft"><b>Diet</b><span>Meals, macros, water</span></div><span class="cardlink-go">›</span></div>
-    </div>
   </section>
 
-  <!-- ============ TRACK · metrics & journaling hub ============ -->
+  <!-- ============ METRICS · numbers & journaling hub ============ -->
   <section class="panel" id="p-track">
     <div class="card">
-      <h2 style="margin:0">Track</h2>
-      <div class="sub" style="margin-top:2px">Your numbers and journal — habits, quests, and profit.</div>
+      <h2 style="margin:0">Metrics</h2>
+      <div class="sub" style="margin-top:2px">Your numbers and journal — habits and profit.</div>
     </div>
     <div class="hublist">
       <div class="hubcard cardlink" onclick="showTab('habits')"><span class="hub-em">📈</span><div class="ft"><b>Habits</b><span id="trackHabitsSub">Daily tracker & analytics</span></div><span class="cardlink-go">›</span></div>
-      <div class="hubcard cardlink" onclick="showTab('goals')"><span class="hub-em">✅</span><div class="ft"><b>Quests</b><span id="trackGoalsSub">Your quest log</span></div><span class="cardlink-go">›</span></div>
+      <div class="hubcard cardlink" onclick="showTab('modules')"><span class="hub-em">🧩</span><div class="ft"><b>Modules</b><span id="trackModulesSub">Custom trackers</span></div><span class="cardlink-go">›</span></div>
       <div class="hubcard cardlink" onclick="openProphit()"><span class="hub-em">💰</span><div class="ft"><b>Profit</b><span id="trackProfitSub">Today's numbers · Prophit</span></div><span class="cardlink-go">›</span></div>
     </div>
   </section>
@@ -1260,12 +1204,12 @@
 <!-- floating Prophit tab — live on every screen -->
 <!-- tab bar -->
 <nav id="tabbar"><div class="inner">
-  <button class="tab" data-tab="rise" onclick="showTab('rise')"><span class="ic">🌅</span><span class="lbl">Rise</span><span class="dotdone"></span></button>
   <button class="tab" data-tab="today" onclick="showTab('today')"><span class="ic">☀️</span><span class="lbl">Today</span><span class="dotdone"></span></button>
+  <button class="tab" data-tab="goals" onclick="showTab('goals')"><span class="ic">✅</span><span class="lbl">Quests</span><span class="dotdone"></span></button>
   <button class="tab" data-tab="work" onclick="showTab('work')"><span class="ic">⏱</span><span class="lbl">Work</span><span class="dotdone"></span></button>
-  <button class="tab" data-tab="modules" onclick="showTab('modules')"><span class="ic">🧩</span><span class="lbl">Modules</span><span class="dotdone"></span></button>
-  <button class="tab" data-tab="track" onclick="showTab('track')"><span class="ic">📈</span><span class="lbl">Track</span><span class="dotdone"></span></button>
-  <button class="tab" data-tab="alarm" onclick="showTab('alarm')"><span class="ic">⏰</span><span class="lbl">Alarm</span><span class="dotdone"></span></button>
+  <button class="tab" data-tab="rap" onclick="showTab('rap')"><span class="ic">🎤</span><span class="lbl">Studio</span><span class="dotdone"></span></button>
+  <button class="tab" data-tab="health" onclick="showTab('health')"><span class="ic">🏋️</span><span class="lbl">Health</span><span class="dotdone"></span></button>
+  <button class="tab" data-tab="track" onclick="showTab('track')"><span class="ic">📈</span><span class="lbl">Metrics</span><span class="dotdone"></span></button>
 </div></nav>
 
 <!-- time-study log modal -->
@@ -1389,6 +1333,42 @@
       </div>
     </div>
 
+    <div class="sect">
+      <div class="lbl">⏰ Alarm</div>
+      <div class="alarm-clock" style="margin-top:8px">
+        <input type="time" id="alarmTimeInput" onchange="setAlarmTime(this.value)">
+        <button class="sm ghost" onclick="clearAlarmTime()">Clear</button>
+      </div>
+      <div class="sub" id="alarmNext" style="margin-top:8px">No alarm set</div>
+      <div class="sub warn-note" id="alarmWarnNote" style="margin-top:10px"></div>
+
+      <div class="row" style="justify-content:space-between;align-items:center;margin-top:18px">
+        <div class="lbl" style="margin:0">Morning Mission</div>
+        <span class="sub" id="missionStatus"></span>
+      </div>
+      <div class="sub" style="margin-top:4px">When your alarm goes off you have to complete a mission to unlock the app.</div>
+      <div class="toggle-row" onclick="toggleMissionEnabled()" style="margin-top:12px">
+        <div><b>Require a mission each morning</b><span>Blocks the whole app until solved</span></div>
+        <div class="switch" id="missionEnabledToggle"><i></i></div>
+      </div>
+      <button class="primary" onclick="openMission()" style="width:100%;margin-top:14px">▶ Run mission now</button>
+
+      <div class="lbl" style="margin-top:18px">Mission types</div>
+      <div class="sub" style="margin-top:2px">Tap to toggle — one is picked at random each morning.</div>
+      <div class="chips" id="missionTypeChips" style="margin-top:10px"></div>
+
+      <div class="lbl" style="margin-top:16px">Math difficulty</div>
+      <select id="missionMathDiff" onchange="setMissionMathDiff(this.value)" style="width:100%;margin-top:6px">
+        <option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option>
+      </select>
+
+      <div class="lbl" style="margin-top:16px">Phrases to type</div>
+      <div class="sub" style="margin-top:2px">One per line — leave blank for defaults.</div>
+      <textarea id="missionPhrases" rows="3" style="width:100%;margin-top:6px" onblur="saveMissionPhrases(this.value)" placeholder="I choose discipline over comfort"></textarea>
+
+      <button class="setbtn" onclick="registerBarcodeRef()" style="margin-top:14px"><span>Scan reference barcode</span><span class="st" id="missionBarcodeStatus">—</span></button>
+    </div>
+
     <div class="setgrid">
       <div><label>Morning routine (ASCEND) URL — opens from Today</label>
         <input type="url" id="setAscend" placeholder="http:// or file:// link to ASCEND"></div>
@@ -1420,7 +1400,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260816-141833';
+const KOS_BUILD='20260816-213236';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -1815,14 +1795,14 @@ function saveSettings(){
 
 /* ================= flow (daily stages) ================= */
 const FLOW_STAGES = [
-  {id:'morning', em:'🌅', t:'Morning routine', d:'ASCEND · breath, meditation, mobility, strength', open:()=>{ if(SET.ascendUrl) window.open(SET.ascendUrl,'_blank'); else toast('Set ASCEND URL in settings'); }},
+  {id:'morning', em:'🌅', t:'Morning routine', d:'ASCEND · breath, meditation, mobility, strength', open:()=>riseOpenAscend()},
   {id:'tracker', em:'📈', t:'Habits', d:'Clear every habit on the tracker', open:()=>showTab('habits')},
   {id:'work', em:'⏱', t:'Work · time study', d:'Log every 15 min', open:()=>showTab('work')},
-  {id:'gym', em:'🏋️', t:'Gym', d:'Exercises, weights, progress', open:()=>showTab('gym')},
+  {id:'gym', em:'🏋️', t:'Gym', d:'Exercises, weights, progress', open:()=>showTab('health')},
   {id:'rap', em:'🎤', t:'Studio · writing', d:'Beat on, mumble, write bars', open:()=>showTab('rap')},
-  {id:'diet', em:'🍽', t:'Diet', d:'All meals + 3L water', open:()=>showTab('diet')},
+  {id:'diet', em:'🍽', t:'Diet', d:'All meals + 3L water', open:()=>showTab('health')},
   {id:'goals', em:'✅', t:'Quests', d:'All ticked off', open:()=>showTab('goals')},
-  {id:'alarm', em:'⏰', t:'Alarm', d:'Morning wake-up mission', open:()=>showTab('alarm')},
+  {id:'alarm', em:'⏰', t:'Alarm', d:'Morning wake-up mission', open:()=>openSettings()},
 ];
 function flowOrder(){
   const ids=FLOW_STAGES.map(s=>s.id), saved=kget('flowOrder', null);
@@ -2127,7 +2107,7 @@ if(NATIVE && LN()){
   LN().addListener('localNotificationActionPerformed', ()=>{
     kset('mission:alarmFired:'+todayKey(), true);
     const m=getMission();
-    if(m.enabled && m.types.length) openMission(); else showTab('alarm');
+    if(m.enabled && m.types.length) openMission(); else openSettings();
   });
 }
 
@@ -4355,7 +4335,7 @@ function undoCheckin(){
 }
 function riseOpenAscend(){ if(SET.ascendUrl) window.open(SET.ascendUrl,'_blank'); else { toast('Set your ASCEND link in Settings'); openSettings(); } }
 function renderRise(){
-  const box=$('#p-rise'); if(!box) return;
+  const box=$('#riseGreet'); if(!box) return;
   const h=new Date().toLocaleString('en-AU',{timeZone:'Australia/Brisbane',hour:'numeric',hour12:false});
   const hr=parseInt(h,10)||0;
   $('#riseGreet').textContent = hr<5?'Still up, Kyryl?':hr<12?'Good morning, Kyryl.':hr<17?'Good afternoon, Kyryl.':'Good evening, Kyryl.';
@@ -4508,17 +4488,13 @@ function autoDeriveHabits(){
 
   const ascendDay = kget('ascend:day:'+key, null);
   if(ascendDay && !day.auto.ascend){
-    ['breathe','meditate','stretch','pushups40','squats30','vsits30'].forEach(id=>{ day.checks[id]=true; });
+    ['breathe','meditate','stretch','pushups50','squats50','pullups10','chinups10'].forEach(id=>{ day.checks[id]=true; });
     day.auto.ascend=true; changed=true;
     setTimeout(()=>{ addXP(6,'morning routine'); toast('🌅 Morning routine synced from ASCEND'); },50);
   }
   if(gymTodayEntries().length>=1 && !day.auto.gym){
     day.checks.gym=true; day.auto.gym=true; changed=true;
     setTimeout(()=>{ addXP(6,'gym'); toast('🏋️ Gym auto-marked done'); },50);
-  }
-  if(rapMinsToday()>=SET.rapGoal && !day.auto.rap){
-    day.checks.write=true; day.auto.rap=true; changed=true;
-    setTimeout(()=>{ addXP(6,'studio time'); toast('🎤 Studio time counted toward Write'); },50);
   }
   if(changed) setHabitDay(key,day);
 }
@@ -4934,8 +4910,8 @@ function startProfitFloat(){
 /* ================= router ================= */
 /* nav is 5 tabs; the rich screens (gym/studio/diet/habits/goals) live inside the
    Modules & Track hubs and open as sub-panels with a back bar */
-const NAV_TABS=['rise','today','work','modules','track','alarm'];
-const SUB_PARENT={gym:'modules', rap:'modules', diet:'modules', habits:'track', goals:'track'};
+const NAV_TABS=['today','goals','work','rap','health','track'];
+const SUB_PARENT={habits:'track', modules:'track'};
 let activeTab = jload('tab','today');
 if(!NAV_TABS.includes(activeTab) && !SUB_PARENT[activeTab]) activeTab='today';
 function showTab(name){
@@ -4944,7 +4920,7 @@ function showTab(name){
   const navHi = NAV_TABS.includes(name) ? name : (SUB_PARENT[name]||'today');
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on', t.dataset.tab===navHi));
   const bb=$('#backBar');
-  if(bb){ const parent=SUB_PARENT[name]; if(parent){ bb.textContent='‹ '+(parent==='modules'?'Modules':'Track'); bb.style.display=''; bb.dataset.parent=parent; } else bb.style.display='none'; }
+  if(bb){ const parent=SUB_PARENT[name]; if(parent){ bb.textContent='‹ Metrics'; bb.style.display=''; bb.dataset.parent=parent; } else bb.style.display='none'; }
   renderAll();
   window.scrollTo({top:0});
   // Pip-Boy mode: the little dial-click + screen-pulse you get switching STAT/INV/DATA in-game
@@ -4988,7 +4964,10 @@ function handleNativeBack(){
 function renderTabs(){
   const f=getFlow();
   document.querySelectorAll('.tab').forEach(t=>{
-    const id=t.dataset.tab; t.classList.toggle('done', id==='today'?false:!!f[id]); });
+    const id=t.dataset.tab;
+    const done = id==='today' ? false : id==='health' ? (!!f.gym && !!f.diet) : !!f[id];
+    t.classList.toggle('done', done);
+  });
 }
 function renderAll(){
   $('#hdrDate').textContent=new Date().toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'});

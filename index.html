@@ -41,8 +41,13 @@
     --green:#4dff6a; --amber:#4dff6a; --red:#ff6a5a; --purple:#4dff6a;
     --chart1:#4dff6a; --chart2:#2fbf50; --chart3:#1f9d3f;
     background:radial-gradient(ellipse at 50% 35%, #0c220c 0%, #030603 100%);
-    filter:brightness(var(--pip-bright,1));
   }
+  /* brightness lives on #wrap/#tabbar, NOT body: a `filter` on <body> makes it the
+     containing block for every position:fixed descendant (same rule as transform),
+     which silently breaks the fixed bottom tab bar — it starts scrolling with the
+     page instead of staying pinned. Scoping the filter here keeps position:fixed
+     anchored to the real viewport everywhere else. */
+  body.pipboy #wrap, body.pipboy #tabbar{ filter:brightness(var(--pip-bright,1)); }
   body.pipboy, body.pipboy input, body.pipboy textarea, body.pipboy select, body.pipboy button{
     font-family:ui-monospace,'SF Mono','Cascadia Code','Courier New',monospace !important;
   }
@@ -1400,7 +1405,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260816-214224';
+const KOS_BUILD='20260816-214707';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;

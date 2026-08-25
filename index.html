@@ -162,6 +162,13 @@
   .tab.on .ic{transform:translateY(-1px)}
   .tab .dotdone{width:4px;height:4px;border-radius:50%;background:transparent;margin-top:1px}
   .tab.done .dotdone{background:var(--green)}
+  /* hold-to-reorder: entering the lifted state pops the tab up above its neighbours
+     with a shadow; displaced neighbours slide sideways (see bindTabDrag in JS) with
+     their own transition so the row visibly opens a gap, Android-springboard style. */
+  .tab{transition:transform .22s var(--ease)}
+  .tab.lifted{transform:scale(1.12) translateY(-3px)!important;z-index:5;
+    background:var(--panel2);border-radius:14px;box-shadow:0 8px 20px rgba(0,0,0,.35);transition:none}
+  .tab.lifted .ic{transform:translateY(-1px) scale(1.05)}
 
   /* ── Prophit profit pill — now woven into the header next to the logo/date,
      not a separate floating corner widget. Collapsed it's today's net profit
@@ -1209,12 +1216,12 @@
 <!-- floating Prophit tab — live on every screen -->
 <!-- tab bar -->
 <nav id="tabbar"><div class="inner">
-  <button class="tab" data-tab="today" onclick="showTab('today')"><span class="ic">☀️</span><span class="lbl">Today</span><span class="dotdone"></span></button>
-  <button class="tab" data-tab="goals" onclick="showTab('goals')"><span class="ic">✅</span><span class="lbl">Quests</span><span class="dotdone"></span></button>
-  <button class="tab" data-tab="work" onclick="showTab('work')"><span class="ic">⏱</span><span class="lbl">Work</span><span class="dotdone"></span></button>
-  <button class="tab" data-tab="rap" onclick="showTab('rap')"><span class="ic">🎤</span><span class="lbl">Studio</span><span class="dotdone"></span></button>
-  <button class="tab" data-tab="health" onclick="showTab('health')"><span class="ic">🏋️</span><span class="lbl">Health</span><span class="dotdone"></span></button>
-  <button class="tab" data-tab="track" onclick="showTab('track')"><span class="ic">📈</span><span class="lbl">Metrics</span><span class="dotdone"></span></button>
+  <button class="tab" data-tab="today"><span class="ic">☀️</span><span class="lbl">Today</span><span class="dotdone"></span></button>
+  <button class="tab" data-tab="goals"><span class="ic">✅</span><span class="lbl">Quests</span><span class="dotdone"></span></button>
+  <button class="tab" data-tab="work"><span class="ic">⏱</span><span class="lbl">Work</span><span class="dotdone"></span></button>
+  <button class="tab" data-tab="rap"><span class="ic">🎤</span><span class="lbl">Studio</span><span class="dotdone"></span></button>
+  <button class="tab" data-tab="health"><span class="ic">🏋️</span><span class="lbl">Health</span><span class="dotdone"></span></button>
+  <button class="tab" data-tab="track"><span class="ic">📈</span><span class="lbl">Metrics</span><span class="dotdone"></span></button>
 </div></nav>
 
 <!-- time-study log modal -->
@@ -1405,7 +1412,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260816-214707';
+const KOS_BUILD='20260825-134855';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -1959,6 +1966,90 @@ function cardDrop(){
   cardDrag=null;
   if(next.join(',')!==order.join(',')){ saveTodayCardOrder(next); buzz(15); }
   applyTodayCardOrder();
+}
+
+/* ---- bottom tab bar: hold a tab to reorder it, same hold-then-drag language as the
+   Today cards above, but horizontal and with a live "gap" — neighbouring tabs slide
+   sideways as the held tab passes them, instead of only settling into place on drop
+   (matching a phone home-screen icon reorder, which is what was actually asked for). */
+function tabOrder(){
+  const saved=kget('tabOrder', null);
+  if(!saved) return NAV_TABS.slice();
+  const known=saved.filter(x=>NAV_TABS.includes(x));
+  NAV_TABS.forEach(x=>{ if(!known.includes(x)) known.push(x); });
+  return known;
+}
+function saveTabOrder(o){ kset('tabOrder', o); }
+function applyTabOrder(){
+  const box=$('#tabbar .inner'); if(!box) return;
+  tabOrder().forEach(id=>{ const el=box.querySelector('.tab[data-tab="'+id+'"]'); if(el) box.appendChild(el); });
+}
+let tabPress=null, tabDrag=null;
+function bindTabDrag(){
+  const box=$('#tabbar .inner'); if(!box) return;
+  box.querySelectorAll('.tab').forEach(el=>{
+    el.onpointerdown=e=>{
+      tabPress={el, x:e.clientX, y:e.clientY, pid:e.pointerId, timer:setTimeout(()=>tabLift(el,e),400)};
+    };
+    el.onpointermove=e=>{
+      if(tabPress && tabPress.timer && (Math.abs(e.clientX-tabPress.x)>10 || Math.abs(e.clientY-tabPress.y)>10)){
+        clearTimeout(tabPress.timer); tabPress=null; // moved before the hold fired — treat as a mis-tap, not a drag
+      }
+      if(tabDrag && tabDrag.el===el) tabDragMove(e);
+    };
+    el.onpointerup=()=>{
+      if(tabPress && tabPress.timer){ clearTimeout(tabPress.timer); tabPress=null; showTab(el.dataset.tab); return; } // quick tap → switch tabs, same as before
+      if(tabDrag && tabDrag.el===el) tabDrop();
+    };
+    el.onpointercancel=()=>{
+      if(tabPress && tabPress.timer){ clearTimeout(tabPress.timer); tabPress=null; }
+      if(tabDrag){ tabDragReset(); }
+    };
+  });
+}
+function tabLift(el,e){
+  tabPress=null;
+  try{ el.setPointerCapture(e.pointerId); }catch(_){}
+  el.classList.add('lifted'); buzz(28); beep([[660,.05]]); // same lift cue as the Today cards
+  const box=$('#tabbar .inner'), rect=box.getBoundingClientRect();
+  const order=tabOrder(), n=order.length, slot=rect.width/n;
+  tabDrag={el, id:el.dataset.tab, startX:e.clientX, order, slot, origin:order.indexOf(el.dataset.tab), current:order.indexOf(el.dataset.tab)};
+}
+function tabDragMove(e){
+  if(!tabDrag) return;
+  const dx=e.clientX-tabDrag.startX;
+  tabDrag.el.style.transform='translateX('+dx+'px) scale(1.12) translateY(-3px)';
+  const {order, slot, origin}=tabDrag;
+  let cur=Math.round(origin + dx/slot);
+  cur=Math.max(0, Math.min(order.length-1, cur));
+  if(cur!==tabDrag.current){
+    tabDrag.current=cur;
+    order.forEach((id,j)=>{
+      if(id===tabDrag.id) return;
+      const sib=$('#tabbar .inner').querySelector('.tab[data-tab="'+id+'"]'); if(!sib) return;
+      let shift=0;
+      if(cur<=j && j<origin) shift=1;        // dragged tab moved left past this one → it slides right, opening a gap on the left
+      else if(origin<j && j<=cur) shift=-1;  // dragged tab moved right past this one → it slides left
+      sib.style.transform = shift ? 'translateX('+(shift*slot)+'px)' : '';
+    });
+  }
+}
+function tabDragReset(){
+  if(!tabDrag) return;
+  tabDrag.el.classList.remove('lifted'); tabDrag.el.style.transform='';
+  tabDrag.order.forEach(id=>{ const sib=$('#tabbar .inner').querySelector('.tab[data-tab="'+id+'"]'); if(sib) sib.style.transform=''; });
+  tabDrag=null;
+}
+function tabDrop(){
+  if(!tabDrag) return;
+  const {id, order, origin, current}=tabDrag;
+  tabDragReset();
+  if(current!==origin){
+    const next=order.filter(x=>x!==id);
+    next.splice(current,0,id);
+    saveTabOrder(next); buzz(15);
+  }
+  applyTabOrder(); bindTabDrag(); // re-bind: applyTabOrder() re-parents the DOM nodes
 }
 
 /* ================= MORNING MISSION =================
@@ -5033,6 +5124,7 @@ function renderAll(){
 
 /* ================= init ================= */
 if(!hasSrv){ $('#localnote').style.display='block'; setSyncUI(null); } else { setSyncUI('ok'); doSync(false); }
+applyTabOrder(); bindTabDrag();
 showTab(activeTab);
 let lastDay=todayKey();
 setInterval(()=>{ if(todayKey()!==lastDay){ lastDay=todayKey(); ts=jload('tsrun',{mode:'idle'}); ts.mode='idle'; tsSave(); renderAll(); } }, 30000);

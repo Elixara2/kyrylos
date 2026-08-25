@@ -156,7 +156,9 @@
     padding:6px 4px calc(var(--safe-b) + 6px)}
   #tabbar .inner{display:flex;width:100%;max-width:760px}
   .tab{flex:1;background:none;border:none;color:var(--dim);display:flex;flex-direction:column;align-items:center;
-    gap:2px;padding:6px 2px;border-radius:12px;font-size:10.5px;font-weight:600;letter-spacing:.2px}
+    gap:2px;padding:6px 2px;border-radius:12px;font-size:10.5px;font-weight:600;letter-spacing:.2px;
+    touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  .tab.lifted{touch-action:none}
   .tab .ic{font-size:20px;line-height:1}
   .tab.on{color:var(--txt)}
   .tab.on .ic{transform:translateY(-1px)}
@@ -1412,7 +1414,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260825-134855';
+const KOS_BUILD='20260825-135239';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -1988,7 +1990,12 @@ let tabPress=null, tabDrag=null;
 function bindTabDrag(){
   const box=$('#tabbar .inner'); if(!box) return;
   box.querySelectorAll('.tab').forEach(el=>{
+    // long-press on text otherwise triggers the OS text-selection / copy popup,
+    // which steals the gesture before the 400ms hold fires. CSS user-select:none
+    // isn't enough on its own — the callout still fires on some browsers.
+    el.oncontextmenu=e=>{ e.preventDefault(); return false; };
     el.onpointerdown=e=>{
+      e.preventDefault();
       tabPress={el, x:e.clientX, y:e.clientY, pid:e.pointerId, timer:setTimeout(()=>tabLift(el,e),400)};
     };
     el.onpointermove=e=>{

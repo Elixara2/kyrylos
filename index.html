@@ -139,9 +139,13 @@
   .pad-wrap textarea.expanded{min-height:420px}
 
   /* draggable studio blocks — hold to lift, drag to reorder */
-  .dragblock{transition:box-shadow .2s,transform .15s;touch-action:pan-y;position:relative;
+  .dragblock{transition:box-shadow .2s,transform .15s,translate .18s var(--ease);touch-action:pan-y;position:relative;
     -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-  .dragblock.lifted{box-shadow:0 24px 60px rgba(0,0,0,.55);z-index:40;touch-action:none;cursor:grabbing}
+  /* same Android-springboard cue as the bottom tabs — independent scale/rotate props
+     so the JS-driven `translate` for the drag composes instead of being overwritten */
+  @keyframes blockJiggle{ 0%,100%{rotate:-.7deg} 50%{rotate:.7deg} }
+  .dragblock.lifted{box-shadow:0 24px 60px rgba(0,0,0,.55);z-index:40;touch-action:none;cursor:grabbing;
+    scale:1.03;transition:box-shadow .2s;animation:blockJiggle .24s ease-in-out infinite}
   .drag-handle{display:flex;align-items:center;justify-content:center;width:26px;flex:0 0 auto;align-self:stretch;
     color:var(--dim);cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   .drag-handle:active{color:var(--txt)}
@@ -1420,7 +1424,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260825-152024';
+const KOS_BUILD='20260826-065325';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -1913,7 +1917,134 @@ function makeDragReorder(containerSel, itemSel, idAttr, getOrder, saveOrder, onD
   return bind;
 }
 
-const bindFlowDrag=makeDragReorder('#flowlist','.fitem','fid',flowOrder,saveFlowOrder,renderToday);
+/* ---- shared hold-to-reorder for VERTICAL lists (Daily flow rows, Today cards) ----
+   Same language as the bottom tab bar: hold → buzz + jiggle + lift, drag → the other
+   rows slide to open the gap you'll drop into, release → it settles there.
+   Two things differ from the tabs and drive the extra machinery here:
+   1. These rows are variable-height, so displacement is measured from each row's own
+      captured geometry instead of one uniform slot width.
+   2. The page scrolls vertically — the same axis as the drag. touch-action alone
+      can't fix that (it's locked in at pointerdown, and we still want normal
+      scrolling when you're NOT dragging), so on lift we attach a non-passive
+      touchmove listener and preventDefault it. Registering it before the finger has
+      moved keeps the event cancelable, which is what actually stops the scroll. */
+function makeHoldReorder(opts){
+  const {containerSel, itemSel, idAttr, getOrder, saveOrder, onDrop, onTap} = opts;
+  const holdMs = opts.holdMs || 380;
+  let press=null, drag=null, blockScroll=null;
+  const box=()=>$(containerSel);
+
+  function stopScroll(){
+    if(blockScroll) return;
+    blockScroll=e=>{ if(e.cancelable) e.preventDefault(); };
+    document.addEventListener('touchmove', blockScroll, {passive:false});
+  }
+  function allowScroll(){
+    if(!blockScroll) return;
+    document.removeEventListener('touchmove', blockScroll, {passive:false});
+    blockScroll=null;
+  }
+  // after a real drag the browser still fires a click — swallow it so releasing
+  // doesn't also "tap" the row open
+  function swallowNextClick(){
+    const c=box(); if(!c) return;
+    const h=ev=>{ ev.stopPropagation(); ev.preventDefault(); c.removeEventListener('click',h,true); };
+    c.addEventListener('click',h,true);
+    setTimeout(()=>c.removeEventListener('click',h,true), 350);
+  }
+
+  function lift(el,e){
+    press=null;
+    const c=box(); if(!c) return;
+    try{ el.setPointerCapture(e.pointerId); }catch(_){}
+    const items=getOrder().map(id=>{
+      const node=c.querySelector(itemSel+'[data-'+idAttr.toLowerCase()+'="'+id+'"]');
+      if(!node) return null;
+      const r=node.getBoundingClientRect();
+      return {id, el:node, top:r.top, h:r.height, mid:r.top+r.height/2};
+    }).filter(Boolean);
+    const origin=items.findIndex(it=>it.el===el);
+    if(origin<0) return;
+    const neighbour=items[origin+1]||items[origin-1];
+    const step=neighbour ? Math.abs(neighbour.top-items[origin].top) : items[origin].h;
+    el.classList.add('lifted'); buzz(28); beep([[660,.05]]);
+    stopScroll();
+    drag={el, id:items[origin].id, startY:e.clientY, items, origin, current:origin, step};
+  }
+
+  function move(e){
+    if(!drag) return;
+    const dy=e.clientY-drag.startY;
+    drag.el.style.translate='0px '+dy+'px';
+    const {items, origin}=drag;
+    const centre=items[origin].mid+dy;
+    let cur=0;
+    items.forEach((it,j)=>{ if(j!==origin && it.mid<centre) cur++; });
+    if(cur===drag.current) return;
+    drag.current=cur;
+    items.forEach((it,j)=>{
+      if(j===origin) return;
+      let shift=0;
+      if(cur<=j && j<origin) shift=1;        // held row moved above this one → it slides down
+      else if(origin<j && j<=cur) shift=-1;  // held row moved below this one → it slides up
+      it.el.style.translate = shift ? '0px '+(shift*drag.step)+'px' : '';
+    });
+  }
+
+  function reset(){
+    if(!drag) return;
+    drag.el.classList.remove('lifted'); drag.el.style.translate='';
+    drag.items.forEach(it=>{ it.el.style.translate=''; });
+    drag=null; allowScroll(); swallowNextClick();
+  }
+
+  function drop(){
+    if(!drag) return;
+    const {id, items, origin, current}=drag;
+    reset();
+    if(current!==origin){
+      const next=items.map(it=>it.id).filter(x=>x!==id);
+      next.splice(current,0,id);
+      saveOrder(next); buzz(15);
+    }
+    onDrop && onDrop();
+  }
+
+  function bind(){
+    const c=box(); if(!c) return;
+    c.querySelectorAll(itemSel).forEach(el=>{
+      el.oncontextmenu=ev=>{ ev.preventDefault(); return false; };
+      el.onpointerdown=e=>{
+        if(e.target.closest('button,input,a,textarea,select')) return;
+        const onHandle=!!e.target.closest('.drag-handle');
+        if(onHandle) e.preventDefault();   // the ⠿ handle grabs instantly, no hold needed
+        press={el, x:e.clientX, y:e.clientY, timer:setTimeout(()=>lift(el,e), onHandle?0:holdMs)};
+      };
+      el.onpointermove=e=>{
+        if(press && press.timer && (Math.abs(e.clientX-press.x)>10 || Math.abs(e.clientY-press.y)>10)){
+          clearTimeout(press.timer); press=null;   // they're scrolling, not holding
+        }
+        if(drag && drag.el===el) move(e);
+      };
+      el.onpointerup=e=>{
+        if(press && press.timer){
+          clearTimeout(press.timer); press=null;
+          if(onTap && !e.target.closest('.drag-handle')) onTap(el);
+          return;
+        }
+        if(drag && drag.el===el) drop();
+      };
+      el.onpointercancel=()=>{
+        if(press && press.timer){ clearTimeout(press.timer); press=null; }
+        if(drag) reset();
+      };
+    });
+  }
+  return bind;
+}
+
+const bindFlowDrag=makeHoldReorder({containerSel:'#flowlist', itemSel:'.fitem', idAttr:'fid',
+  getOrder:flowOrder, saveOrder:saveFlowOrder, onDrop:renderToday});
 
 /* ---- the big Today cards (Habits/Goals/Profit): tap opens, HOLD enters move mode
    (gentle buzz), then drag to reorder — like rearranging home-screen widgets ---- */
@@ -1931,50 +2062,9 @@ function applyTodayCardOrder(){
   const box=$('#todayCards'); if(!box) return;
   todayCardOrder().forEach(id=>{ const el=box.querySelector('.card[data-cid="'+id+'"]'); if(el) box.appendChild(el); });
 }
-let cardPress=null, cardDrag=null, cardMoved=false;
-function bindTodayCards(){
-  const box=$('#todayCards'); if(!box) return;
-  box.querySelectorAll('.card[data-cid]').forEach(el=>{
-    el.onpointerdown=e=>{
-      if(e.target.closest('button,input,a,textarea,select')) return;
-      cardMoved=false;
-      cardPress={el, x:e.clientX, y:e.clientY, timer:setTimeout(()=>cardLift(el,e),400)};
-    };
-    el.onpointermove=e=>{
-      if(cardPress && cardPress.timer && (Math.abs(e.clientX-cardPress.x)>10 || Math.abs(e.clientY-cardPress.y)>10)){
-        clearTimeout(cardPress.timer); cardPress=null; // it's a scroll, not a hold
-      }
-      if(cardDrag && cardDrag.el===el){ cardMoved=true; cardDrag.el.style.transform='translateY('+(e.clientY-cardDrag.startY)+'px) scale(1.03)'; }
-    };
-    el.onpointerup=()=>{
-      if(cardPress && cardPress.timer){ clearTimeout(cardPress.timer); cardPress=null; openTodayCard(el.dataset.cid); return; } // quick tap → open
-      if(cardDrag && cardDrag.el===el) cardDrop();
-    };
-    el.onpointercancel=()=>{
-      if(cardPress && cardPress.timer){ clearTimeout(cardPress.timer); cardPress=null; }
-      if(cardDrag){ cardDrag.el.classList.remove('lifted'); cardDrag.el.style.transform=''; cardDrag=null; }
-    };
-  });
-}
-function cardLift(el,e){
-  cardPress=null;
-  try{ el.setPointerCapture(e.pointerId); }catch(_){}
-  el.classList.add('lifted'); buzz(28); beep([[660,.05]]); // gentle vibration on entering move mode
-  cardDrag={el, id:el.dataset.cid, startY:e.clientY};
-}
-function cardDrop(){
-  if(!cardDrag) return;
-  const {el,id}=cardDrag;
-  el.classList.remove('lifted'); el.style.transform='';
-  const box=$('#todayCards'), centerY=el.getBoundingClientRect().top+el.offsetHeight/2;
-  const order=todayCardOrder(), others=order.filter(x=>x!==id);
-  let idx=0;
-  others.forEach(x=>{ const sib=box.querySelector('.card[data-cid="'+x+'"]'); if(sib){ const r=sib.getBoundingClientRect(); if(r.top+r.height/2<centerY) idx++; } });
-  const next=others.slice(); next.splice(idx,0,id);
-  cardDrag=null;
-  if(next.join(',')!==order.join(',')){ saveTodayCardOrder(next); buzz(15); }
-  applyTodayCardOrder();
-}
+const bindTodayCards=makeHoldReorder({containerSel:'#todayCards', itemSel:'.card[data-cid]', idAttr:'cid',
+  getOrder:todayCardOrder, saveOrder:saveTodayCardOrder, onDrop:applyTodayCardOrder,
+  onTap:el=>openTodayCard(el.dataset.cid)});
 
 /* ---- bottom tab bar: hold a tab to reorder it, same hold-then-drag language as the
    Today cards above, but horizontal and with a live "gap" — neighbouring tabs slide

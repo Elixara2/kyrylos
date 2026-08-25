@@ -157,19 +157,25 @@
   #tabbar .inner{display:flex;width:100%;max-width:760px}
   .tab{flex:1;background:none;border:none;color:var(--dim);display:flex;flex-direction:column;align-items:center;
     gap:2px;padding:6px 2px;border-radius:12px;font-size:10.5px;font-weight:600;letter-spacing:.2px;
-    touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-  .tab.lifted{touch-action:none}
+    /* touch-action must be `none` from the START, not switched on at lift time: the
+       browser locks in a touch gesture's behaviour at pointerdown, so flipping it
+       later lets it claim the swipe as a page-scroll and fire pointercancel mid-drag */
+    touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+    transition:translate .22s var(--ease)}
   .tab .ic{font-size:20px;line-height:1}
   .tab.on{color:var(--txt)}
   .tab.on .ic{transform:translateY(-1px)}
   .tab .dotdone{width:4px;height:4px;border-radius:50%;background:transparent;margin-top:1px}
   .tab.done .dotdone{background:var(--green)}
-  /* hold-to-reorder: entering the lifted state pops the tab up above its neighbours
-     with a shadow; displaced neighbours slide sideways (see bindTabDrag in JS) with
-     their own transition so the row visibly opens a gap, Android-springboard style. */
-  .tab{transition:transform .22s var(--ease)}
-  .tab.lifted{transform:scale(1.12) translateY(-3px)!important;z-index:5;
-    background:var(--panel2);border-radius:14px;box-shadow:0 8px 20px rgba(0,0,0,.35);transition:none}
+  /* hold-to-reorder — Android-springboard feel: the held tab jiggles and follows your
+     finger, neighbours slide sideways to open the gap it will drop into.
+     Uses the INDEPENDENT transform properties (translate/scale/rotate) rather than the
+     `transform` shorthand, so JS can drive `translate` for the drag while the keyframes
+     drive `rotate` for the jiggle — with the shorthand they'd overwrite each other
+     (and a `transform:...!important` here silently beat the inline style entirely). */
+  @keyframes tabJiggle{ 0%,100%{rotate:-2.5deg} 50%{rotate:2.5deg} }
+  .tab.lifted{scale:1.12;z-index:5;background:var(--panel2);border-radius:14px;
+    box-shadow:0 8px 20px rgba(0,0,0,.35);transition:none;animation:tabJiggle .22s ease-in-out infinite}
   .tab.lifted .ic{transform:translateY(-1px) scale(1.05)}
 
   /* ── Prophit profit pill — now woven into the header next to the logo/date,
@@ -1414,7 +1420,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260825-135239';
+const KOS_BUILD='20260825-152024';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -2025,7 +2031,9 @@ function tabLift(el,e){
 function tabDragMove(e){
   if(!tabDrag) return;
   const dx=e.clientX-tabDrag.startX;
-  tabDrag.el.style.transform='translateX('+dx+'px) scale(1.12) translateY(-3px)';
+  // independent `translate` property — scale/rotate come from .tab.lifted + its
+  // jiggle keyframes, so writing the shorthand here would wipe both out
+  tabDrag.el.style.translate=dx+'px -3px';
   const {order, slot, origin}=tabDrag;
   let cur=Math.round(origin + dx/slot);
   cur=Math.max(0, Math.min(order.length-1, cur));
@@ -2037,14 +2045,14 @@ function tabDragMove(e){
       let shift=0;
       if(cur<=j && j<origin) shift=1;        // dragged tab moved left past this one → it slides right, opening a gap on the left
       else if(origin<j && j<=cur) shift=-1;  // dragged tab moved right past this one → it slides left
-      sib.style.transform = shift ? 'translateX('+(shift*slot)+'px)' : '';
+      sib.style.translate = shift ? (shift*slot)+'px' : '';
     });
   }
 }
 function tabDragReset(){
   if(!tabDrag) return;
-  tabDrag.el.classList.remove('lifted'); tabDrag.el.style.transform='';
-  tabDrag.order.forEach(id=>{ const sib=$('#tabbar .inner').querySelector('.tab[data-tab="'+id+'"]'); if(sib) sib.style.transform=''; });
+  tabDrag.el.classList.remove('lifted'); tabDrag.el.style.translate='';
+  tabDrag.order.forEach(id=>{ const sib=$('#tabbar .inner').querySelector('.tab[data-tab="'+id+'"]'); if(sib) sib.style.translate=''; });
   tabDrag=null;
 }
 function tabDrop(){

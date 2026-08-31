@@ -91,21 +91,24 @@
   #wrap{max-width:760px;margin:0 auto;padding:calc(var(--safe-t) + 14px) 16px calc(var(--safe-b) + 84px)}
   #fx{position:fixed;inset:0;z-index:96;pointer-events:none}
 
-  header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap}
-  header h1{font-size:19px;margin:0;font-weight:750;letter-spacing:.3px}
-  header .date{color:var(--dim);font-size:12.5px}
-  .hbtns{display:flex;align-items:center;gap:8px}
+  /* slim header: one single-line slither — logo · date · $ on the left, status on the
+     right. Everything is nowrap so it can never grow to a second row. */
+  header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;flex-wrap:nowrap}
+  header .hleft{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
+  header h1{font-size:14px;margin:0;font-weight:800;letter-spacing:.4px;white-space:nowrap}
+  header .date{color:var(--dim);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hbtns{display:flex;align-items:center;gap:6px;flex:0 0 auto}
   .syncdot{width:9px;height:9px;border-radius:50%;background:var(--dim);flex:0 0 auto}
   .syncdot.on{background:var(--green);box-shadow:0 0 0 4px rgba(34,197,94,.15)}
   .syncdot.err{background:var(--amber)}
-  .icobtn{background:var(--panel);border:1px solid var(--line);color:var(--txt);width:38px;height:38px;
-    border-radius:11px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-  .xpwrap{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);
-    border-radius:99px;padding:6px 11px;cursor:default}
-  .streakflame{font-size:14px;line-height:1}
-  .xpwrap b{font-size:13px;font-weight:800;color:var(--accent)}
-  .streaklbl{font-size:10px;font-weight:700;color:var(--dim);white-space:nowrap;letter-spacing:.03em}
-  @media(max-width:420px){.streaklbl{display:none}}
+  .icobtn{background:var(--panel);border:1px solid var(--line);color:var(--txt);width:28px;height:28px;
+    border-radius:9px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .xpwrap{display:flex;align-items:center;gap:5px;background:var(--panel);border:1px solid var(--line);
+    border-radius:99px;padding:3px 8px;cursor:default}
+  .streakflame{font-size:11px;line-height:1}
+  .xpwrap b{font-size:11px;font-weight:800;color:var(--accent)}
+  .streaklbl{font-size:9px;font-weight:700;color:var(--dim);white-space:nowrap;letter-spacing:.03em}
+  @media(max-width:520px){.streaklbl{display:none}}
   @keyframes xpfloat{0%{opacity:0;transform:translate(-50%,10px) scale(.9)}15%{opacity:1;transform:translate(-50%,-10px) scale(1)}
     75%{opacity:1;transform:translate(-50%,-56px) scale(1)}100%{opacity:0;transform:translate(-50%,-76px) scale(.96)}}
   .xppop{position:fixed;left:50%;top:18%;background:var(--panel2);border:1px solid var(--accent);color:var(--accent);
@@ -187,17 +190,16 @@
      and nothing else; tapped, the detail card drops down from underneath it.
      #pfloat is the positioning context (position:relative) so #pfcard can
      anchor via position:absolute without disturbing header layout. */
-  #pfloat{position:relative;display:inline-block;margin-top:6px}
-  #pfpill{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;
+  #pfloat{position:relative;display:inline-block;flex:0 0 auto}
+  #pfpill{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:999px;
     background:var(--panel);border:1px solid var(--line);color:var(--txt);font:inherit;
     box-shadow:0 2px 6px rgba(0,0,0,.18);cursor:pointer;
     transition:transform .18s var(--ease),border-color .18s ease}
   #pfpill:active{transform:scale(.96)}
   #pfpill.up{border-color:rgba(34,197,94,.45)}
   #pfpill.down{border-color:rgba(239,68,68,.45)}
-  #pfpill .lbl{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
-  #pfpill .val{font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
-  #pfpill .dot{width:6px;height:6px;border-radius:50%;background:var(--dim);flex:0 0 auto}
+  #pfpill .val{font-size:11.5px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
+  #pfpill .dot{width:5px;height:5px;border-radius:50%;background:var(--dim);flex:0 0 auto}
   #pfpill .dot.live{background:var(--green);box-shadow:0 0 0 3px rgba(34,197,94,.16)}
 
   #pfcard{position:absolute;top:calc(100% + 8px);left:0;z-index:40;
@@ -240,7 +242,10 @@
   .fitem .ft{flex:1;min-width:0;cursor:pointer}
   .fitem .ft b{font-size:15px;font-weight:600;display:block}
   .fitem .ft span{font-size:12px;color:var(--dim)}
-  .fitem.done .ft b{color:var(--dim)}
+  /* completed action block turns green — the whole row, not just the tick */
+  .fitem.done{background:rgba(34,197,94,.10);border-left:3px solid var(--green);
+    border-radius:10px;padding-left:8px}
+  .fitem.done .ft b{color:var(--green)}
   .fgo{flex:0 0 auto;width:26px;height:26px;display:flex;align-items:center;justify-content:center;
     color:var(--dim);font-size:20px;cursor:pointer}
   .fitem.done .fgo{color:var(--green)}
@@ -250,6 +255,21 @@
   .cardlink:active{border-color:var(--accent)}
   .cardlink-h{display:flex;align-items:center;justify-content:space-between}
   .cardlink-go{color:var(--dim);font-size:20px;font-weight:400}
+  /* ---- Wall: the shared notes/photos/links board ---- */
+  #wallDrop{margin-top:10px;border:1.5px dashed var(--line);border-radius:12px;padding:10px;transition:border-color .2s,background .2s}
+  #wallDrop.over{border-color:var(--accent);background:rgba(255,255,255,.04)}
+  #wallInput{width:100%;resize:vertical;min-height:44px}
+  #wallList{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+  .wallitem{display:flex;gap:10px;align-items:flex-start;background:var(--panel2);border:1px solid var(--line);
+    border-radius:12px;padding:10px 12px;animation:fade .2s var(--ease)}
+  .wallitem .wbody{flex:1;min-width:0}
+  .wallitem .wtxt{font-size:14px;line-height:1.45;white-space:pre-wrap;word-break:break-word}
+  .wallitem a.wlink{font-size:14px;color:var(--accent);word-break:break-all;text-decoration:none}
+  .wallitem a.wlink:active{text-decoration:underline}
+  .wallitem img.wimg{max-width:100%;border-radius:9px;display:block;margin-top:2px}
+  .wallitem .wts{font-size:10.5px;color:var(--dim);margin-top:5px}
+  .wallitem .wdel{background:none;border:none;color:var(--dim);font-size:15px;padding:2px 4px;flex:0 0 auto;cursor:pointer}
+  .wallitem.pending{opacity:.55}
   .miniitem{padding:3px 0;font-size:13.5px;color:var(--txt)}
   .miniitem.done{color:var(--dim);text-decoration:line-through}
   /* life modules */
@@ -681,6 +701,105 @@
   #toast.show{opacity:1;transform:translateX(-50%)}
   .localnote{background:rgba(245,158,11,.09);border:1px solid rgba(245,158,11,.35);border-radius:12px;
     padding:10px 14px;font-size:12.5px;color:#fbd38d;margin-bottom:14px;display:none}
+
+  /* ══════════════════════════════════════════════════════════════════════
+     HUD LAYER — the 2026 visual system.
+     Sits last in the sheet on purpose so it restyles the whole app from one
+     place. Everything reads from the same --accent/--panel/--line tokens, so
+     Pip-Boy mode (and every other theme) recolours it for free — the shapes,
+     spacing and motion are what change here, not the palette.
+     Principles: one column, lots of air, one obvious action per screen,
+     chrome that recedes and content that doesn't.
+     ══════════════════════════════════════════════════════════════════════ */
+  :root{ --hud-r:20px; --hud-line:rgba(var(--pip-rgb,255,255,255),.10); }
+
+  /* a narrower measure — focus beats density */
+  #wrap{max-width:600px;padding-left:18px;padding-right:18px}
+  ::-webkit-scrollbar{width:0;height:0}
+
+  /* CARDS — softer, deeper, with a hairline catching the light at the top */
+  .card{
+    border-radius:var(--hud-r); padding:18px 18px 19px; margin-bottom:12px;
+    background:linear-gradient(180deg, rgba(var(--pip-rgb,255,255,255),.035), rgba(var(--pip-rgb,255,255,255),.008)), var(--panel);
+    border:1px solid var(--hud-line);
+    box-shadow:0 1px 0 rgba(var(--pip-rgb,255,255,255),.06) inset, 0 18px 40px -32px #000;
+    position:relative; overflow:hidden;
+  }
+  .card::before{
+    content:''; position:absolute; inset:0 0 auto 0; height:1px; pointer-events:none;
+    background:linear-gradient(90deg, transparent, rgba(var(--pip-rgb,255,255,255),.30), transparent);
+  }
+
+  /* HEADINGS become quiet HUD labels — the content is the loud part */
+  .card h2{
+    font-size:10.5px; letter-spacing:.22em; text-transform:uppercase;
+    font-weight:800; color:var(--dim); margin:0 0 12px;
+  }
+  .lbl{ letter-spacing:.2em; font-size:10px; }
+
+  /* BUTTONS — centred, generous, with a glow that answers the press */
+  button{ border-radius:13px; font-weight:650; letter-spacing:.02em;
+    transition:transform .16s var(--ease), box-shadow .2s, background .2s, border-color .2s; }
+  button:active{ transform:scale(.965); }
+  button.primary{
+    background:linear-gradient(180deg, var(--accent), var(--accent2));
+    border-color:transparent; color:var(--bg); font-weight:800;
+    box-shadow:0 8px 24px -12px var(--accent), 0 0 0 1px rgba(var(--pip-rgb,255,255,255),.12) inset;
+  }
+  button.primary:active{ box-shadow:0 4px 14px -10px var(--accent); }
+  /* the one obvious action on a screen — full width, centred */
+  .hud-action{ display:flex; justify-content:center; margin-top:14px; }
+  .hud-action button{ min-width:min(320px,100%); padding:15px 22px; font-size:15px; }
+
+  /* PANEL ENTRANCE — content assembles instead of blinking in */
+  @keyframes hudIn{ from{opacity:0; transform:translateY(12px) scale(.995)} to{opacity:1; transform:none} }
+  .panel.on{ animation:none; }
+  .panel.on > *{ animation:hudIn .46s var(--ease) both; }
+  .panel.on > *:nth-child(1){animation-delay:.00s}
+  .panel.on > *:nth-child(2){animation-delay:.045s}
+  .panel.on > *:nth-child(3){animation-delay:.09s}
+  .panel.on > *:nth-child(4){animation-delay:.13s}
+  .panel.on > *:nth-child(5){animation-delay:.17s}
+  .panel.on > *:nth-child(6){animation-delay:.20s}
+  .panel.on > *:nth-child(n+7){animation-delay:.23s}
+  /* never animate a block you're dragging */
+  .panel.on > .dragblock.lifted{ animation:none; }
+
+  /* TAB BAR — a light bar that travels to the active tab */
+  #tabbar{ border-top:1px solid var(--hud-line); }
+  .tab{ position:relative; }
+  .tab::after{
+    content:''; position:absolute; bottom:1px; left:50%; width:0; height:2px; border-radius:2px;
+    margin-left:-11px; background:var(--accent); box-shadow:0 0 12px var(--accent);
+    transition:width .3s var(--ease), opacity .3s; opacity:0;
+  }
+  .tab.on::after{ width:22px; opacity:1; }
+  .tab .ic{ transition:transform .3s var(--ease), filter .3s; }
+  .tab.on .ic{ transform:translateY(-2px) scale(1.06); filter:drop-shadow(0 0 8px var(--accent)); }
+
+  /* PROGRESS RING — sweeps to its value instead of jumping */
+  .rfg{ transition:stroke-dashoffset 1.1s var(--ease); }
+
+  /* LIST ROWS — hairline separators, no boxes-in-boxes */
+  .fitem, .goal, .subtask, .wallitem{ border-color:var(--hud-line); }
+  .wallitem{ border-radius:14px; }
+
+  /* INPUTS — flatter at rest, lit when focused */
+  input[type=text],input[type=number],input[type=url],textarea,select{
+    border-radius:12px; border-color:var(--hud-line);
+    background:rgba(var(--pip-rgb,255,255,255),.04);
+    transition:border-color .2s, box-shadow .2s, background .2s;
+  }
+  input:focus,textarea:focus,select:focus{
+    border-color:var(--accent); background:rgba(var(--pip-rgb,255,255,255),.06);
+    box-shadow:0 0 0 3px rgba(var(--pip-rgb,120,140,255),.10);
+  }
+
+  /* people who ask for less motion get less motion */
+  @media (prefers-reduced-motion:reduce){
+    .panel.on > *{animation:none}
+    .tab::after,.tab .ic,.rfg{transition:none}
+  }
 </style>
 </head>
 <body>
@@ -691,13 +810,12 @@
 
 <div id="wrap">
   <header>
-    <div>
+    <div class="hleft">
       <h1>K<span style="color:var(--accent)">-OS</span></h1>
       <div class="date" id="hdrDate"></div>
       <div id="pfloat">
         <button id="pfpill" onclick="toggleProfitFloat()" aria-label="Today's profit">
           <span class="dot" id="pfDot"></span>
-          <span class="lbl">Profit</span>
           <span class="val" id="pfVal">—</span>
         </button>
         <div id="pfcard" role="dialog" aria-label="Profit detail">
@@ -769,28 +887,35 @@
       </div>
     </div>
     <div class="card">
-      <h2>Daily flow</h2>
-      <div class="flowlist" id="flowlist"></div>
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <h2 style="margin:0">Today's blocks</h2>
+        <button class="sm ghost" onclick="openModuleEdit()">＋ Block</button>
+      </div>
+      <div class="flowlist" id="flowlist" style="margin-top:8px"></div>
     </div>
     <div id="todayCards">
-      <div class="card cardlink dragblock" data-cid="habits">
-        <h2 class="cardlink-h">Habits <span class="cardlink-go">›</span></h2>
-        <div id="habitsMini" class="sub">—</div>
-      </div>
       <div class="card cardlink dragblock" data-cid="goals">
-        <h2 class="cardlink-h">Quests <span class="cardlink-go">›</span></h2>
+        <h2 class="cardlink-h">Active quests <span class="cardlink-go">›</span></h2>
         <div id="goalsMini" class="sub">—</div>
       </div>
-      <div class="card cardlink dragblock" data-cid="profit">
-        <div class="row" style="justify-content:space-between;align-items:flex-start">
-          <div>
-            <div class="lbl">Today's profit</div>
-            <div id="profitBarValue" style="font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:2px">—</div>
-            <div class="sub" id="profitBarSub">—</div>
-          </div>
-          <span class="cardlink-go" style="font-size:22px">›</span>
+    </div>
+
+    <!-- ============ NOTE WALL ============ -->
+    <div class="card" id="noteWallCard">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <h2 style="margin:0">Wall</h2>
+        <span class="sub" id="wallCount"></span>
+      </div>
+      <div class="sub" style="margin-top:2px">Paste text, links or images — drop files in. Synced to your phone.</div>
+      <div id="wallDrop">
+        <textarea id="wallInput" rows="2" placeholder="Type or paste anything… ⌘V an image works too"></textarea>
+        <div class="row" style="margin-top:8px;gap:8px">
+          <button class="sm primary" onclick="wallAddFromInput()">Add</button>
+          <button class="sm ghost" onclick="$('#wallFile').click()">📎 File</button>
+          <input type="file" id="wallFile" accept="image/*" multiple style="display:none" onchange="wallFilesPicked(event)">
         </div>
       </div>
+      <div id="wallList"></div>
     </div>
   </section>
 
@@ -1424,7 +1549,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260826-065325';
+const KOS_BUILD='20260831-203407';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -1818,21 +1943,37 @@ function saveSettings(){
 }
 
 /* ================= flow (daily stages) ================= */
+/* The day's action blocks. Deliberately only the four things that are actually
+   "do this now" work — anything else you want shows up here too, added as a custom
+   block (see getModules(); they're appended in flowBlocks() below). Habits/Diet/
+   Quests/Alarm are still tracked, just not as action blocks: Quests has its own
+   card under this list, the rest live on their own tabs. */
 const FLOW_STAGES = [
   {id:'morning', em:'🌅', t:'Morning routine', d:'ASCEND · breath, meditation, mobility, strength', open:()=>riseOpenAscend()},
-  {id:'tracker', em:'📈', t:'Habits', d:'Clear every habit on the tracker', open:()=>showTab('habits')},
   {id:'work', em:'⏱', t:'Work · time study', d:'Log every 15 min', open:()=>showTab('work')},
   {id:'gym', em:'🏋️', t:'Gym', d:'Exercises, weights, progress', open:()=>showTab('health')},
-  {id:'rap', em:'🎤', t:'Studio · writing', d:'Beat on, mumble, write bars', open:()=>showTab('rap')},
-  {id:'diet', em:'🍽', t:'Diet', d:'All meals + 3L water', open:()=>showTab('health')},
-  {id:'goals', em:'✅', t:'Quests', d:'All ticked off', open:()=>showTab('goals')},
-  {id:'alarm', em:'⏰', t:'Alarm', d:'Morning wake-up mission', open:()=>openSettings()},
+  {id:'rap', em:'🎤', t:'Music · studio', d:'Beat on, mumble, write bars', open:()=>showTab('rap')},
 ];
+/* fixed stages + your own custom blocks, as one list */
+function flowBlocks(){
+  const custom=(getModules()||[]).map(m=>({
+    id:'mod:'+m.id, em:m.emoji||'🧩', t:m.name, d:m.why||'Custom block',
+    custom:true, modId:m.id, open:()=>openModuleDetail(m.id)
+  }));
+  return FLOW_STAGES.concat(custom);
+}
+function flowBlockById(id){ return flowBlocks().find(s=>s.id===id); }
+/* a custom block counts as done when it's been logged today */
+function flowBlockDone(s, f){
+  if(!s.custom) return !!f[s.id];
+  const v=modValToday(s.modId), m=getModule(s.modId);
+  return m ? (m.type==='check' ? v>=1 : v>=(m.target||1)) : false;
+}
 function flowOrder(){
-  const ids=FLOW_STAGES.map(s=>s.id), saved=kget('flowOrder', null);
+  const ids=flowBlocks().map(s=>s.id), saved=kget('flowOrder', null);
   if(!saved) return ids.slice();
-  const known=saved.filter(id=>ids.includes(id));
-  ids.forEach(id=>{ if(!known.includes(id)) known.push(id); });
+  const known=saved.filter(id=>ids.includes(id));   // drops ids that no longer exist
+  ids.forEach(id=>{ if(!known.includes(id)) known.push(id); });  // new blocks land at the end
   return known;
 }
 function saveFlowOrder(order){ kset('flowOrder', order); }
@@ -2048,7 +2189,7 @@ const bindFlowDrag=makeHoldReorder({containerSel:'#flowlist', itemSel:'.fitem', 
 
 /* ---- the big Today cards (Habits/Goals/Profit): tap opens, HOLD enters move mode
    (gentle buzz), then drag to reorder — like rearranging home-screen widgets ---- */
-const TODAY_CARDS=['habits','goals','profit'];
+const TODAY_CARDS=['goals'];
 function todayCardOrder(){
   const saved=kget('todayCardOrder', null);
   if(!saved) return TODAY_CARDS.slice();
@@ -2523,24 +2664,28 @@ $('#dayRing').style.strokeDasharray=RC;
 $('#habRing').style.strokeDasharray=RC;
 function renderToday(){
   const f=getFlow();
-  const doneN=FLOW_STAGES.filter(s=>f[s.id]).length, pct=Math.round(doneN/FLOW_STAGES.length*100);
+  const allBlocks=flowBlocks();
+  const doneN=allBlocks.filter(s=>flowBlockDone(s,f)).length;
+  const pct=allBlocks.length ? Math.round(doneN/allBlocks.length*100) : 0;
   $('#dayPct').textContent=pct+'%';
   $('#dayRing').style.strokeDashoffset=RC*(1-pct/100);
   const h=new Date().getHours();
   $('#greet').textContent = h<12?'Morning, Kyryl.':h<17?'Keep pushing, Kyryl.':'Evening, Kyryl.';
-  const next=FLOW_STAGES.find(s=>s.id===flowOrder().find(id=>!f[id]));
+  const next=allBlocks.find(s=>!flowBlockDone(s,f));
   $('#nowHint').textContent = next ? 'Up next: '+next.t : 'Everything done. Legend. 🏆';
   const d=getDiet();
   $('#waterMini').textContent='💧 '+(d.water/1000).toFixed(2)+' / '+(SET.tankMl*2/1000).toFixed(2)+' L · 🍽 '+
     getMealDefs().filter(m=>d.meals&&d.meals[m.id]).length+'/'+getMealDefs().length+' meals';
   const box=$('#flowlist'); box.innerHTML='';
+  const blocks=flowBlocks();
   flowOrder().forEach(id=>{
-    const s=FLOW_STAGES.find(x=>x.id===id); if(!s) return;
-    const div=document.createElement('div'); div.className='fitem dragblock'+(f[s.id]?' done':'');
+    const s=blocks.find(x=>x.id===id); if(!s) return;
+    const done=flowBlockDone(s,f);
+    const div=document.createElement('div'); div.className='fitem dragblock'+(done?' done':'');
     div.dataset.fid=s.id;
     div.innerHTML='<div class="drag-handle">'+DRAG_HANDLE_SVG+'</div>'+
-      '<div class="ft"><b>'+s.em+' '+s.t+'</b><span>'+s.d+'</span></div>'+
-      '<div class="fgo">'+(f[s.id]?'✓':'›')+'</div>';
+      '<div class="ft"><b>'+s.em+' '+esc(s.t)+'</b><span>'+esc(s.d)+'</span></div>'+
+      '<div class="fgo">'+(done?'✓':'›')+'</div>';
     div.querySelector('.ft').onclick=()=>s.open();
     div.querySelector('.fgo').onclick=()=>s.open();
     box.appendChild(div);
@@ -2552,6 +2697,7 @@ function renderToday(){
       (g.length>6?'<div class="sub" style="margin-top:2px">+'+(g.length-6)+' more</div>':'')
     : 'No quests yet — add some.';
   applyTodayCardOrder(); bindTodayCards();
+  renderWall(); bindWall();
 }
 
 /* ================= WORK · time study ================= */
@@ -4809,7 +4955,8 @@ function renderHabits(){
     });
   });
 
-  $('#habitsMini').innerHTML = acts.length
+  const hm=$('#habitsMini');   // the Today habits card is gone; Metrics still shows this
+  if(hm) hm.innerHTML = acts.length
     ? acts.slice(0,6).map(h=>{ const v=day.checks[h.id]; const done=v===true||v==='R';
         return '<div class="miniitem'+(done?' done':'')+'">'+esc(h.label)+'</div>'; }).join('') +
         (acts.length>6?'<div class="sub" style="margin-top:2px">+'+(acts.length-6)+' more</div>':'')
@@ -5225,6 +5372,122 @@ function renderAll(){
   renderDayStreak();
   renderRise(); renderToday(); renderWork(); renderGym(); renderRapPanel(); renderDiet(); renderHabits(); renderProfitBar(); renderGoals(); renderModules(); renderAlarm(); renderTabs();
   checkMissionGate();
+}
+
+/* ================= WALL — shared notes / photos / links =================
+   One board you can see from the Mac and the phone. Text and links are plain KV
+   values so they sync like everything else; images go through the same Drive
+   upload the studio uses (apiCall 'uploadMedia'), so what syncs is a URL, not
+   megabytes of base64. Without a backend it still works, but image items stay
+   local to the device that added them — and say so. */
+function getWall(){ return kget('wall:items', []) || []; }
+function saveWall(items){ kset('wall:items', items); doSync(false); }
+function wallDelete(id){
+  const it=getWall().find(x=>x.id===id);
+  saveWall(getWall().filter(x=>x.id!==id));
+  if(it && it.driveId && hasSrv) apiCall('deleteMedia',{fileId:it.driveId}).catch(()=>{});
+  renderWall();
+}
+function wallPush(item){
+  const items=getWall();
+  items.unshift(Object.assign({id:newId(), ts:Date.now()}, item));   // newest on top
+  saveWall(items); renderWall();
+}
+const WALL_URL_RE=/^(https?:\/\/|www\.)\S+$/i;
+function wallAddText(text){
+  const t=(text||'').trim(); if(!t) return;
+  wallPush({type: WALL_URL_RE.test(t) ? 'link' : 'note', text:t});
+  buzz(12);
+}
+function wallAddFromInput(){
+  const inp=$('#wallInput'); if(!inp) return;
+  wallAddText(inp.value); inp.value=''; inp.focus();
+}
+function wallAddImageBlob(blob, name){
+  const fname = name || ('wall-'+Date.now()+'.png');
+  if(!hasSrv){
+    wallPush({type:'image', url:URL.createObjectURL(blob), name:fname, local:true});
+    toast('Saved on this device only — connect sync to see it on your phone.');
+    return;
+  }
+  if(blob.size > 20*1024*1024){ toast('Image too big (20MB max)'); return; }
+  const pendingId=newId();
+  const items=getWall();
+  items.unshift({id:pendingId, ts:Date.now(), type:'image', pending:true, name:fname});
+  saveWall(items); renderWall();
+  const reader=new FileReader();
+  reader.onload=()=>{
+    apiCall('uploadMedia',{base64:reader.result.split(',')[1], filename:fname, mimeType:blob.type||'image/png'})
+      .then(res=>{
+        if(!res || res.ok===false || !res.id) throw new Error('upload failed');
+        const list=getWall();
+        const row=list.find(x=>x.id===pendingId);
+        if(row){ row.pending=false; row.url=res.url; row.driveId=res.id; saveWall(list); }
+        renderWall(); buzz(12);
+      })
+      .catch(()=>{ saveWall(getWall().filter(x=>x.id!==pendingId)); renderWall(); toast('Upload failed — try again'); });
+  };
+  reader.readAsDataURL(blob);
+}
+function wallFilesPicked(e){
+  const files=[...(e.target.files||[])];
+  files.forEach(f=>{ if(f.type.startsWith('image/')) wallAddImageBlob(f, f.name); });
+  e.target.value='';
+}
+function renderWall(){
+  const box=$('#wallList'); if(!box) return;
+  const items=getWall();
+  const c=$('#wallCount'); if(c) c.textContent = items.length ? items.length+' item'+(items.length===1?'':'s') : '';
+  box.innerHTML = items.length ? '' : '<div class="empty">Nothing on the wall yet.</div>';
+  items.forEach(it=>{
+    const row=document.createElement('div');
+    row.className='wallitem'+(it.pending?' pending':'');
+    let inner='';
+    if(it.type==='image'){
+      inner = it.pending ? '<div class="wtxt">Uploading '+esc(it.name||'image')+'…</div>'
+                         : '<img class="wimg" src="'+esc(it.url)+'" alt="">';
+    } else if(it.type==='link'){
+      const href = it.text.startsWith('http') ? it.text : 'https://'+it.text;
+      inner = '<a class="wlink" href="'+esc(href)+'" target="_blank" rel="noopener">'+esc(it.text)+'</a>';
+    } else {
+      inner = '<div class="wtxt">'+esc(it.text)+'</div>';
+    }
+    row.innerHTML='<div class="wbody">'+inner+
+      '<div class="wts">'+new Date(it.ts).toLocaleString([], {day:'numeric',month:'short',hour:'numeric',minute:'2-digit'})+
+      (it.local?' · this device':'')+'</div></div>'+
+      '<button class="wdel" aria-label="Delete">✕</button>';
+    row.querySelector('.wdel').onclick=()=>wallDelete(it.id);
+    box.appendChild(row);
+  });
+}
+function bindWall(){
+  const inp=$('#wallInput'), drop=$('#wallDrop');
+  if(inp && !inp._bound){
+    inp._bound=1;
+    inp.addEventListener('paste', e=>{
+      const items=[...(e.clipboardData?.items||[])];
+      const img=items.find(i=>i.type.startsWith('image/'));
+      if(img){ e.preventDefault(); const f=img.getAsFile(); if(f) wallAddImageBlob(f, f.name); }
+    });
+    inp.addEventListener('keydown', e=>{
+      if(e.key==='Enter' && (e.metaKey||e.ctrlKey)){ e.preventDefault(); wallAddFromInput(); }
+    });
+  }
+  if(drop && !drop._bound){
+    drop._bound=1;
+    ['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev, e=>{
+      e.preventDefault(); drop.classList.add('over');
+    }));
+    ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev, e=>{
+      e.preventDefault(); if(ev==='drop'||e.target===drop) drop.classList.remove('over');
+    }));
+    drop.addEventListener('drop', e=>{
+      const files=[...(e.dataTransfer?.files||[])];
+      files.forEach(f=>{ if(f.type.startsWith('image/')) wallAddImageBlob(f, f.name); });
+      const txt=e.dataTransfer?.getData('text');
+      if(!files.length && txt) wallAddText(txt);
+    });
+  }
 }
 
 /* ================= init ================= */

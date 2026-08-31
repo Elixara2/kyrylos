@@ -242,10 +242,7 @@
   .fitem .ft{flex:1;min-width:0;cursor:pointer}
   .fitem .ft b{font-size:15px;font-weight:600;display:block}
   .fitem .ft span{font-size:12px;color:var(--dim)}
-  /* completed action block turns green — the whole row, not just the tick */
-  .fitem.done{background:rgba(34,197,94,.10);border-left:3px solid var(--green);
-    border-radius:10px;padding-left:8px}
-  .fitem.done .ft b{color:var(--green)}
+  .fitem.done .ft b{color:var(--green)}   /* bubble treatment lives in the HUD layer */
   .fgo{flex:0 0 auto;width:26px;height:26px;display:flex;align-items:center;justify-content:center;
     color:var(--dim);font-size:20px;cursor:pointer}
   .fitem.done .fgo{color:var(--green)}
@@ -704,115 +701,154 @@
 
   /* ══════════════════════════════════════════════════════════════════════
      HUD LAYER — the 2026 visual system.
-     Sits last in the sheet on purpose so it restyles the whole app from one
-     place. Everything reads from the same --accent/--panel/--line tokens, so
-     Pip-Boy mode (and every other theme) recolours it for free — the shapes,
-     spacing and motion are what change here, not the palette.
-     Principles: one column, lots of air, one obvious action per screen,
-     chrome that recedes and content that doesn't.
+     Scoped under #wrap / #tabbar ON PURPOSE. The Pip-Boy skin styles things as
+     `body.pipboy .card` (0,2,0); a bare `.card` (0,1,0) loses to that no matter
+     how late it sits in the sheet, which is why the first pass at this looked
+     identical in Pip-Boy mode. An id in the selector (1,1,0) outranks the skin,
+     so the shapes/spacing/motion here always land while the skin keeps supplying
+     the colour through the same --accent/--panel tokens.
      ══════════════════════════════════════════════════════════════════════ */
-  :root{ --hud-r:20px; --hud-line:rgba(var(--pip-rgb,255,255,255),.10); }
+  :root{ --hud-r:22px; }
+  body{ --hud-line:rgba(var(--pip-rgb,255,255,255),.12); --hud-tint:rgba(var(--pip-rgb,255,255,255),.05); }
 
-  /* a narrower measure — focus beats density */
-  #wrap{max-width:600px;padding-left:18px;padding-right:18px}
-  ::-webkit-scrollbar{width:0;height:0}
+  #wrap{ max-width:580px; padding-left:18px; padding-right:18px; }
+  ::-webkit-scrollbar{ width:0; height:0 }
 
-  /* CARDS — softer, deeper, with a hairline catching the light at the top */
-  .card{
-    border-radius:var(--hud-r); padding:18px 18px 19px; margin-bottom:12px;
-    background:linear-gradient(180deg, rgba(var(--pip-rgb,255,255,255),.035), rgba(var(--pip-rgb,255,255,255),.008)), var(--panel);
-    border:1px solid var(--hud-line);
-    box-shadow:0 1px 0 rgba(var(--pip-rgb,255,255,255),.06) inset, 0 18px 40px -32px #000;
+  /* ---------- CARDS: floating slabs, lit from above ---------- */
+  #wrap .card{
+    border-radius:var(--hud-r) !important;
+    padding:20px 18px 22px !important;
+    margin-bottom:14px !important;
+    background:linear-gradient(180deg, var(--hud-tint), transparent 62%), var(--panel) !important;
+    border:1px solid var(--hud-line) !important;
+    box-shadow:0 1px 0 rgba(var(--pip-rgb,255,255,255),.07) inset,
+               0 26px 50px -38px #000,
+               0 0 0 1px rgba(0,0,0,.25) !important;
     position:relative; overflow:hidden;
   }
-  .card::before{
+  #wrap .card::before{
     content:''; position:absolute; inset:0 0 auto 0; height:1px; pointer-events:none;
-    background:linear-gradient(90deg, transparent, rgba(var(--pip-rgb,255,255,255),.30), transparent);
+    background:linear-gradient(90deg, transparent, rgba(var(--pip-rgb,255,255,255),.42), transparent);
+  }
+  /* a soft accent bloom in the corner — depth without clutter */
+  #wrap .card::after{
+    content:''; position:absolute; right:-40px; top:-60px; width:160px; height:160px; pointer-events:none;
+    background:radial-gradient(circle, rgba(var(--pip-rgb,120,140,255),.10), transparent 68%);
   }
 
-  /* HEADINGS become quiet HUD labels — the content is the loud part */
-  .card h2{
-    font-size:10.5px; letter-spacing:.22em; text-transform:uppercase;
-    font-weight:800; color:var(--dim); margin:0 0 12px;
+  /* ---------- TYPE: tiny wide labels, huge confident numbers ---------- */
+  #wrap .card h2{
+    font-size:10px !important; letter-spacing:.28em !important; text-transform:uppercase !important;
+    font-weight:800 !important; color:var(--dim) !important; margin:0 0 14px !important;
   }
-  .lbl{ letter-spacing:.2em; font-size:10px; }
+  #wrap .lbl{ letter-spacing:.24em; font-size:9.5px; }
+  #wrap .big{ font-size:74px; letter-spacing:-.03em; font-weight:800; }
+  #wrap .rmid b{ font-size:30px; letter-spacing:-.02em; }
 
-  /* BUTTONS — centred, generous, with a glow that answers the press */
-  button{ border-radius:13px; font-weight:650; letter-spacing:.02em;
-    transition:transform .16s var(--ease), box-shadow .2s, background .2s, border-color .2s; }
-  button:active{ transform:scale(.965); }
-  button.primary{
-    background:linear-gradient(180deg, var(--accent), var(--accent2));
-    border-color:transparent; color:var(--bg); font-weight:800;
-    box-shadow:0 8px 24px -12px var(--accent), 0 0 0 1px rgba(var(--pip-rgb,255,255,255),.12) inset;
+  /* ---------- BUTTONS ---------- */
+  #wrap button{ border-radius:14px; font-weight:700; letter-spacing:.02em;
+    transition:transform .16s var(--ease), box-shadow .22s, background .22s, border-color .22s; }
+  #wrap button:active{ transform:scale(.96); }
+  #wrap button.primary{
+    background:linear-gradient(180deg, var(--accent), var(--accent2)) !important;
+    border-color:transparent !important; color:var(--bg) !important; font-weight:800;
+    box-shadow:0 10px 30px -14px var(--accent), inset 0 1px 0 rgba(255,255,255,.22) !important;
   }
-  button.primary:active{ box-shadow:0 4px 14px -10px var(--accent); }
-  /* the one obvious action on a screen — full width, centred */
-  .hud-action{ display:flex; justify-content:center; margin-top:14px; }
-  .hud-action button{ min-width:min(320px,100%); padding:15px 22px; font-size:15px; }
+  #wrap button.primary:active{ box-shadow:0 5px 16px -12px var(--accent) !important; }
+  #wrap .hud-action{ display:flex; justify-content:center; margin-top:16px; }
+  #wrap .hud-action button{ min-width:min(320px,100%); padding:16px 22px; font-size:15px; }
 
-  /* the Work controls: one slim strip, equal weight, nothing shouting */
-  .wctl{ display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-top:10px; }
-  .wctl button{ padding:10px 4px; font-size:12px; font-weight:700; border-radius:12px;
-    background:rgba(var(--pip-rgb,255,255,255),.05); border-color:var(--hud-line); }
-  .wctl button:disabled{ opacity:.32; pointer-events:none; }
+  /* the Work controls: one slim strip, equal weight */
+  #wrap .wctl{ display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-top:12px; }
+  #wrap .wctl button{ padding:11px 4px; font-size:11.5px; font-weight:800; border-radius:13px;
+    letter-spacing:.04em; background:var(--hud-tint); border-color:var(--hud-line); }
+  #wrap .wctl button:disabled{ opacity:.3; pointer-events:none; }
 
-  /* PANEL ENTRANCE — content assembles instead of blinking in */
-  @keyframes hudIn{ from{opacity:0; transform:translateY(12px) scale(.995)} to{opacity:1; transform:none} }
+  /* ---------- MOTION: panels assemble ---------- */
+  @keyframes hudIn{ from{opacity:0; transform:translateY(16px) scale(.985); filter:blur(3px)}
+                    to{opacity:1; transform:none; filter:blur(0)} }
   .panel.on{ animation:none; }
-  .panel.on > *{ animation:hudIn .46s var(--ease) both; }
-  .panel.on > *:nth-child(1){animation-delay:.00s}
-  .panel.on > *:nth-child(2){animation-delay:.045s}
-  .panel.on > *:nth-child(3){animation-delay:.09s}
-  .panel.on > *:nth-child(4){animation-delay:.13s}
-  .panel.on > *:nth-child(5){animation-delay:.17s}
-  .panel.on > *:nth-child(6){animation-delay:.20s}
-  .panel.on > *:nth-child(n+7){animation-delay:.23s}
-  /* never animate a block you're dragging */
+  .panel.on > *{ animation:hudIn .5s var(--ease) both; }
+  .panel.on > *:nth-child(1){animation-delay:0s}
+  .panel.on > *:nth-child(2){animation-delay:.05s}
+  .panel.on > *:nth-child(3){animation-delay:.1s}
+  .panel.on > *:nth-child(4){animation-delay:.15s}
+  .panel.on > *:nth-child(5){animation-delay:.2s}
+  .panel.on > *:nth-child(n+6){animation-delay:.24s}
   .panel.on > .dragblock.lifted{ animation:none; }
 
-  /* TAB BAR — a light bar that travels to the active tab */
-  #tabbar{ border-top:1px solid var(--hud-line); }
-  .tab{ position:relative; }
-  .tab::after{
-    content:''; position:absolute; bottom:1px; left:50%; width:0; height:2px; border-radius:2px;
-    margin-left:-11px; background:var(--accent); box-shadow:0 0 12px var(--accent);
-    transition:width .3s var(--ease), opacity .3s; opacity:0;
+  /* ---------- LIST ROWS ---------- */
+  #wrap .goal, #wrap .subtask, #wrap .wallitem{ border-color:var(--hud-line); }
+  #wrap .wallitem{ border-radius:15px; background:var(--hud-tint); }
+
+  /* ---------- ACTION BLOCKS: each one is its own bubble ----------
+     Stacked one per row (not a grid) so the hold-to-reorder maths, which measures
+     vertical geometry, stays correct. */
+  #wrap .blockhead{ display:flex; align-items:center; justify-content:space-between;
+    padding:2px 4px 10px; }
+  #wrap .blockhead .lbl{ color:var(--dim); }
+  #wrap .flowlist{ display:flex; flex-direction:column; gap:10px; }
+  #wrap .flowlist .fitem{
+    border:1px solid var(--hud-line) !important; border-radius:var(--hud-r);
+    background:linear-gradient(180deg, var(--hud-tint), transparent 70%), var(--panel);
+    padding:16px 16px !important; gap:12px;
+    box-shadow:0 18px 36px -34px #000, inset 0 1px 0 rgba(var(--pip-rgb,255,255,255),.06);
+    transition:border-color .2s, box-shadow .2s, background .3s;
   }
-  .tab.on::after{ width:22px; opacity:1; }
-  .tab .ic{ transition:transform .3s var(--ease), filter .3s; }
-  .tab.on .ic{ transform:translateY(-2px) scale(1.06); filter:drop-shadow(0 0 8px var(--accent)); }
+  #wrap .flowlist .fitem.hubbubble{ cursor:pointer; }
+  #wrap .flowlist .fitem.hubbubble:active{ transform:scale(.985); }
+  #wrap .flowlist .fitem .ft b{ font-size:15.5px; letter-spacing:-.01em; }
+  #wrap .flowlist .fitem .ft span{ font-size:11.5px; }
+  #wrap .flowlist .fitem .fgo{ font-size:20px; }
+  /* done = the whole bubble goes green */
+  #wrap .flowlist .fitem.done{
+    border-color:rgba(34,197,94,.45) !important;
+    background:linear-gradient(180deg, rgba(34,197,94,.16), rgba(34,197,94,.05) 70%), var(--panel);
+    box-shadow:0 0 0 1px rgba(34,197,94,.18), 0 18px 40px -32px rgba(34,197,94,.5);
+    padding-left:16px !important;
+  }
+  #wrap .flowlist .fitem.done .ft b{ color:var(--green); }
+  #wrap .flowlist .fitem.done .fgo{ color:var(--green); }
 
-  /* PROGRESS RING — sweeps to its value instead of jumping */
-  .rfg{ transition:stroke-dashoffset 1.1s var(--ease); }
+  /* ---------- the two big bubbles underneath ---------- */
+  #wrap #todayCards .card, #wrap #noteWallCard{ padding:22px 18px 24px !important; }
 
-  /* LIST ROWS — hairline separators, no boxes-in-boxes */
-  .fitem, .goal, .subtask, .wallitem{ border-color:var(--hud-line); }
-  .wallitem{ border-radius:14px; }
-
-  /* INPUTS — flatter at rest, lit when focused */
-  input[type=text],input[type=number],input[type=url],textarea,select{
-    border-radius:12px; border-color:var(--hud-line);
-    background:rgba(var(--pip-rgb,255,255,255),.04);
+  /* ---------- INPUTS ---------- */
+  #wrap input[type=text],#wrap input[type=number],#wrap input[type=url],#wrap textarea,#wrap select{
+    border-radius:13px; border-color:var(--hud-line); background:var(--hud-tint);
     transition:border-color .2s, box-shadow .2s, background .2s;
   }
-  input:focus,textarea:focus,select:focus{
-    border-color:var(--accent); background:rgba(var(--pip-rgb,255,255,255),.06);
-    box-shadow:0 0 0 3px rgba(var(--pip-rgb,120,140,255),.10);
+  #wrap input:focus,#wrap textarea:focus,#wrap select:focus{
+    border-color:var(--accent); box-shadow:0 0 0 3px rgba(var(--pip-rgb,120,140,255),.13);
   }
 
-  /* SETTINGS — grouped sections, each with its own breathing room and rule */
-  #setScrim .sect{ margin-top:22px; padding-top:18px; border-top:1px solid var(--hud-line); }
+  /* ---------- TAB BAR: a light bar travels to the active tab ---------- */
+  #tabbar{ border-top:1px solid var(--hud-line); }
+  #tabbar .tab{ position:relative; }
+  #tabbar .tab::after{
+    content:''; position:absolute; bottom:1px; left:50%; width:0; height:2px; border-radius:2px;
+    margin-left:-12px; background:var(--accent); box-shadow:0 0 14px var(--accent);
+    transition:width .32s var(--ease), opacity .32s; opacity:0;
+  }
+  #tabbar .tab.on::after{ width:24px; opacity:1; }
+  #tabbar .tab .ic{ transition:transform .32s var(--ease), filter .32s; }
+  #tabbar .tab.on .ic{ transform:translateY(-2px) scale(1.1); filter:drop-shadow(0 0 9px var(--accent)); }
+
+  /* ---------- PROGRESS RING sweeps instead of jumping ---------- */
+  .rfg{ transition:stroke-dashoffset 1.1s var(--ease); }
+
+  /* ---------- SETTINGS: real grouping ---------- */
+  #setScrim .sect{ margin-top:24px; padding-top:20px; border-top:1px solid var(--hud-line); }
   #setScrim .sect:first-of-type{ margin-top:14px; padding-top:0; border-top:none; }
-  #setScrim .sect > .lbl{ color:var(--accent); margin-bottom:12px; }
-  #setScrim .setgrid{ display:flex; flex-direction:column; gap:12px; }
+  #setScrim .sect > .lbl{ color:var(--accent); margin-bottom:13px; letter-spacing:.2em; }
+  #setScrim .setgrid{ display:flex; flex-direction:column; gap:13px; }
   #setScrim label{ display:block; font-size:12px; color:var(--dim); margin-bottom:5px; }
 
-  /* people who ask for less motion get less motion */
   @media (prefers-reduced-motion:reduce){
     .panel.on > *{animation:none}
-    .tab::after,.tab .ic,.rfg{transition:none}
+    #tabbar .tab::after,#tabbar .tab .ic,.rfg{transition:none}
   }
+
 </style>
 </head>
 <body>
@@ -862,30 +898,8 @@
     <b>Local mode</b> — running from a file, no cross-device sync (and voice/mp3 uploads need it too). Deploy via Google Apps Script (see README) so your Mac and S26+ stay in lockstep.
   </div>
 
-  <!-- ============ RISE · morning check-in ============ -->
-  <!-- ============ TODAY (dashboard) — Rise's check-in now lives at the top ============ -->
+  <!-- ============ TODAY (dashboard) ============ -->
   <section class="panel" id="p-today">
-    <div class="rise-hero">
-      <div class="rise-greet" id="riseGreet">Good morning, Kyryl.</div>
-      <div class="rise-date" id="riseDate"></div>
-      <div class="rise-quote" id="riseQuote" onclick="editRiseQuote()"></div>
-      <button class="rise-quote-edit" onclick="editRiseQuote()">✎ edit my quote</button>
-    </div>
-
-    <div id="riseNotChecked">
-      <button class="rise-btn" onclick="doCheckin()">🔒 Lock in &amp; start my day</button>
-      <div class="sub" style="text-align:center;margin-top:10px" id="riseStreak"></div>
-    </div>
-
-    <div id="riseChecked" style="display:none">
-      <div class="rise-locked">
-        <div class="rise-locked-badge">🔒 LOCKED IN</div>
-        <div class="rise-locked-time" id="riseLockedTime">—</div>
-        <div class="sub" id="riseStreak2"></div>
-      </div>
-      <button class="sm ghost" style="margin-top:14px" onclick="undoCheckin()">↺ Undo check-in</button>
-    </div>
-
     <div class="card">
       <div class="ringrow">
         <div class="ringbox">
@@ -894,18 +908,14 @@
         </div>
         <div class="grow">
           <div id="greet" style="font-size:17px;font-weight:650"></div>
-          <div class="sub" id="nowHint" style="margin-top:4px"></div>
-          <div class="sub" id="waterMini" style="margin-top:8px"></div>
         </div>
       </div>
     </div>
-    <div class="card">
-      <div class="row" style="justify-content:space-between;align-items:center">
-        <h2 style="margin:0">Today's blocks</h2>
-        <button class="sm ghost" onclick="openModuleEdit()">＋ Block</button>
-      </div>
-      <div class="flowlist" id="flowlist" style="margin-top:8px"></div>
+    <div class="blockhead">
+      <span class="lbl">Today's blocks</span>
+      <button class="sm ghost" onclick="openModuleEdit()">＋ Block</button>
     </div>
+    <div class="flowlist" id="flowlist"></div>
     <div id="todayCards">
       <div class="card cardlink dragblock" data-cid="goals">
         <h2 class="cardlink-h">Active quests <span class="cardlink-go">›</span></h2>
@@ -1016,8 +1026,21 @@
   </div>
 
   <!-- ============ HEALTH (Gym + Diet, combined) ============ -->
+  <!-- ============ HEALTH · hub of three ============ -->
   <section class="panel" id="p-health">
-    <div class="lbl" style="margin-bottom:2px">🏋️ Gym</div>
+    <div class="blockhead"><span class="lbl">Health</span></div>
+    <div class="flowlist" id="healthHub">
+      <div class="fitem hubbubble" onclick="showTab('gym')">
+        <div class="ft"><b>🏋️ Gym</b><span>Split, sets, weights, progress</span></div><div class="fgo">›</div></div>
+      <div class="fitem hubbubble" onclick="showTab('diet')">
+        <div class="ft"><b>🍗 Diet</b><span>Meals, macros, water, steps</span></div><div class="fgo">›</div></div>
+      <div class="fitem hubbubble" onclick="showTab('habits')">
+        <div class="ft"><b>📈 Habits</b><span>Daily tracker &amp; analytics</span></div><div class="fgo">›</div></div>
+    </div>
+  </section>
+
+  <!-- ============ GYM ============ -->
+  <section class="panel" id="p-gym">
     <div class="card">
       <div class="row" style="justify-content:space-between">
         <h2 style="margin:0">Today's workout <span class="sub" id="gymDateLbl"></span></h2>
@@ -1042,7 +1065,10 @@
       <div class="sub" id="gymHistList" style="margin-top:10px"></div>
     </div>
 
-    <div class="lbl" style="margin:18px 0 2px">🍗 Diet</div>
+  </section>
+
+  <!-- ============ DIET ============ -->
+  <section class="panel" id="p-diet">
     <div class="card">
       <div class="row" style="justify-content:space-between">
         <h2 style="margin:0">Meals</h2>
@@ -1080,7 +1106,6 @@
       <div class="sub" style="margin-top:8px;opacity:.7">Sleep and workouts aren't available yet — the Android plugin only exposes steps so far.</div>
     </div>
   </section>
-
   <!-- ============ STUDIO (rap/writing) ============ -->
   <section class="panel" id="p-rap">
     <div id="projPanel"></div>
@@ -1231,7 +1256,6 @@
       <div class="sub" style="margin-top:2px">Your numbers and journal — habits and profit.</div>
     </div>
     <div class="hublist">
-      <div class="hubcard cardlink" onclick="showTab('habits')"><span class="hub-em">📈</span><div class="ft"><b>Habits</b><span id="trackHabitsSub">Daily tracker & analytics</span></div><span class="cardlink-go">›</span></div>
       <div class="hubcard cardlink" onclick="showTab('modules')"><span class="hub-em">🧩</span><div class="ft"><b>Modules</b><span id="trackModulesSub">Custom trackers</span></div><span class="cardlink-go">›</span></div>
       <div class="hubcard cardlink" onclick="openProphit()"><span class="hub-em">💰</span><div class="ft"><b>Profit</b><span id="trackProfitSub">Today's numbers · Prophit</span></div><span class="cardlink-go">›</span></div>
     </div>
@@ -1561,7 +1585,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260831-203648';
+const KOS_BUILD='20260831-204536';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -2683,11 +2707,6 @@ function renderToday(){
   $('#dayRing').style.strokeDashoffset=RC*(1-pct/100);
   const h=new Date().getHours();
   $('#greet').textContent = h<12?'Morning, Kyryl.':h<17?'Keep pushing, Kyryl.':'Evening, Kyryl.';
-  const next=allBlocks.find(s=>!flowBlockDone(s,f));
-  $('#nowHint').textContent = next ? 'Up next: '+next.t : 'Everything done. Legend. 🏆';
-  const d=getDiet();
-  $('#waterMini').textContent='💧 '+(d.water/1000).toFixed(2)+' / '+(SET.tankMl*2/1000).toFixed(2)+' L · 🍽 '+
-    getMealDefs().filter(m=>d.meals&&d.meals[m.id]).length+'/'+getMealDefs().length+' meals';
   const box=$('#flowlist'); box.innerHTML='';
   const blocks=flowBlocks();
   flowOrder().forEach(id=>{
@@ -5313,7 +5332,7 @@ function startProfitFloat(){
 /* nav is 5 tabs; the rich screens (gym/studio/diet/habits/goals) live inside the
    Modules & Track hubs and open as sub-panels with a back bar */
 const NAV_TABS=['today','goals','work','rap','health','track'];
-const SUB_PARENT={habits:'track', modules:'track'};
+const SUB_PARENT={gym:'health', diet:'health', habits:'health', modules:'track'};
 let activeTab = jload('tab','today');
 if(!NAV_TABS.includes(activeTab) && !SUB_PARENT[activeTab]) activeTab='today';
 function showTab(name){
@@ -5322,7 +5341,9 @@ function showTab(name){
   const navHi = NAV_TABS.includes(name) ? name : (SUB_PARENT[name]||'today');
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on', t.dataset.tab===navHi));
   const bb=$('#backBar');
-  if(bb){ const parent=SUB_PARENT[name]; if(parent){ bb.textContent='‹ Metrics'; bb.style.display=''; bb.dataset.parent=parent; } else bb.style.display='none'; }
+  if(bb){ const parent=SUB_PARENT[name];
+    if(parent){ bb.textContent='‹ '+(parent==='health'?'Health':'Metrics'); bb.style.display=''; bb.dataset.parent=parent; }
+    else bb.style.display='none'; }
   renderAll();
   window.scrollTo({top:0});
   // Pip-Boy mode: the little dial-click + screen-pulse you get switching STAT/INV/DATA in-game
@@ -5367,7 +5388,7 @@ function renderTabs(){
   const f=getFlow();
   document.querySelectorAll('.tab').forEach(t=>{
     const id=t.dataset.tab;
-    const done = id==='today' ? false : id==='health' ? (!!f.gym && !!f.diet) : !!f[id];
+    const done = id==='today' ? false : id==='health' ? !!f.gym : !!f[id];
     t.classList.toggle('done', done);
   });
 }
@@ -5380,7 +5401,7 @@ function renderAll(){
   ensureHabitsMigrated();
   autoFlow();
   renderDayStreak();
-  renderRise(); renderToday(); renderWork(); renderGym(); renderRapPanel(); renderDiet(); renderHabits(); renderProfitBar(); renderGoals(); renderModules(); renderAlarm(); renderTabs();
+  renderToday(); renderWork(); renderGym(); renderRapPanel(); renderDiet(); renderHabits(); renderProfitBar(); renderGoals(); renderModules(); renderAlarm(); renderTabs();
   checkMissionGate();
 }
 

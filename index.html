@@ -800,9 +800,16 @@
   }
   #wrap .flowlist .fitem.hubbubble{ cursor:pointer; }
   #wrap .flowlist .fitem.hubbubble:active{ transform:scale(.985); }
+  /* action bubbles: just the title, centred between handle and chevron */
+  #wrap #todayStack .fitem .ft{ text-align:center; }
+  #wrap #todayStack .fitem .ft b{ font-size:16.5px; letter-spacing:-.01em; font-weight:700; }
   #wrap .flowlist .fitem .ft b{ font-size:15.5px; letter-spacing:-.01em; }
   #wrap .flowlist .fitem .ft span{ font-size:11.5px; }
   #wrap .flowlist .fitem .fgo{ font-size:20px; }
+  /* the two big cards get the same grab affordance, parked top-right */
+  #wrap .card-handle{ position:absolute; top:12px; right:14px; width:auto; opacity:.4; }
+  #wrap .card-handle svg{ transform:rotate(90deg); }
+  #wrap .dragblock.lifted .card-handle{ opacity:.9; color:var(--accent); }
   /* done = the whole bubble goes green */
   #wrap .flowlist .fitem.done{
     border-color:rgba(34,197,94,.45) !important;
@@ -936,7 +943,96 @@
     border-radius:14px; background:var(--hud-tint); border-color:var(--hud-line); }
   #wrap .wfoot .wctl button.danger{ color:#fca5a5; }
 
+  /* ══════════════════════════════════════════════════════════════════════
+     FAILING-HARDWARE GLITCHES
+     A 200-year-old device that still boots, but not cleanly. The whole point is
+     restraint: long quiet stretches, then a brief fault. Five different faults so
+     you never learn the pattern, weighted so the cheap ones (a flicker) are common
+     and the dramatic ones (sync roll, dropout) are rare. Scheduling + suppression
+     rules live in scheduleGlitch() — CSS here only describes what a fault LOOKS
+     like, never when it happens.
+     ══════════════════════════════════════════════════════════════════════ */
+  #glitchfx{ position:fixed; inset:0; z-index:9998; pointer-events:none; opacity:0; }
+  #glitchfx > *{ position:absolute; inset:0; opacity:0; }
+
+  /* 1 · FLICKER — a dying backlight. The most common fault, deliberately tiny. */
+  @keyframes gFlick{
+    0%,100%{ filter:none }
+    12%{ filter:brightness(.72) }
+    18%{ filter:brightness(1.06) }
+    26%{ filter:brightness(.84) }
+    34%{ filter:none }
+    62%{ filter:brightness(.9) contrast(1.1) }
+    70%{ filter:none }
+  }
+  .g-flick{ animation:gFlick .42s steps(1,end) 1; }
+
+  /* 2 · SIGNAL SPLIT — colour channels drifting apart, the panel losing sync */
+  @keyframes gSplit{
+    0%{ filter:none; transform:none }
+    15%{ filter:drop-shadow(-2px 0 rgba(255,0,60,.75)) drop-shadow(2px 0 rgba(0,255,230,.75)); transform:translateX(1px) }
+    32%{ filter:drop-shadow(3px 0 rgba(255,0,60,.6)) drop-shadow(-3px 0 rgba(0,255,230,.6)); transform:translateX(-2px) }
+    54%{ filter:drop-shadow(-1px 0 rgba(255,0,60,.5)) drop-shadow(1px 0 rgba(0,255,230,.5)); transform:translateX(1px) }
+    76%{ filter:none; transform:none }
+    100%{ filter:none; transform:none }
+  }
+  .g-split{ animation:gSplit .3s steps(2,end) 1; }
+
+  /* 3 · TEAR — horizontal bands where the image slips. backdrop-filter means the
+     bands distort whatever is actually underneath, rather than being pasted on. */
+  @keyframes gTear{
+    0%,100%{ opacity:0 }
+    8%,42%{ opacity:1 }
+    55%{ opacity:0 }
+    68%,80%{ opacity:1 }
+  }
+  #glitchfx.on .g-tear{ animation:gTear .34s steps(1,end) 1; }
+  .g-tear i{
+    position:absolute; left:0; right:0; display:block;
+    backdrop-filter:invert(.10) hue-rotate(28deg) contrast(1.35) saturate(1.4);
+  }
+  .g-tear i:nth-child(1){ top:22%; height:9px;  transform:translateX(-7px) }
+  .g-tear i:nth-child(2){ top:47%; height:16px; transform:translateX(9px) }
+  .g-tear i:nth-child(3){ top:71%; height:6px;  transform:translateX(-4px) }
+
+  /* 4 · SYNC ROLL — the classic CRT band sweeping down the screen */
+  @keyframes gRoll{
+    0%{ opacity:0; transform:translateY(-22vh) }
+    10%{ opacity:.85 }
+    88%{ opacity:.6 }
+    100%{ opacity:0; transform:translateY(108vh) }
+  }
+  #glitchfx.on .g-roll{ animation:gRoll .85s cubic-bezier(.4,0,.7,1) 1; }
+  .g-roll b{
+    position:absolute; left:0; right:0; top:0; height:14vh; display:block;
+    background:linear-gradient(180deg, transparent,
+      rgba(var(--pip-rgb,180,220,255),.14) 35%,
+      rgba(var(--pip-rgb,180,220,255),.22) 50%,
+      rgba(var(--pip-rgb,180,220,255),.10) 65%, transparent);
+    box-shadow:0 0 40px rgba(var(--pip-rgb,180,220,255),.16);
+  }
+
+  /* 5 · DROPOUT — power browns out, static bleeds in, then it catches itself.
+     The rarest one; this is the "it nearly died" moment. */
+  @keyframes gDrop{
+    0%{ opacity:0 } 6%{ opacity:.9 } 34%{ opacity:.35 } 52%{ opacity:.8 } 100%{ opacity:0 }
+  }
+  #glitchfx.on .g-noise{ animation:gDrop .5s steps(3,end) 1; }
+  .g-noise{
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");
+    mix-blend-mode:overlay;
+  }
+  @keyframes gDropDim{
+    0%,100%{ filter:none }
+    10%{ filter:brightness(.35) saturate(.2) }
+    30%{ filter:brightness(.8) saturate(.6) }
+    45%{ filter:brightness(.28) saturate(.15) }
+    70%{ filter:brightness(1.08) }
+  }
+  .g-dropout{ animation:gDropDim .5s steps(1,end) 1; }
+
   @media (prefers-reduced-motion:reduce){
+    #glitchfx{ display:none }
     .panel.on > *{animation:none}
     #tabbar .tab::after,#tabbar .tab .ic,.rfg{transition:none}
   }
@@ -946,6 +1042,11 @@
 <body>
 <canvas id="fx"></canvas>
 <div id="pipfx"><div class="scan"></div><div class="vig"></div><div class="flicker"></div></div>
+<div id="glitchfx" aria-hidden="true">
+  <div class="g-tear"><i></i><i></i><i></i></div>
+  <div class="g-roll"><b></b></div>
+  <div class="g-noise"></div>
+</div>
 <div id="tt"></div>
 <div id="toast"></div>
 
@@ -1010,10 +1111,12 @@
     <!-- ONE stack: action blocks, quests and the wall all reorder against each other -->
     <div class="flowlist" id="todayStack">
       <div class="card cardlink dragblock tbub" data-tid="goals" id="goalsCard">
+        <div class="drag-handle card-handle"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3" r="1.3"/><circle cx="11" cy="3" r="1.3"/><circle cx="5" cy="8" r="1.3"/><circle cx="11" cy="8" r="1.3"/><circle cx="5" cy="13" r="1.3"/><circle cx="11" cy="13" r="1.3"/></svg></div>
         <h2 class="cardlink-h">Active quests <span class="cardlink-go">›</span></h2>
         <div id="goalsMini" class="sub">—</div>
       </div>
       <div class="card dragblock tbub" data-tid="wall" id="noteWallCard">
+        <div class="drag-handle card-handle"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3" r="1.3"/><circle cx="11" cy="3" r="1.3"/><circle cx="5" cy="8" r="1.3"/><circle cx="11" cy="8" r="1.3"/><circle cx="5" cy="13" r="1.3"/><circle cx="11" cy="13" r="1.3"/></svg></div>
         <div class="row" style="justify-content:space-between;align-items:center">
           <h2 style="margin:0">Wall</h2>
           <span class="sub" id="wallCount"></span>
@@ -1643,7 +1746,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260831-212311';
+const KOS_BUILD='20260901-060841';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -2785,7 +2888,7 @@ function renderToday(){
     div.className='fitem dragblock tbub'+(done?' done':'');
     div.dataset.tid=s.id;
     div.innerHTML='<div class="drag-handle">'+DRAG_HANDLE_SVG+'</div>'+
-      '<div class="ft"><b>'+s.em+' '+esc(s.t)+'</b><span>'+esc(s.d)+'</span></div>'+
+      '<div class="ft"><b>'+s.em+' '+esc(s.t)+'</b></div>'+
       '<div class="fgo">'+(done?'✓':'›')+'</div>';
     built[s.id]=div;
   });
@@ -5596,6 +5699,65 @@ function bindWall(){
   }
 }
 
+/* ================= FAILING-HARDWARE GLITCHES =================
+   The believability is entirely in the scheduling, not the effects. Rules:
+   · long quiet gaps (45–210s) so a fault is a surprise, never a metronome
+   · weighted severity — flickers are common, a near-death dropout is rare
+   · real hardware stutters, so ~22% of faults fire a short aftershock
+   · never interrupt you: suppressed while typing, dragging, on a hidden tab,
+     or during the first 12s after load (a fault during boot reads as a bug)
+   · honours prefers-reduced-motion by simply never scheduling */
+const GLITCH_KINDS = [
+  {id:'flick',   w:46, ms:420, run(){ pulse('g-flick'); }},
+  {id:'tear',    w:24, ms:340, run(){ overlay(340); }},
+  {id:'split',   w:16, ms:300, run(){ pulse('g-split'); }},
+  {id:'roll',    w:10, ms:850, run(){ overlay(850); }},
+  {id:'dropout', w:4,  ms:500, run(){ pulse('g-dropout'); overlay(500); }},
+];
+let glitchTimer=null;
+function glitchTargets(){ return [$('#wrap'), $('#tabbar')].filter(Boolean); }
+function pulse(cls){
+  glitchTargets().forEach(el=>{
+    el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
+    setTimeout(()=>el.classList.remove(cls), 900);
+  });
+}
+function overlay(ms){
+  const fx=$('#glitchfx'); if(!fx) return;
+  fx.style.opacity='1'; fx.classList.remove('on'); void fx.offsetWidth; fx.classList.add('on');
+  setTimeout(()=>{ fx.classList.remove('on'); fx.style.opacity='0'; }, ms+60);
+}
+function glitchSuppressed(){
+  if(document.hidden) return true;
+  const a=document.activeElement;
+  if(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return true;   // never while typing
+  if(document.querySelector('.dragblock.lifted, .tab.lifted')) return true; // never mid-drag
+  if(document.querySelector('.scrim.show, .missionov.show')) return true;   // not over a modal
+  return false;
+}
+function pickGlitch(){
+  const total=GLITCH_KINDS.reduce((a,k)=>a+k.w,0);
+  let r=Math.random()*total;
+  for(const k of GLITCH_KINDS){ if((r-=k.w)<=0) return k; }
+  return GLITCH_KINDS[0];
+}
+function fireGlitch(){
+  if(glitchSuppressed()) return;
+  const k=pickGlitch();
+  k.run();
+  // real failing hardware rarely faults just once — sometimes it stutters
+  if(Math.random()<0.22){
+    const after=GLITCH_KINDS[0];                       // aftershock is always a small one
+    setTimeout(()=>{ if(!glitchSuppressed()) after.run(); }, k.ms + 90 + Math.random()*260);
+  }
+}
+function scheduleGlitch(){
+  clearTimeout(glitchTimer);
+  if(matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+  const gap = 60000 + Math.random()*180000;            // 1–4 min between faults
+  glitchTimer=setTimeout(()=>{ fireGlitch(); scheduleGlitch(); }, gap);
+}
+
 /* ================= init ================= */
 if(!hasSrv){ $('#localnote').style.display='block'; setSyncUI(null); } else { setSyncUI('ok'); doSync(false); }
 applyTabOrder(); bindTabDrag();
@@ -5614,6 +5776,8 @@ if(NATIVE && window.Capacitor.Plugins.App){
 }
 if(NATIVE){ hcRefreshSteps(); setInterval(hcRefreshSteps, 15*60000); }
 startProfitFloat();
+// hold off ~12s after load — a fault during boot reads as a bug, not character
+setTimeout(scheduleGlitch, 12000);
 </script>
 </body>
 </html>

@@ -814,9 +814,8 @@
   #wrap .flowlist .fitem.done .fgo{ color:var(--green); }
 
   /* ---------- the two big bubbles underneath ---------- */
-  #wrap #todayCards .card, #wrap #noteWallCard{ padding:22px 18px 24px !important; }
-  #wrap #todayCards{ display:flex; flex-direction:column; gap:14px; }
-  #wrap #todayCards .card{ margin-bottom:0 !important;
+  /* the two big bubbles sit in the same stack as the action blocks */
+  #wrap #todayStack > .card{ padding:22px 18px 24px !important; margin-bottom:0 !important;
     transition:translate .26s var(--spring), box-shadow .25s, border-color .2s; }
 
   /* ---------- PICKED UP: the bubble leaves the page, the rest closes ranks ----------
@@ -941,16 +940,16 @@
       </div>
     </div>
     <div class="blockhead">
-      <span class="lbl">Today's blocks</span>
+      <span class="lbl">Today</span>
       <button class="sm ghost" onclick="openModuleEdit()">＋ Block</button>
     </div>
-    <div class="flowlist" id="flowlist"></div>
-    <div id="todayCards">
-      <div class="card cardlink dragblock" data-cid="goals">
+    <!-- ONE stack: action blocks, quests and the wall all reorder against each other -->
+    <div class="flowlist" id="todayStack">
+      <div class="card cardlink dragblock tbub" data-tid="goals" id="goalsCard">
         <h2 class="cardlink-h">Active quests <span class="cardlink-go">›</span></h2>
         <div id="goalsMini" class="sub">—</div>
       </div>
-      <div class="card dragblock" data-cid="wall" id="noteWallCard">
+      <div class="card dragblock tbub" data-tid="wall" id="noteWallCard">
         <div class="row" style="justify-content:space-between;align-items:center">
           <h2 style="margin:0">Wall</h2>
           <span class="sub" id="wallCount"></span>
@@ -1613,7 +1612,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260831-205152';
+const KOS_BUILD='20260831-205541';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -2033,14 +2032,7 @@ function flowBlockDone(s, f){
   const v=modValToday(s.modId), m=getModule(s.modId);
   return m ? (m.type==='check' ? v>=1 : v>=(m.target||1)) : false;
 }
-function flowOrder(){
-  const ids=flowBlocks().map(s=>s.id), saved=kget('flowOrder', null);
-  if(!saved) return ids.slice();
-  const known=saved.filter(id=>ids.includes(id));   // drops ids that no longer exist
-  ids.forEach(id=>{ if(!known.includes(id)) known.push(id); });  // new blocks land at the end
-  return known;
-}
-function saveFlowOrder(order){ kset('flowOrder', order); }
+/* flowOrder/saveFlowOrder retired — todayOrder() now owns the whole stack */
 function getFlow(){ return kget('flow:'+todayKey(),{}); }
 function setFlowPart(id,val){ flowMutate(id,val); renderToday(); renderTabs(); }
 function setFlowPartQuiet(id,val){ flowMutate(id,val); }
@@ -2252,28 +2244,41 @@ function makeHoldReorder(opts){
   return bind;
 }
 
-const bindFlowDrag=makeHoldReorder({containerSel:'#flowlist', itemSel:'.fitem', idAttr:'fid',
-  getOrder:flowOrder, saveOrder:saveFlowOrder, onDrop:renderToday});
-
-/* ---- the big Today cards (Habits/Goals/Profit): tap opens, HOLD enters move mode
-   (gentle buzz), then drag to reorder — like rearranging home-screen widgets ---- */
-const TODAY_CARDS=['goals','wall'];
-function todayCardOrder(){
-  const saved=kget('todayCardOrder', null);
-  if(!saved) return TODAY_CARDS.slice();
-  const known=saved.filter(x=>TODAY_CARDS.includes(x));
-  TODAY_CARDS.forEach(x=>{ if(!known.includes(x)) known.push(x); });
+/* ---- Today is ONE stack ----
+   Action blocks, Active quests and the Wall all live in #todayStack and reorder
+   against each other, so a quest can sit between two blocks. They used to be two
+   separate containers with separate engines, which is why nothing could cross
+   from one group into the other. Single order list, single engine. */
+const TODAY_FIXED=['goals','wall'];          // the two big bubbles
+function todayOrder(){
+  const ids=flowBlocks().map(s=>s.id).concat(TODAY_FIXED);
+  const saved=kget('todayOrder', null);
+  if(!saved) return ids;
+  const known=saved.filter(x=>ids.includes(x));      // forget anything deleted
+  ids.forEach(x=>{ if(!known.includes(x)) known.push(x); });  // new stuff joins the end
   return known;
 }
-function saveTodayCardOrder(o){ kset('todayCardOrder', o); }
-function openTodayCard(id){ if(id==='goals') showTab('goals'); else if(id==='habits') showTab('habits'); else if(id==='profit') openProphit(); /* 'wall' opens nothing — you edit it in place */ }
-function applyTodayCardOrder(){
-  const box=$('#todayCards'); if(!box) return;
-  todayCardOrder().forEach(id=>{ const el=box.querySelector('.card[data-cid="'+id+'"]'); if(el) box.appendChild(el); });
+function saveTodayOrder(o){ kset('todayOrder', o); }
+function openTodayCard(id){ if(id==='goals') showTab('goals'); else if(id==='habits') showTab('habits'); else if(id==='profit') openProphit(); }
+
+/* re-lay the stack in saved order. The two fixed cards are MOVED (appendChild on an
+   existing node), never re-created — re-rendering them would blow away whatever
+   you'd half-typed into the Wall. */
+function applyTodayOrder(){
+  const box=$('#todayStack'); if(!box) return;
+  todayOrder().forEach(id=>{
+    const el=box.querySelector('.tbub[data-tid="'+id+'"]');
+    if(el) box.appendChild(el);
+  });
 }
-const bindTodayCards=makeHoldReorder({containerSel:'#todayCards', itemSel:'.card[data-cid]', idAttr:'cid',
-  getOrder:todayCardOrder, saveOrder:saveTodayCardOrder, onDrop:applyTodayCardOrder,
-  onTap:el=>openTodayCard(el.dataset.cid)});
+const bindTodayStack=makeHoldReorder({containerSel:'#todayStack', itemSel:'.tbub', idAttr:'tid',
+  getOrder:todayOrder, saveOrder:saveTodayOrder, onDrop:applyTodayOrder,
+  onTap:el=>{
+    const id=el.dataset.tid;
+    if(id==='wall') return;                       // edited in place, nothing to open
+    if(TODAY_FIXED.includes(id)) return openTodayCard(id);
+    const s=flowBlockById(id); if(s) s.open();
+  }});
 
 /* ---- bottom tab bar: hold a tab to reorder it, same hold-then-drag language as the
    Today cards above, but horizontal and with a live "gap" — neighbouring tabs slide
@@ -2739,28 +2744,33 @@ function renderToday(){
   $('#dayRing').style.strokeDashoffset=RC*(1-pct/100);
   const h=new Date().getHours();
   $('#greet').textContent = h<12?'Morning, Kyryl.':h<17?'Keep pushing, Kyryl.':'Evening, Kyryl.';
-  const box=$('#flowlist'); box.innerHTML='';
-  const blocks=flowBlocks();
-  flowOrder().forEach(id=>{
-    const s=blocks.find(x=>x.id===id); if(!s) return;
+  // rebuild only the action bubbles; the two fixed cards are moved, not re-created
+  const box=$('#todayStack');
+  [...box.querySelectorAll('.fitem')].forEach(n=>n.remove());
+  const built={};
+  flowBlocks().forEach(s=>{
     const done=flowBlockDone(s,f);
-    const div=document.createElement('div'); div.className='fitem dragblock'+(done?' done':'');
-    div.dataset.fid=s.id;
+    const div=document.createElement('div');
+    div.className='fitem dragblock tbub'+(done?' done':'');
+    div.dataset.tid=s.id;
     div.innerHTML='<div class="drag-handle">'+DRAG_HANDLE_SVG+'</div>'+
       '<div class="ft"><b>'+s.em+' '+esc(s.t)+'</b><span>'+esc(s.d)+'</span></div>'+
       '<div class="fgo">'+(done?'✓':'›')+'</div>';
-    div.querySelector('.ft').onclick=()=>s.open();
-    div.querySelector('.fgo').onclick=()=>s.open();
-    box.appendChild(div);
+    built[s.id]=div;
   });
-  bindFlowDrag();
+  todayOrder().forEach(id=>{
+    if(built[id]){ box.appendChild(built[id]); return; }
+    const fixed=box.querySelector('.tbub[data-tid="'+id+'"]');
+    if(fixed) box.appendChild(fixed);
+  });
+
   const g=getGoals();
   $('#goalsMini').innerHTML = g.length
     ? g.slice(0,6).map(x=>'<div class="miniitem'+(x.done?' done':'')+'">'+esc(x.text)+'</div>').join('') +
       (g.length>6?'<div class="sub" style="margin-top:2px">+'+(g.length-6)+' more</div>':'')
     : 'No quests yet — add some.';
-  applyTodayCardOrder(); bindTodayCards();
   renderWall(); bindWall();
+  bindTodayStack();
 }
 
 /* ================= WORK · time study ================= */

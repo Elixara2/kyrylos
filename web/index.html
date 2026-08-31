@@ -708,7 +708,7 @@
      so the shapes/spacing/motion here always land while the skin keeps supplying
      the colour through the same --accent/--panel tokens.
      ══════════════════════════════════════════════════════════════════════ */
-  :root{ --hud-r:22px; }
+  :root{ --hud-r:22px; --spring:cubic-bezier(.34,1.42,.64,1); }
   body{ --hud-line:rgba(var(--pip-rgb,255,255,255),.12); --hud-tint:rgba(var(--pip-rgb,255,255,255),.05); }
 
   #wrap{ max-width:580px; padding-left:18px; padding-right:18px; }
@@ -793,7 +793,10 @@
     background:linear-gradient(180deg, var(--hud-tint), transparent 70%), var(--panel);
     padding:16px 16px !important; gap:12px;
     box-shadow:0 18px 36px -34px #000, inset 0 1px 0 rgba(var(--pip-rgb,255,255,255),.06);
-    transition:border-color .2s, box-shadow .2s, background .3s;
+    /* `translate` MUST stay in this list — it's what animates a neighbour sliding
+       aside to open the gap. Leaving it out (as this rule first did) silently
+       overrode .dragblock's transition and made the row jump instead of slide. */
+    transition:translate .26s var(--spring), border-color .2s, box-shadow .25s, background .3s;
   }
   #wrap .flowlist .fitem.hubbubble{ cursor:pointer; }
   #wrap .flowlist .fitem.hubbubble:active{ transform:scale(.985); }
@@ -812,6 +815,32 @@
 
   /* ---------- the two big bubbles underneath ---------- */
   #wrap #todayCards .card, #wrap #noteWallCard{ padding:22px 18px 24px !important; }
+  #wrap #todayCards{ display:flex; flex-direction:column; gap:14px; }
+  #wrap #todayCards .card{ margin-bottom:0 !important;
+    transition:translate .26s var(--spring), box-shadow .25s, border-color .2s; }
+
+  /* ---------- PICKED UP: the bubble leaves the page, the rest closes ranks ----------
+     The held bubble lifts toward the reader (scale + shadow + slight tilt) and goes
+     semi-transparent so you can see the gap it will drop into underneath it. */
+  #wrap .dragblock.lifted{
+    scale:1.06 !important;
+    opacity:.92;
+    z-index:60 !important;
+    box-shadow:0 30px 60px -18px rgba(0,0,0,.75),
+               0 0 0 1px rgba(var(--pip-rgb,255,255,255),.18),
+               0 0 40px -12px var(--accent) !important;
+    border-color:var(--accent) !important;
+    cursor:grabbing;
+  }
+  /* the empty slot breathes while it waits for the drop */
+  @keyframes gapPulse{ 0%,100%{opacity:.30} 50%{opacity:.55} }
+  #wrap .dragblock.lifted::after{
+    content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+    border:1px dashed var(--accent); opacity:.35; animation:gapPulse 1.1s ease-in-out infinite;
+  }
+  /* settle with a little bounce once you let go */
+  @keyframes dropSettle{ 0%{scale:1.06} 55%{scale:.985} 100%{scale:1} }
+  #wrap .dragblock.dropped{ animation:dropSettle .34s var(--ease); }
 
   /* ---------- INPUTS ---------- */
   #wrap input[type=text],#wrap input[type=number],#wrap input[type=url],#wrap textarea,#wrap select{
@@ -921,25 +950,24 @@
         <h2 class="cardlink-h">Active quests <span class="cardlink-go">›</span></h2>
         <div id="goalsMini" class="sub">—</div>
       </div>
+      <div class="card dragblock" data-cid="wall" id="noteWallCard">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <h2 style="margin:0">Wall</h2>
+          <span class="sub" id="wallCount"></span>
+        </div>
+        <div class="sub" style="margin-top:2px">Paste text, links or images — drop files in. Synced to your phone.</div>
+        <div id="wallDrop">
+          <textarea id="wallInput" rows="2" placeholder="Type or paste anything… ⌘V an image works too"></textarea>
+          <div class="row" style="margin-top:8px;gap:8px">
+            <button class="sm primary" onclick="wallAddFromInput()">Add</button>
+            <button class="sm ghost" onclick="$('#wallFile').click()">📎 File</button>
+            <input type="file" id="wallFile" accept="image/*" multiple style="display:none" onchange="wallFilesPicked(event)">
+          </div>
+        </div>
+        <div id="wallList"></div>
+      </div>
     </div>
 
-    <!-- ============ NOTE WALL ============ -->
-    <div class="card" id="noteWallCard">
-      <div class="row" style="justify-content:space-between;align-items:center">
-        <h2 style="margin:0">Wall</h2>
-        <span class="sub" id="wallCount"></span>
-      </div>
-      <div class="sub" style="margin-top:2px">Paste text, links or images — drop files in. Synced to your phone.</div>
-      <div id="wallDrop">
-        <textarea id="wallInput" rows="2" placeholder="Type or paste anything… ⌘V an image works too"></textarea>
-        <div class="row" style="margin-top:8px;gap:8px">
-          <button class="sm primary" onclick="wallAddFromInput()">Add</button>
-          <button class="sm ghost" onclick="$('#wallFile').click()">📎 File</button>
-          <input type="file" id="wallFile" accept="image/*" multiple style="display:none" onchange="wallFilesPicked(event)">
-        </div>
-      </div>
-      <div id="wallList"></div>
-    </div>
   </section>
 
   <!-- ============ WORK ============ -->
@@ -1585,7 +1613,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260831-204536';
+const KOS_BUILD='20260831-205152';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -2170,8 +2198,12 @@ function makeHoldReorder(opts){
 
   function reset(){
     if(!drag) return;
-    drag.el.classList.remove('lifted'); drag.el.style.translate='';
+    const el=drag.el;
+    el.classList.remove('lifted'); el.style.translate='';
     drag.items.forEach(it=>{ it.el.style.translate=''; });
+    // brief settle bounce so the drop reads as landing, not teleporting
+    el.classList.remove('dropped'); void el.offsetWidth; el.classList.add('dropped');
+    setTimeout(()=>el.classList.remove('dropped'), 360);
     drag=null; allowScroll(); swallowNextClick();
   }
 
@@ -2225,7 +2257,7 @@ const bindFlowDrag=makeHoldReorder({containerSel:'#flowlist', itemSel:'.fitem', 
 
 /* ---- the big Today cards (Habits/Goals/Profit): tap opens, HOLD enters move mode
    (gentle buzz), then drag to reorder — like rearranging home-screen widgets ---- */
-const TODAY_CARDS=['goals'];
+const TODAY_CARDS=['goals','wall'];
 function todayCardOrder(){
   const saved=kget('todayCardOrder', null);
   if(!saved) return TODAY_CARDS.slice();
@@ -2234,7 +2266,7 @@ function todayCardOrder(){
   return known;
 }
 function saveTodayCardOrder(o){ kset('todayCardOrder', o); }
-function openTodayCard(id){ if(id==='habits') showTab('habits'); else if(id==='goals') showTab('goals'); else if(id==='profit') openProphit(); }
+function openTodayCard(id){ if(id==='goals') showTab('goals'); else if(id==='habits') showTab('habits'); else if(id==='profit') openProphit(); /* 'wall' opens nothing — you edit it in place */ }
 function applyTodayCardOrder(){
   const box=$('#todayCards'); if(!box) return;
   todayCardOrder().forEach(id=>{ const el=box.querySelector('.card[data-cid="'+id+'"]'); if(el) box.appendChild(el); });

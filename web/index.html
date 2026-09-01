@@ -12,6 +12,12 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icon-192.png">
 <title>K-OS</title>
+<!-- Share Tech Mono is the closest free stand-in for the Pip-Boy's Monofonto (which is
+     licensed, so not something to ship). Purely an enhancement — the monospace fallback
+     stack below it carries the look offline and inside the Electron/Capacitor shells. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap">
 <style>
   :root{
     --bg:#0e1116; --panel:#161b22; --panel2:#1c232d; --line:#2a323d;
@@ -35,12 +41,15 @@
      these plain (non-!important) class rules automatically. --pip-rgb holds the
      phosphor colour as "r,g,b" so glow/overlay rgba()s can reuse it at any alpha. */
   body.pipboy{
-    --pip-rgb:77,255,106;
-    --bg:#050a05; --panel:#0a1a0a; --panel2:#0d220d; --line:#1d4d1d;
-    --txt:#4dff6a; --dim:#2f8f42; --accent:#4dff6a; --accent2:#1f9d3f;
-    --green:#4dff6a; --amber:#4dff6a; --red:#ff6a5a; --purple:#4dff6a;
-    --chart1:#4dff6a; --chart2:#2fbf50; --chart3:#1f9d3f;
-    background:radial-gradient(ellipse at 50% 35%, #0c220c 0%, #030603 100%);
+    /* 26,255,128 = #1aff80, the actual Pip-Boy phosphor green. --pip-dim is the
+       same hue burnt down rather than a grey, because a real phosphor screen has
+       exactly one colour — dimmer pixels, never a different ink. */
+    --pip-rgb:26,255,128;
+    --bg:#020d06; --panel:#04180c; --panel2:#062011; --line:#0f6b38;
+    --txt:#1aff80; --dim:#12a854; --accent:#1aff80; --accent2:#0f8f47;
+    --green:#1aff80; --amber:#1aff80; --red:#ff6a5a; --purple:#1aff80;
+    --chart1:#1aff80; --chart2:#12c060; --chart3:#0d8f47;
+    background:#010703;
   }
   /* brightness lives on #wrap/#tabbar, NOT body: a `filter` on <body> makes it the
      containing block for every position:fixed descendant (same rule as transform),
@@ -1037,11 +1046,333 @@
     #tabbar .tab::after,#tabbar .tab .ic,.rfg{transition:none}
   }
 
+  /* ══════════════════════════════════════════════════════════════════════════
+     PIP-BOY TERMINAL LAYER
+     The block at the top of this sheet only recolours things; that's why the app
+     still read as "the same app, but green". This layer replaces the SHAPES.
+
+     SPECIFICITY, because it bit us before: the HUD layer above styles cards as
+     `#wrap .card` (1,1,0) with !important on radius/padding/background/border/
+     shadow. Every rule here is written `body.pipboy #wrap …` (1,2,0) so it
+     outranks that, and repeats !important on exactly those properties — when
+     both sides are !important, specificity decides, and (1,2,0) wins.
+
+     Design notes are from the real device: one phosphor colour at varying
+     brightness (never a second ink), hard square frames with the section title
+     notched into the top border, `>` carets on rows, inverted selection, blocky
+     segmented meters, and a heavy scanline/bloom/curvature stack over the lot.
+     ══════════════════════════════════════════════════════════════════════════ */
+
+  body.pipboy{
+    --pipfont:'Share Tech Mono',ui-monospace,'SF Mono','Cascadia Mono','Courier New',monospace;
+    --pip-hair:rgba(var(--pip-rgb),.30);   /* faint rules      */
+    --pip-edge:rgba(var(--pip-rgb),.62);   /* frame borders    */
+    --pip-fill:rgba(var(--pip-rgb),.07);   /* panel wash       */
+  }
+
+  /* ---------- 1 · THE SCREEN ----------
+     #wrap stops being a page and becomes a piece of curved glass sunk into a
+     bezel. The curvature is faked with vignette + inner shadow rather than a
+     transform on purpose: a transform here would make #wrap the containing
+     block for every position:fixed descendant, the same trap that unpinned the
+     tab bar when brightness was a filter on <body>. */
+  body.pipboy #wrap{
+    max-width:620px;
+    background:
+      radial-gradient(120% 88% at 50% 46%, rgba(var(--pip-rgb),.055) 0%, transparent 74%),
+      #010703;
+    border:1px solid rgba(var(--pip-rgb),.16);
+    border-radius:26px/34px;
+    box-shadow:
+      inset 0 0 90px rgba(0,0,0,.95),
+      inset 0 0 26px rgba(var(--pip-rgb),.07),
+      0 0 42px -8px rgba(var(--pip-rgb),.13);
+    padding-left:20px; padding-right:20px;
+    padding-bottom:calc(var(--safe-b) + 96px);
+    margin-bottom:12px;
+  }
+
+  body.pipboy,
+  body.pipboy input, body.pipboy textarea, body.pipboy select, body.pipboy button{
+    font-family:var(--pipfont) !important;
+    letter-spacing:.02em;
+  }
+  /* uppercase is the single biggest "this is a terminal" tell */
+  body.pipboy #wrap h1, body.pipboy #wrap h2, body.pipboy #wrap .lbl,
+  body.pipboy #wrap button, body.pipboy #wrap .ft b, body.pipboy #wrap .tab .lbl,
+  body.pipboy #wrap .sub, body.pipboy #wrap label, body.pipboy #wrap .hub-em + .ft b{
+    text-transform:uppercase;
+  }
+  /* every glyph carries a little phosphor bleed */
+  body.pipboy #wrap, body.pipboy #tabbar{
+    text-shadow:0 0 1px rgba(var(--pip-rgb),.75), 0 0 7px rgba(var(--pip-rgb),.30);
+  }
+
+  /* ---------- 2 · HEADER RAIL ----------
+     Brand, then the signature heavy rule with tick marks dropping off it. */
+  body.pipboy #wrap header{
+    border-bottom:2px solid var(--pip-edge);
+    padding-bottom:7px; margin-bottom:0; position:relative;
+  }
+  body.pipboy #wrap header::after{
+    content:''; position:absolute; left:0; right:0; bottom:-7px; height:7px;
+    pointer-events:none;
+    background:repeating-linear-gradient(90deg,
+      var(--pip-edge) 0 2px, transparent 2px 26px);
+    -webkit-mask-image:linear-gradient(180deg,#000,transparent);
+            mask-image:linear-gradient(180deg,#000,transparent);
+  }
+  body.pipboy #wrap header h1{
+    font-size:15px; letter-spacing:.22em; font-weight:400;
+    text-shadow:0 0 4px rgba(var(--pip-rgb),.9), 0 0 14px rgba(var(--pip-rgb),.45);
+  }
+  body.pipboy #wrap header h1::before{ content:'▌'; opacity:.75; margin-right:5px; }
+  /* monospace + uppercase makes the date far wider than the sans version this
+     header was sized for, and it's white-space:nowrap — without min-width:0 the
+     flex item refuses to shrink and pushes the whole page into overflow. */
+  body.pipboy #wrap header .date{ letter-spacing:.06em; font-size:10px; min-width:0; }
+  /* colour emoji can't be recoloured (they come from a colour font), so in a
+     single-ink phosphor screen they simply go. The wrapped ones are hidden
+     outright; font-variant-emoji:text is the catch-all for the many emoji that
+     sit inline inside dynamic strings ("🔥 4 day streak") and can't be selected —
+     it asks for the monochrome text presentation, which then takes `color` like
+     any other glyph. Unsupported browsers just keep their colour emoji. */
+  body.pipboy #wrap .em, body.pipboy #wrap .hub-em,
+  body.pipboy #wrap .meal .em, body.pipboy #wrap .streakflame{ display:none; }
+  body.pipboy #wrap, body.pipboy #tabbar{ font-variant-emoji:text; }
+  body.pipboy #wrap #pfpill{
+    border-radius:0 !important; border:1px solid var(--pip-edge) !important;
+    background:transparent !important; letter-spacing:.1em;
+  }
+  body.pipboy #wrap .panel{ padding-top:22px; }
+
+  /* ---------- 3 · CARDS → FRAMES ----------
+     Square, hairline-bordered, with the h2 notched INTO the top border. */
+  body.pipboy #wrap .card{
+    border-radius:0 !important;
+    padding:26px 16px 18px !important;
+    margin-bottom:16px !important;
+    background:var(--pip-fill) !important;
+    border:1px solid var(--pip-edge) !important;
+    box-shadow:inset 0 0 34px rgba(0,0,0,.62) !important;
+    overflow:visible;
+  }
+  /* the HUD layer's top hairline + corner bloom become corner brackets instead */
+  body.pipboy #wrap .card::before{
+    content:''; position:absolute; left:-1px; top:-1px; width:13px; height:13px;
+    border-left:2px solid rgb(var(--pip-rgb)); border-top:2px solid rgb(var(--pip-rgb));
+    background:none; height:13px;
+  }
+  body.pipboy #wrap .card::after{
+    content:''; position:absolute; right:-1px; bottom:-1px; width:13px; height:13px;
+    left:auto; top:auto;
+    border-right:2px solid rgb(var(--pip-rgb)); border-bottom:2px solid rgb(var(--pip-rgb));
+    background:none;
+  }
+  /* title sits on the border line, its background cutting the stroke */
+  body.pipboy #wrap .card > h2:first-child{
+    position:absolute; top:-8px; left:16px; margin:0 !important;
+    background:#02100a; padding:0 9px !important;
+    font-size:11px !important; letter-spacing:.26em !important;
+    font-weight:400 !important; color:rgb(var(--pip-rgb)) !important;
+    text-shadow:0 0 6px rgba(var(--pip-rgb),.6);
+  }
+  body.pipboy #wrap .card > h2:first-child::before{ content:'· '; opacity:.6; }
+  body.pipboy #wrap .card > h2:first-child::after{ content:' ·'; opacity:.6; }
+
+  /* ---------- 4 · ROWS: carets + inverted selection ----------
+     A Pip-Boy row is not a rounded pill. It's a flat line of text with a caret
+     that appears when it's the active one, and it inverts to black-on-phosphor. */
+  body.pipboy #wrap .flowlist .fitem,
+  body.pipboy #wrap #todayStack > .card{
+    border-radius:0 !important;
+    background:transparent !important;
+    border:1px solid var(--pip-hair) !important;
+    box-shadow:none !important;
+    padding:13px 14px 13px 30px !important;
+    position:relative;
+    transition:translate .26s var(--spring), background .12s, color .12s;
+  }
+  body.pipboy #wrap .flowlist .fitem::before{
+    content:'>'; position:absolute; left:11px; top:50%; translate:0 -50%;
+    opacity:0; font-weight:400; color:inherit; transition:opacity .12s;
+  }
+  body.pipboy #wrap .flowlist .fitem:hover::before,
+  body.pipboy #wrap .flowlist .fitem:active::before{ opacity:1; }
+  body.pipboy #wrap .flowlist .fitem:active{
+    background:rgb(var(--pip-rgb)) !important; color:#02100a !important;
+    text-shadow:none;
+  }
+  body.pipboy #wrap .flowlist .fitem:active .ft b,
+  body.pipboy #wrap .flowlist .fitem:active .ft span,
+  body.pipboy #wrap .flowlist .fitem:active .fgo{ color:#02100a !important; }
+  /* completed = filled marker, not a green wash */
+  body.pipboy #wrap .flowlist .fitem.done{
+    border-color:var(--pip-edge) !important; background:rgba(var(--pip-rgb),.10) !important;
+  }
+  body.pipboy #wrap .flowlist .fitem.done::before{ content:'■'; opacity:1; }
+  body.pipboy #wrap .flowlist .fitem .ft b{ letter-spacing:.1em; font-weight:400; }
+  body.pipboy #wrap .flowlist .fitem .fgo{ opacity:.55; }
+  body.pipboy #wrap .goal, body.pipboy #wrap .subtask, body.pipboy #wrap .wallitem,
+  body.pipboy #wrap .walldrop, body.pipboy #wrap .entry, body.pipboy #wrap .hubcard,
+  body.pipboy #wrap .modal, body.pipboy #wrap .miniitem{
+    border-radius:0 !important; background:transparent !important;
+    border-color:var(--pip-hair) !important;
+  }
+  /* the grab handles sat on top of the frame's corner bracket */
+  body.pipboy #wrap .card-handle{ top:8px; right:10px; }
+  /* the Work panel's own containers — the last rounded shapes on the screen */
+  body.pipboy #wrap .wsliver, body.pipboy #wrap .wfoot, body.pipboy #wrap .wsession,
+  body.pipboy #wrap .wctl button, body.pipboy #wrap .logov-inner{
+    border-radius:0 !important;
+    border-color:var(--pip-edge) !important;
+    background:var(--pip-fill) !important;
+  }
+
+  /* ---------- 5 · BUTTONS: bracketed, invert on press ---------- */
+  body.pipboy #wrap button{
+    border-radius:0 !important;
+    background:transparent !important;
+    border:1px solid var(--pip-edge) !important;
+    color:rgb(var(--pip-rgb)) !important;
+    letter-spacing:.14em; font-weight:400;
+    box-shadow:none !important;
+    transition:background .1s, color .1s;
+  }
+  body.pipboy #wrap button:active{
+    background:rgb(var(--pip-rgb)) !important; color:#02100a !important;
+    text-shadow:none; transform:none;
+  }
+  body.pipboy #wrap button.primary{
+    border:2px solid rgb(var(--pip-rgb)) !important;
+    background:rgba(var(--pip-rgb),.12) !important;
+    color:rgb(var(--pip-rgb)) !important;
+  }
+  body.pipboy #wrap button.primary::before{ content:'[ '; }
+  body.pipboy #wrap button.primary::after{ content:' ]'; }
+  body.pipboy #wrap button.primary:active{
+    background:rgb(var(--pip-rgb)) !important; color:#02100a !important;
+  }
+  /* the big circular Clock in becomes an octagonal terminal key. wpulse is killed
+     because it animates box-shadow, which fights the flat phosphor look. */
+  body.pipboy #wrap .wbig{
+    border-radius:0 !important;
+    clip-path:polygon(14% 0,86% 0,100% 22%,100% 78%,86% 100%,14% 100%,0 78%,0 22%);
+    border:2px solid rgb(var(--pip-rgb)) !important;
+    background:rgba(var(--pip-rgb),.10) !important;
+    color:rgb(var(--pip-rgb)) !important;
+    animation:none !important; box-shadow:none !important;
+    font-weight:400; letter-spacing:.2em;
+  }
+  body.pipboy #wrap .wbig:active{
+    background:rgb(var(--pip-rgb)) !important; color:#02100a !important;
+    text-shadow:none; transform:none;
+  }
+
+  /* ---------- 6 · INPUTS ---------- */
+  body.pipboy #wrap input[type=text], body.pipboy #wrap input[type=number],
+  body.pipboy #wrap input[type=url], body.pipboy #wrap textarea, body.pipboy #wrap select{
+    border-radius:0 !important; background:rgba(0,0,0,.4) !important;
+    border:1px solid var(--pip-edge) !important; color:rgb(var(--pip-rgb));
+  }
+  body.pipboy #wrap input:focus, body.pipboy #wrap textarea:focus{
+    box-shadow:0 0 0 1px rgb(var(--pip-rgb)), 0 0 18px -4px rgba(var(--pip-rgb),.7) !important;
+  }
+
+  /* ---------- 7 · METERS: blocky segments, not smooth fills ----------
+     Drawn as a hard-stepped repeating gradient so a bar reads as ▮▮▮▮▯▯▯▯. */
+  body.pipboy #wrap .commit-bar, body.pipboy #wrap .bar{
+    border-radius:0 !important; background:rgba(var(--pip-rgb),.13) !important;
+  }
+  body.pipboy #wrap .commit-bar > i, body.pipboy #wrap .bar > i{
+    border-radius:0 !important;
+    background:repeating-linear-gradient(90deg,
+      rgb(var(--pip-rgb)) 0 6px, transparent 6px 9px) !important;
+  }
+
+  /* ---------- 8 · BOTTOM TAB RAIL ----------
+     Tick-marked rule above it, uppercase labels, the active one inverted into a
+     solid phosphor block — the way the device marks its current page. */
+  body.pipboy #tabbar{
+    background:#010703 !important; backdrop-filter:none;
+    border-top:2px solid var(--pip-edge) !important;
+  }
+  body.pipboy #tabbar::before{
+    content:''; position:absolute; left:0; right:0; top:0; height:7px; pointer-events:none;
+    background:repeating-linear-gradient(90deg, var(--pip-edge) 0 2px, transparent 2px 26px);
+    -webkit-mask-image:linear-gradient(0deg,transparent,#000);
+            mask-image:linear-gradient(0deg,transparent,#000);
+  }
+  /* six uppercase monospace labels do not fit a phone width at the HUD's tracking —
+     tighten it and let each tab shrink, or the rail overflows and clips METRICS. */
+  body.pipboy #tabbar .tab{
+    border-radius:0; color:rgba(var(--pip-rgb),.45);
+    letter-spacing:.04em; text-transform:uppercase;
+    min-width:0; padding-left:2px; padding-right:2px;
+  }
+  body.pipboy #tabbar .tab .ic{ display:none; }         /* emoji break the illusion */
+  body.pipboy #tabbar .tab .lbl{ font-size:9.5px; }
+  body.pipboy #tabbar .tab.on{
+    background:rgb(var(--pip-rgb)); color:#02100a;
+    text-shadow:none; box-shadow:0 0 22px -2px rgba(var(--pip-rgb),.8);
+  }
+  body.pipboy #tabbar .tab.on .lbl{ font-size:11px; font-weight:400; }
+  body.pipboy #tabbar .tab::after{ display:none; }      /* HUD's travelling underline */
+  body.pipboy #tabbar .tab.done .dotdone{
+    background:rgb(var(--pip-rgb)); border-radius:0; width:5px; height:5px;
+  }
+  body.pipboy #tabbar .tab.on .dotdone{ background:#02100a; }
+
+  /* ---------- 9 · CRT STACK: scanlines, bloom, curvature, aberration ---------- */
+  #pipfx .scan{
+    background:repeating-linear-gradient(to bottom,
+      rgba(0,0,0,.55) 0px, rgba(0,0,0,.55) 1px,
+      transparent 1px, transparent 3px);
+    mix-blend-mode:multiply; opacity:.85;
+    animation:pipScanDrift 9s linear infinite;
+  }
+  /* a single bright band rolling down the glass, like a refresh beam */
+  #pipfx .scan::after{
+    content:''; position:absolute; left:0; right:0; height:26vh;
+    background:linear-gradient(180deg, transparent,
+      rgba(var(--pip-rgb),.045) 45%, rgba(var(--pip-rgb),.075) 52%, transparent);
+    animation:pipBeam 7.5s linear infinite;
+  }
+  @keyframes pipBeam{ 0%{ top:-30vh } 100%{ top:110vh } }
+  /* barrel vignette — corners fall away, so the screen reads as curved glass */
+  #pipfx .vig{
+    background:
+      radial-gradient(125% 92% at 50% 50%, transparent 42%, rgba(0,0,0,.55) 82%, rgba(0,0,0,.92) 100%),
+      linear-gradient(90deg, rgba(0,0,0,.5), transparent 9%, transparent 91%, rgba(0,0,0,.5));
+  }
+  body.pipboy #wrap{ animation:pipBreathe 5.5s ease-in-out infinite; }
+  @keyframes pipBreathe{ 0%,100%{ filter:brightness(var(--pip-bright,1)) }
+                         50%{ filter:brightness(calc(var(--pip-bright,1) * 1.035)) } }
+
+  /* ---------- 10 · BOOT SEQUENCE ----------
+     Runs when the skin is switched on and on a cold load. Tap to skip. */
+  #pipboot{
+    position:fixed; inset:0; z-index:10000; display:none;
+    background:#010703; color:#1aff80; padding:34px 22px;
+    font-family:'Share Tech Mono',ui-monospace,monospace; font-size:13px; line-height:1.65;
+    text-shadow:0 0 6px rgba(26,255,128,.55); overflow:hidden;
+  }
+  #pipboot.on{ display:block; }
+  #pipboot pre{ margin:0; white-space:pre-wrap; font:inherit; }
+  #pipboot .cur{ animation:pipCur .8s steps(1) infinite; }
+  @keyframes pipCur{ 0%,50%{opacity:1} 51%,100%{opacity:0} }
+  #pipboot::after{
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background:repeating-linear-gradient(to bottom,
+      rgba(0,0,0,.5) 0 1px, transparent 1px 3px);
+  }
+
 </style>
 </head>
 <body>
 <canvas id="fx"></canvas>
 <div id="pipfx"><div class="scan"></div><div class="vig"></div><div class="flicker"></div></div>
+<div id="pipboot" onclick="pipBootSkip()"><pre id="pipbootlog"></pre></div>
 <div id="glitchfx" aria-hidden="true">
   <div class="g-tear"><i></i><i></i><i></i></div>
   <div class="g-roll"><b></b></div>
@@ -1126,7 +1457,7 @@
           <textarea id="wallInput" rows="2" placeholder="Type or paste anything… ⌘V an image works too"></textarea>
           <div class="row" style="margin-top:8px;gap:8px">
             <button class="sm primary" onclick="wallAddFromInput()">Add</button>
-            <button class="sm ghost" onclick="$('#wallFile').click()">📎 File</button>
+            <button class="sm ghost" onclick="$('#wallFile').click()"><span class="em">📎</span> File</button>
             <input type="file" id="wallFile" accept="image/*" multiple style="display:none" onchange="wallFilesPicked(event)">
           </div>
         </div>
@@ -1229,11 +1560,11 @@
     <div class="blockhead"><span class="lbl">Health</span></div>
     <div class="flowlist" id="healthHub">
       <div class="fitem hubbubble" onclick="showTab('gym')">
-        <div class="ft"><b>🏋️ Gym</b><span>Split, sets, weights, progress</span></div><div class="fgo">›</div></div>
+        <div class="ft"><b><span class="em">🏋️</span> Gym</b><span>Split, sets, weights, progress</span></div><div class="fgo">›</div></div>
       <div class="fitem hubbubble" onclick="showTab('diet')">
-        <div class="ft"><b>🍗 Diet</b><span>Meals, macros, water, steps</span></div><div class="fgo">›</div></div>
+        <div class="ft"><b><span class="em">🍗</span> Diet</b><span>Meals, macros, water, steps</span></div><div class="fgo">›</div></div>
       <div class="fitem hubbubble" onclick="showTab('habits')">
-        <div class="ft"><b>📈 Habits</b><span>Daily tracker &amp; analytics</span></div><div class="fgo">›</div></div>
+        <div class="ft"><b><span class="em">📈</span> Habits</b><span>Daily tracker &amp; analytics</span></div><div class="fgo">›</div></div>
     </div>
   </section>
 
@@ -1783,7 +2114,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260901-110446';
+const KOS_BUILD='20260901-174954';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -2035,7 +2366,7 @@ const DEF_SETTINGS = {
   tsInt:15,
   miniEvery:25, miniLen:45, bigEvery:120, bigLen:15, restOn:true, logOn:true,
   tankMl:1500, rapGoal:60, unit:'kg', dayAName:'Day A', dayBName:'Day B',
-  theme:{mode:'default', hue:220, live:false}, pipboySkin:false, pipboyHue:145, pipboyBright:1,
+  theme:{mode:'default', hue:220, live:false}, pipboySkin:false, pipboyHue:147, pipboyBright:1, pipboyAuthentic:false,
   mission:{enabled:false, types:['math'], mathDiff:'medium', phrases:[], barcodeRef:'', alarmTime:''}
 };
 let SET = {};
@@ -2092,22 +2423,34 @@ function pipHslToRgbStr(h,s,l){ s/=100; l/=100;
   const k=n=>(n+h/30)%12, a=s*Math.min(l,1-l);
   const f=n=>l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1)));
   return Math.round(255*f(0))+','+Math.round(255*f(8))+','+Math.round(255*f(4)); }
-/* Muted phosphor, not neon: real Pip-Boy screens are a soft, slightly desaturated
-   green — the glare came from cranking saturation/lightness to the max AND glowing
-   almost every bold number on screen. --accent (72/58) stays vivid enough for the
-   selected-item highlight (the one thing that SHOULD pop, same as the reference
-   screenshot's highlighted quest row); --txt is deliberately calmer (38/54, much
-   less saturated) since that's what ordinary body copy inherits everywhere. */
+/* ONE INK, many brightnesses — that's the whole trick of a phosphor screen, and
+   the reason the earlier muted-mix version still read as "an app that is green"
+   rather than as a CRT. hue 147 @ 100/55 is #1aff80, the actual Pip-Boy green.
+   --txt sits a hair under the accent and --dim is the SAME hue burnt down (not a
+   grey), so nothing on screen is ever a second colour. The eye-strain fix that
+   prompted the earlier retune now lives where it belongs: glow is a restrained
+   1px/7px bleed instead of a halo on every bold number, and the brightness
+   slider still scales the whole screen. */
 function pipboyPalette(h){ return {
-  rgb: pipHslToRgbStr(h,72,58),
-  accent: themeHsl(h,72,58), accent2: themeHsl(h,62,38),
-  txt: themeHsl(h,38,54), dim: themeHsl(h,26,36),
-  bg: themeHsl(h,40,4), panel: themeHsl(h,32,7), panel2: themeHsl(h,32,9), line: themeHsl(h,36,20),
+  rgb: pipHslToRgbStr(h,100,55),
+  accent: themeHsl(h,100,55), accent2: themeHsl(h,88,36),
+  txt: themeHsl(h,92,52), dim: themeHsl(h,78,34),
+  bg: themeHsl(h,62,2.5), panel: themeHsl(h,48,5), panel2: themeHsl(h,46,7), line: themeHsl(h,60,22),
 }; }
+/* One-time snap to the real phosphor green. The stored hue was 275 (purple) from
+   back when this was just an accent-tint, which is not the Pip-Boy — and the whole
+   point of the terminal rebuild is the authentic screen. Runs once, then never
+   again, so picking any other hue in Settings still sticks. */
+function ensurePipboyAuthentic(){
+  if(SET.pipboyAuthentic) return;
+  SET.pipboyAuthentic=true; SET.pipboyHue=147; SET.pipboyBright=1;
+  kset('settings',SET);
+}
 function applyPipboy(){
+  ensurePipboyAuthentic();
   document.body.classList.toggle('pipboy', !!SET.pipboySkin);
   if(!SET.pipboySkin) return;
-  const h = SET.pipboyHue!=null ? SET.pipboyHue : 145;
+  const h = SET.pipboyHue!=null ? SET.pipboyHue : 147;   // 147 @100/55 = #1aff80
   const p = pipboyPalette(h), s = document.body.style;
   s.setProperty('--pip-rgb', p.rgb);
   s.setProperty('--accent', p.accent); s.setProperty('--accent2', p.accent2);
@@ -2116,10 +2459,50 @@ function applyPipboy(){
   s.setProperty('--green', p.accent); s.setProperty('--amber', p.accent); s.setProperty('--purple', p.accent);
   s.setProperty('--pip-bright', SET.pipboyBright!=null ? SET.pipboyBright : 1);
 }
+/* ---- boot sequence ----
+   The genre's own convention (a ROM self-test scrolling up a monochrome CRT),
+   written for K-OS rather than lifted from the game's actual boot text, which is
+   Bethesda's. Runs on cold load and when the skin is switched on; tap to skip so
+   it can never stand between Kyryl and the app. */
+const PIP_BOOT_LINES=[
+  ['K-OS INDUSTRIES (TM) TERMLINK PROTOCOL',60],
+  ['ESTABLISHING UPLINK ......... OK',90],
+  ['',30],
+  ['> RUN SELF-TEST',120],
+  ['  MEM  ........ 64K OK',70],
+  ['  CLOCK ....... SYNC',70],
+  ['  STORE ....... MOUNTED',70],
+  ['  UPLINK ...... DEGRADED',110],
+  ['',40],
+  ['> LOAD PROFILE.KYRYL',140],
+  ['  WELCOME BACK.',260],
+];
+let pipBootTimer=null, pipBootDone=false;
+function pipBootSkip(){
+  if(pipBootTimer){ clearTimeout(pipBootTimer); pipBootTimer=null; }
+  const el=$('#pipboot'); if(el) el.classList.remove('on');
+  pipBootDone=true;
+}
+function pipBoot(){
+  const el=$('#pipboot'), log=$('#pipbootlog');
+  if(!el || !log || pipBootDone) return;
+  el.classList.add('on'); log.textContent='';
+  let i=0;
+  const step=()=>{
+    if(i>=PIP_BOOT_LINES.length){ pipBootTimer=setTimeout(pipBootSkip, 300); return; }
+    const [txt,wait]=PIP_BOOT_LINES[i++];
+    log.textContent += txt+'\n';
+    if(txt) beep([[520+Math.random()*140,.012]]);
+    pipBootTimer=setTimeout(step, wait);
+  };
+  step();
+}
 function togglePipboy(){
   SET.pipboySkin=!SET.pipboySkin; kset('settings',SET); applyPipboy();
-  toast(SET.pipboySkin ? '🟢 Pip-Boy mode engaged' : 'Pip-Boy mode off');
-  if(SET.pipboySkin) beep([[220,.04],[0,.02],[880,.05],[0,.02],[660,.08]]);
+  if(SET.pipboySkin){
+    beep([[220,.04],[0,.02],[880,.05],[0,.02],[660,.08]]);
+    pipBootDone=false; pipBoot();
+  } else toast('Pip-Boy mode off');
   renderThemeUI();
 }
 function pickPipboyHue(h){ SET.pipboyHue=h; kset('settings',SET); applyPipboy(); renderThemeUI(); }
@@ -2146,7 +2529,7 @@ function renderThemeUI(){
   const lt=$('#themeLiveToggle'); if(lt) lt.classList.toggle('on', !!t.live);
   const pt=$('#pipboyToggle'); if(pt) pt.classList.toggle('on', !!SET.pipboySkin);
   const pc=$('#pipboyControls'); if(pc) pc.style.display = SET.pipboySkin ? '' : 'none';
-  const pHue = SET.pipboyHue!=null ? SET.pipboyHue : 145;
+  const pHue = SET.pipboyHue!=null ? SET.pipboyHue : 147;
   const pBox=$('#pipboySwatches'); if(pBox){ pBox.innerHTML='';
     THEME_PRESETS.forEach(([key,name,hue])=>{ if(hue==null) return; const d=document.createElement('div');
       d.className='sw'+(pHue===hue?' on':''); d.title=name;
@@ -2924,7 +3307,10 @@ function renderToday(){
     div.className='fitem dragblock tbub'+(done?' done':'');
     div.dataset.tid=s.id;
     div.innerHTML='<div class="drag-handle">'+DRAG_HANDLE_SVG+'</div>'+
-      '<div class="ft"><b>'+s.em+' '+esc(s.t)+'</b></div>'+
+      /* emoji wrapped so Pip-Boy mode can hide it — a colour emoji is the one thing
+         that instantly breaks a single-ink phosphor screen, and it can't be
+         restyled by `color` since it comes from a colour font. */
+      '<div class="ft"><b><span class="em">'+s.em+'</span> '+esc(s.t)+'</b></div>'+
       '<div class="fgo">'+(done?'✓':'›')+'</div>';
     built[s.id]=div;
   });
@@ -5723,6 +6109,8 @@ if(NATIVE && window.Capacitor.Plugins.App){
 }
 if(NATIVE){ hcRefreshSteps(); setInterval(hcRefreshSteps, 15*60000); }
 startProfitFloat();
+// cold-load boot sequence, only when the skin is already on
+if(SET.pipboySkin) pipBoot();
 // hold off ~12s after load — a fault during boot reads as a bug, not character
 setTimeout(scheduleGlitch, 12000);
 </script>

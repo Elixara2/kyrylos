@@ -1186,7 +1186,44 @@
     </div>
   </section>
 
-  <!-- ============ HEALTH (Gym + Diet, combined) ============ -->
+  <div class="scrim tssheet-scrim" id="tsSheetView">
+    <div class="tssheet-modal">
+      <div class="tssheet-head">
+        <div class="tssheet-nav">
+          <button class="sm ghost" onclick="tsGridPrevMonth()">‹</button>
+          <h2 id="tsGridMonthLbl" style="margin:0">Month</h2>
+          <button class="sm ghost" onclick="tsGridNextMonth()">›</button>
+        </div>
+        <button class="icobtn" onclick="closeTsSheet()">✕</button>
+      </div>
+      <div class="tssheet-scroll">
+        <table class="tstable">
+          <thead id="tsGridHead"></thead>
+          <tbody id="tsGridBody"></tbody>
+        </table>
+      </div>
+      <div class="sub" style="margin-top:10px">Click any cell to fix a mistake · rows are 15-min blocks from your first clock-in that day</div>
+    </div>
+  </div>
+
+  <!-- full-screen rest / break overlay -->
+  <div class="breakov" id="breakov">
+    <div class="breath-orb"></div>
+    <div class="break-kind" id="breakKind">Rest</div>
+    <div class="break-cd" id="breakCd">00:30</div>
+    <div class="break-msg" id="breakMsg">Stand up · look 20ft away · breathe</div>
+    <div class="break-quote" id="breakQuote"></div>
+    <button class="btn-break" onclick="endRest(true)">Skip · back to work →</button>
+  </div>
+
+  <!-- full-screen morning-mission gate — no close/skip button, by design -->
+  <div class="missionov" id="missionov">
+    <div class="mission-kicker">🌅 Morning Mission</div>
+    <div class="mission-title" id="missionTitle">Prove you're awake</div>
+    <div class="mission-body" id="missionBody"></div>
+    <div class="mission-err" id="missionErr"></div>
+  </div>
+
   <!-- ============ HEALTH · hub of three ============ -->
   <section class="panel" id="p-health">
     <div class="blockhead"><span class="lbl">Health</span></div>
@@ -1746,7 +1783,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260901-060841';
+const KOS_BUILD='20260901-110446';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -2168,7 +2205,6 @@ function flowBlockDone(s, f){
 }
 /* flowOrder/saveFlowOrder retired — todayOrder() now owns the whole stack */
 function getFlow(){ return kget('flow:'+todayKey(),{}); }
-function setFlowPart(id,val){ flowMutate(id,val); renderToday(); renderTabs(); }
 function setFlowPartQuiet(id,val){ flowMutate(id,val); }
 function flowMutate(id,val){
   const f=getFlow(); if(!!f[id]===!!val) return;
@@ -3014,8 +3050,6 @@ function tsToggle(){
   }
   tsSave(); renderWork();
 }
-function tsAdjust(sec){ if(ts.mode!=='working') return; ts.nextLogAt+=sec*1000; tsSave(); renderWork(); }
-
 function tsClockOut(){
   if(ts.mode==='idle') return;
   const workedMin=sessionWorkedMin();
@@ -3057,8 +3091,6 @@ function setTsInt(min){ SET.tsInt=parseFloat(min)||15; kset('settings',SET);
 function toggleLogEnabled(on){ SET.logOn=!!on; kset('settings',SET);
   if(on && ts.mode==='working') ts.nextLogAt=Date.now()+SET.tsInt*60000, tsSave();
   toast(on?'Log reminders on':'Working straight through — no log popups'); renderWork(); }
-function toggleSchedBody(){ const b=$('#schedBody'), c=$('#schedChevron'); if(!b) return; const open=b.style.display==='none';
-  b.style.display=open?'':'none'; if(c) c.style.transform=open?'rotate(90deg)':''; }
 
 /* ---- rest / break timer — two tiers: quick "mini" resets, longer "big" breaks ---- */
 let restTicker=null;
@@ -4853,64 +4885,9 @@ function renderModHeat(id,m){
 function editCurrentModule(){ if(modDetailId) openModuleEdit(modDetailId); }
 function closeModuleDetail(){ $('#modDetailScrim').classList.remove('show'); modDetailId=null; }
 
-/* ================= RISE · morning check-in =================
-   A daily lock-in: your own quote + a Brisbane-time stamp that marks the day started,
-   then flows into ASCEND and your first work session. */
-function getRiseQuote(){ return kget('rise:quote',''); }
-function editRiseQuote(){
-  const cur=getRiseQuote();
-  const v=prompt('Write your morning quote — your own words to lock in on each day:', cur);
-  if(v!==null){ kset('rise:quote', v.trim()); renderRise(); }
-}
-/* exact Brisbane wall-clock (AEST, UTC+10, no daylight saving) */
-function brisbaneClock(ts){ return new Date(ts).toLocaleTimeString('en-AU',{timeZone:'Australia/Brisbane',hour:'numeric',minute:'2-digit'}); }
-function brisbaneDateKey(d){ // YYYY-MM-DD in Brisbane time
-  const s=new Date(d||Date.now()).toLocaleDateString('en-CA',{timeZone:'Australia/Brisbane'}); return s;
-}
-function getCheckin(dateKey){ return kget('checkin:'+(dateKey||brisbaneDateKey()), null); }
-function checkinStreak(){
-  let streak=0; const probe=new Date();
-  if(!getCheckin(brisbaneDateKey(probe))) probe.setDate(probe.getDate()-1); // not yet today doesn't break it
-  while(getCheckin(brisbaneDateKey(probe))){ streak++; probe.setDate(probe.getDate()-1); }
-  return streak;
-}
-function doCheckin(){
-  const key=brisbaneDateKey(), now=Date.now();
-  if(getCheckin(key)) return;
-  kset('checkin:'+key, {ts:now, label:brisbaneClock(now)});
-  chimeFanfare(); buzz([40,60,40,60,120]); confettiBurst(innerWidth/2, innerHeight*.35, 90);
-  addXP(15,'morning check-in');
-  toast('🔒 Locked in at '+brisbaneClock(now)+' — let’s go.');
-  renderRise();
-}
-function undoCheckin(){
-  if(!confirm('Undo today’s check-in?')) return;
-  kset('checkin:'+brisbaneDateKey(), null); renderRise();
-}
+/* RISE (morning check-in) was cut in the big revamp — its markup is gone, this is
+   the one survivor still wired to the "Morning routine" flow block's open handler. */
 function riseOpenAscend(){ if(SET.ascendUrl) window.open(SET.ascendUrl,'_blank'); else { toast('Set your ASCEND link in Settings'); openSettings(); } }
-function renderRise(){
-  const box=$('#riseGreet'); if(!box) return;
-  const h=new Date().toLocaleString('en-AU',{timeZone:'Australia/Brisbane',hour:'numeric',hour12:false});
-  const hr=parseInt(h,10)||0;
-  $('#riseGreet').textContent = hr<5?'Still up, Kyryl?':hr<12?'Good morning, Kyryl.':hr<17?'Good afternoon, Kyryl.':'Good evening, Kyryl.';
-  $('#riseDate').textContent = new Date().toLocaleDateString('en-AU',{timeZone:'Australia/Brisbane',weekday:'long',day:'numeric',month:'long'})+' · Brisbane';
-  const q=getRiseQuote();
-  const qEl=$('#riseQuote');
-  qEl.textContent = q || 'Tap to write your morning quote…';
-  qEl.classList.toggle('empty', !q);
-  const ci=getCheckin(), streak=checkinStreak();
-  const streakTxt = streak>1 ? '🔥 '+streak+'-day check-in streak' : (streak===1?'🔥 1 day — keep it going':'Start your streak today');
-  if(ci){
-    $('#riseNotChecked').style.display='none';
-    $('#riseChecked').style.display='';
-    $('#riseLockedTime').textContent=ci.label;
-    $('#riseStreak2').textContent=streakTxt;
-  } else {
-    $('#riseNotChecked').style.display='';
-    $('#riseChecked').style.display='none';
-    $('#riseStreak').textContent=streakTxt;
-  }
-}
 
 /* ================= HABITS (life tracker) =================
    Pared down deliberately (2026-08-16): meals, water, gym, ASCEND's morning-routine
@@ -5162,13 +5139,6 @@ function renderHabits(){
     });
   });
 
-  const hm=$('#habitsMini');   // the Today habits card is gone; Metrics still shows this
-  if(hm) hm.innerHTML = acts.length
-    ? acts.slice(0,6).map(h=>{ const v=day.checks[h.id]; const done=v===true||v==='R';
-        return '<div class="miniitem'+(done?' done':'')+'">'+esc(h.label)+'</div>'; }).join('') +
-        (acts.length>6?'<div class="sub" style="margin-top:2px">+'+(acts.length-6)+' more</div>':'')
-    : 'No habits yet — set them up.';
-
   if(habView==='grid') renderHabitsMonth();
   if(habView==='stats') renderHabitsAnalytics();
 }
@@ -5387,31 +5357,8 @@ function openProphit(){
   if(!prophitConnected){ toast('Prophit not connected yet — see Prophit.app'); return; }
   toast('Open the Prophit app for full detail');
 }
-let profitSummaryCache=null, profitSummaryFetching=false;
-function fetchProfitSummaryIfStale(){
-  if(!prophitConnected || profitSummaryFetching) return;
-  if(profitSummaryCache && (Date.now()-profitSummaryCache._t)<5*60*1000) return;
-  profitSummaryFetching=true;
-  fetch(PROPHIT_API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body:JSON.stringify({action:'profitSummary',token:PROPHIT_API_TOKEN,date:todayKey()})})
-    .then(r=>r.json()).then(res=>{
-      if(!res || res.ok===false || !res.data) throw new Error('bad response');
-      profitSummaryCache=Object.assign({_t:Date.now()},res.data);
-      renderProfitBar();
-    }).catch(()=>{}).finally(()=>{ profitSummaryFetching=false; });
-}
-function renderProfitBar(){
-  const el=$('#profitBarValue'); if(!el) return;
-  if(!prophitConnected){ el.textContent='—'; $('#profitBarSub').textContent='Prophit not connected'; return; }
-  fetchProfitSummaryIfStale();
-  if(!profitSummaryCache){ el.textContent='…'; $('#profitBarSub').textContent='loading…'; return; }
-  const ccySym=({USD:'$',AUD:'A$',EUR:'€',GBP:'£',CAD:'C$',NZD:'NZ$'})[profitSummaryCache.currency] || (profitSummaryCache.currency+' ');
-  const p=profitSummaryCache.profit;
-  el.textContent=(p<0?'-':'')+ccySym+Math.abs(Math.round(p)).toLocaleString();
-  el.style.color=p<0?'var(--red)':'var(--green)';
-  $('#profitBarSub').textContent = profitSummaryCache.allLoaded===false ? 'partial — exchange rate still loading'
-    : (profitSummaryCache.brandCount+' brand'+(profitSummaryCache.brandCount===1?'':'s'));
-}
+/* renderProfitBar/#profitBarValue (an old settings-page profit summary) was
+   superseded by the header's live #pfpill — see renderProfitFloat() below. */
 
 /* ================= floating profit tab =================
    The pill is up on every screen, so it polls on its own timer rather than
@@ -5579,7 +5526,7 @@ function renderAll(){
   ensureHabitsMigrated();
   autoFlow();
   renderDayStreak();
-  renderToday(); renderWork(); renderGym(); renderRapPanel(); renderDiet(); renderHabits(); renderProfitBar(); renderGoals(); renderModules(); renderAlarm(); renderTabs();
+  renderToday(); renderWork(); renderGym(); renderRapPanel(); renderDiet(); renderHabits(); renderGoals(); renderModules(); renderAlarm(); renderTabs();
   checkMissionGate();
 }
 

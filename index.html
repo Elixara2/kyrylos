@@ -389,20 +389,24 @@
   .sched-group{display:flex;align-items:center;gap:8px;margin-top:18px}
   .sched-group .lbl{margin:0}
   .sched-divider{height:1px;background:var(--line);margin:18px 0 2px}
-  /* rest / break overlay */
-  /* Stretchly-style break: a green wash takes over the whole screen with a big rest timer */
-  .breakov{position:fixed;inset:0;z-index:80;display:none;flex-direction:column;align-items:center;justify-content:center;
-    text-align:center;gap:14px;background:radial-gradient(130% 130% at 50% 38%,#1f9d55,#0a3d22 78%);
-    padding:calc(var(--safe-t) + 24px) 24px calc(var(--safe-b) + 28px)}
-  .breakov.show{display:flex;animation:fade .4s var(--ease)}
-  .break-kind{font-size:15px;letter-spacing:.3em;text-transform:uppercase;color:rgba(255,255,255,.85);font-weight:800}
-  .break-cd{font-size:clamp(96px,32vw,190px);font-weight:800;font-variant-numeric:tabular-nums;line-height:1;letter-spacing:-.03em;color:#fff;
-    text-shadow:0 6px 40px rgba(0,0,0,.35)}
-  .break-msg{font-size:17px;color:rgba(255,255,255,.9);max-width:28ch}
-  .breath-orb{display:none}
-  .break-quote{max-width:34ch;margin-top:8px;font-size:14px;font-style:italic;color:rgba(255,255,255,.82);line-height:1.5}
-  .break-quote span{display:block;margin-top:6px;font-style:normal;font-size:11.5px;letter-spacing:.08em;
-    text-transform:uppercase;color:rgba(255,255,255,.6)}
+  /* rest / break — a non-blocking floating bar, not a forced full-screen take-over.
+     Fixed at the top so it's visible (and workable-underneath) from every tab,
+     same reasoning as #pfloat. Tapping anywhere on it skips straight back to work. */
+  #breakFloat{
+    position:fixed; left:10px; right:10px; top:calc(var(--safe-t) + 8px); z-index:85;
+    display:none; flex-direction:column; gap:3px; cursor:pointer;
+    background:linear-gradient(180deg, rgba(34,197,94,.95), rgba(21,128,61,.95));
+    border-radius:14px; padding:10px 14px; box-shadow:0 12px 30px -10px rgba(0,0,0,.5);
+    animation:fade .3s var(--ease);
+  }
+  #breakFloat.show{ display:flex; }
+  .bf-row{ display:flex; align-items:center; gap:8px; color:#fff; }
+  .bf-ic{ font-size:15px; flex:0 0 auto; }
+  .bf-lbl{ font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; flex:0 0 auto; }
+  .bf-cd{ font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; margin-left:auto; }
+  .bf-skip{ font-size:11px; color:rgba(255,255,255,.8); flex:0 0 auto; }
+  .bf-quote{ font-size:11px; font-style:italic; color:rgba(255,255,255,.82); line-height:1.4;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   /* log popup takes over the whole screen too (blue, distinct from the green breaks) */
   .logov{position:fixed;inset:0;z-index:82;display:none;flex-direction:column;align-items:center;justify-content:center;
     text-align:center;background:radial-gradient(130% 130% at 50% 34%,#1e40af,#0a1330 80%);
@@ -487,9 +491,6 @@
   @keyframes tspulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.9)}}
   .tstable td.tscol-today{box-shadow:inset 0 0 0 1.5px var(--accent)}
   .tstable tr.row-next td.tscol-today{background:rgba(59,130,246,.16)}
-  .btn-break{margin-top:16px;appearance:none;border:1.5px solid rgba(255,255,255,.35);background:rgba(255,255,255,.06);
-    color:#fff;font:inherit;font-weight:600;padding:13px 26px;border-radius:99px;cursor:pointer;backdrop-filter:blur(6px)}
-  .btn-break:active{transform:scale(.96)}
 
   /* morning mission — full-screen, no dismiss, wake-up-energy palette (opposite of the calm break overlay) */
   .missionov{position:fixed;inset:0;z-index:90;display:none;flex-direction:column;align-items:center;justify-content:center;
@@ -582,8 +583,8 @@
   .goal:last-child{border-bottom:none}
   .goal.selected{background:rgba(var(--pip-rgb,120,140,255),.12)}
   .gflag{width:4px;align-self:stretch;border-radius:99px;flex:0 0 auto;min-height:24px}
-  .gchk{width:22px;height:22px;border-radius:5px;border:1.5px solid var(--line);flex:0 0 auto;cursor:pointer;
-    display:flex;align-items:center;justify-content:center;color:transparent;font-size:13px;transition:.18s}
+  .gchk{width:27px;height:27px;border-radius:6px;border:1.5px solid var(--line);flex:0 0 auto;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;color:transparent;font-size:15px;transition:.18s}
   .goal.done .gchk{background:var(--accent);border-color:var(--accent);color:var(--bg)}
   .gbody{flex:1;cursor:pointer;min-width:0}
   .gtext{flex:1;font-size:15px;font-family:ui-monospace,'SF Mono','Courier New',monospace;position:relative;transition:color .3s;word-break:break-word}
@@ -610,8 +611,8 @@
   .subtask{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
   .subtask .subchk,.subtask .subdel{margin-top:2px}
   .subtask:last-child{border-bottom:none}
-  .subchk{width:20px;height:20px;border-radius:5px;border:1.5px solid var(--line);flex:0 0 auto;cursor:pointer;
-    display:flex;align-items:center;justify-content:center;color:transparent;font-size:12px;transition:.18s}
+  .subchk{width:25px;height:25px;border-radius:6px;border:1.5px solid var(--line);flex:0 0 auto;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;color:transparent;font-size:14px;transition:.18s}
   .subtask.done .subchk{background:var(--accent);border-color:var(--accent);color:var(--bg)}
   /* a real <input> now (was static text) — reset it to look like plain text until
      tapped, so editing an objective feels the same as editing the quest title */
@@ -1249,6 +1250,15 @@
     border-radius:0 !important; background:transparent !important;
     border-color:var(--pip-hair) !important;
   }
+  /* the break bar, in the same inverted-phosphor language as every other
+     "active now" state (tracked quest, focused Work row, on tab) rather than a
+     green gradient that means nothing extra on a screen that's already green */
+  body.pipboy #breakFloat{
+    background:rgb(var(--pip-rgb)) !important; border-radius:0 !important;
+    box-shadow:0 0 24px -4px rgba(var(--pip-rgb),.8) !important;
+  }
+  body.pipboy #breakFloat, body.pipboy #breakFloat *{ color:#02100a !important; text-shadow:none !important; }
+  body.pipboy #breakFloat .bf-lbl, body.pipboy #breakFloat .bf-skip{ text-transform:uppercase; letter-spacing:.1em; }
   /* the grab handles sat on top of the frame's corner bracket */
   body.pipboy #wrap .card-handle{ top:8px; right:10px; }
   /* the Work panel's own containers — the last rounded shapes on the screen */
@@ -1284,7 +1294,21 @@
   }
   body.pipboy #wrap .gtrack{ color:rgba(var(--pip-rgb),.55); font-size:11px; width:16px; }
   body.pipboy #wrap .gflag{ display:none; }               /* colour-coded priority reads as a second ink */
-  body.pipboy #wrap .gchk{ display:none; }                 /* the row itself IS the toggle target below */
+  /* the done-checkbox stays, square + a touch bigger, matching the terminal look.
+     text-shadow:none is load-bearing, not decoration: the global phosphor bloom
+     (section 9) draws a glowing SILHOUETTE of a glyph's shape from its text-shadow
+     regardless of the glyph's own colour — so an unchecked box's "invisible"
+     (color:transparent) checkmark still rendered as a glowing tick. Same bug would
+     hit .subchk and the grid's blank cells; fixed for all three below. */
+  body.pipboy #wrap .gchk{
+    width:26px; height:26px; border-radius:0 !important;
+    border-color:var(--pip-edge) !important; background:transparent !important;
+    text-shadow:none !important;
+  }
+  body.pipboy #wrap .goal.done .gchk{ background:rgb(var(--pip-rgb)) !important; color:#02100a !important; }
+  body.pipboy #wrap .subchk{ border-radius:0 !important; border-color:var(--pip-edge) !important; text-shadow:none !important; }
+  body.pipboy #wrap .subtask.done .subchk{ background:rgb(var(--pip-rgb)) !important; color:#02100a !important; }
+  body.pipboy #wrap table.gridtable td.gc.n{ text-shadow:none !important; }
   body.pipboy #wrap .gdel{ opacity:.4; font-size:12px; }
   body.pipboy #wrap .gtext{ font-size:11.5px; letter-spacing:.03em; }
   body.pipboy #wrap .gtext::after{ display:none; }
@@ -1732,13 +1756,17 @@
   </div>
 
   <!-- full-screen rest / break overlay -->
-  <div class="breakov" id="breakov">
-    <div class="breath-orb"></div>
-    <div class="break-kind" id="breakKind">Rest</div>
-    <div class="break-cd" id="breakCd">00:30</div>
-    <div class="break-msg" id="breakMsg">Stand up · look 20ft away · breathe</div>
-    <div class="break-quote" id="breakQuote"></div>
-    <button class="btn-break" onclick="endRest(true)">Skip · back to work →</button>
+  <!-- break, as a non-blocking floating countdown — not a forced full-screen
+       take-over. Fixed so it's visible from every tab, same idea as #pfloat.
+       Tap anywhere on it to skip straight back to work. -->
+  <div id="breakFloat" onclick="endRest(true)">
+    <div class="bf-row">
+      <span class="bf-ic" id="breakFloatIcon">☕</span>
+      <span class="bf-lbl" id="breakKind">Mini break</span>
+      <span class="bf-cd" id="breakCd">00:30</span>
+      <span class="bf-skip">Skip ›</span>
+    </div>
+    <div class="bf-quote" id="breakQuote"></div>
   </div>
 
   <!-- full-screen morning-mission gate — no close/skip button, by design -->
@@ -2331,7 +2359,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260903-130219';
+const KOS_BUILD='20260903-142725';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -2343,7 +2371,12 @@ const KOS_BUILD='20260903-130219';
         const live=(await r.text()).trim();
         // never yank the page out from under a half-typed note — catch it next time
         const el=document.activeElement, busy=el&&/^(INPUT|TEXTAREA)$/.test(el.tagName)&&el.value;
-        if(live && live!==KOS_BUILD && !busy) location.reload();
+        // a bare reload() can be satisfied from the browser's HTTP cache even though
+        // version.txt (fetched no-store, above) just proved a newer build is live —
+        // that gap is exactly how a phone can sit on a stale build indefinitely.
+        // Navigating to a URL carrying the new build id as a query string forces an
+        // actual fetch, since the browser has never cached THIS url before.
+        if(live && live!==KOS_BUILD && !busy) location.href = location.pathname+'?v='+live;
       }
     }catch(e){}
     checking=false;
@@ -3791,7 +3824,7 @@ function tsToggle(){
     wtResume();
   }
   else { // stuck in a transient state (logging/resting) — recover so the button always works
-    $('#tsScrim').classList.remove('show'); $('#breakov').classList.remove('show');
+    $('#tsScrim').classList.remove('show'); $('#breakFloat').classList.remove('show');
     ts.mode='working'; ts.blockStart=ts.blockStart||Date.now(); ts.nextLogAt=Date.now()+SET.tsInt*60000;
     wtStart();
   }
@@ -3822,7 +3855,7 @@ function tsResetSession(){
   if(ts.mode==='idle') return;
   if(!confirm('Reset this session? The clock restarts from zero — anything already logged stays saved.')) return;
   clearInterval(restTicker);
-  $('#breakov').classList.remove('show');
+  $('#breakFloat').classList.remove('show');
   ts={mode:'idle', nextLogAt:0, blockStart:0, sessionStart:0};
   tsSave();
   toast('↺ Session reset');
@@ -3856,14 +3889,12 @@ function startRest(kind, manual){
   // don't let the break eat the current work block — push the log timer out by the break length
   if(ts.nextLogAt) ts.nextLogAt += lenSec*1000;
   tsSave();
+  $('#breakFloatIcon').textContent = kind==='big' ? '🛋' : '☕';
   $('#breakKind').textContent = kind==='big' ? 'Big break' : 'Mini break';
   $('#breakCd').textContent=hms(lenSec);
-  $('#breakMsg').textContent = kind==='big'
-    ? 'Step away from the desk · walk, water, stretch'
-    : (manual ? 'Stand up, look away, breathe' : 'Auto reset · stand up · look 20ft away · breathe');
   const q=PHIL_QUOTES[Math.floor(Math.random()*PHIL_QUOTES.length)];
-  $('#breakQuote').innerHTML='"'+esc(q[0])+'"<span>— '+esc(q[1])+'</span>';
-  $('#breakov').classList.add('show');
+  $('#breakQuote').textContent='"'+q[0]+'" — '+q[1];
+  $('#breakFloat').classList.add('show');
   beep(kind==='big' ? [[440,.2],[330,.3]] : [[523,.16],[392,.22]]); buzz(kind==='big'?[50,80,50,80,50]:[40,80,40]);
   try{ if('Notification' in window && Notification.permission==='granted')
     new Notification('K-OS · '+(kind==='big'?'Break time':'Quick reset'),{body:kind==='big'?'Step away for a bit.':'Stand up, look away, breathe.'}); }catch(e){}
@@ -3879,7 +3910,7 @@ function tickRest(){
 }
 function endRest(skipped){
   clearInterval(restTicker);
-  $('#breakov').classList.remove('show');
+  $('#breakFloat').classList.remove('show');
   if(!skipped){ chimeDone(); addXP(ts.restKind==='big'?8:4,'took a break'); }
   ts.mode = ts.wasWorking===false ? 'idle' : 'working';
   if(ts.mode==='working'){ ts.blockStart=ts.blockStart||Date.now(); }
@@ -6407,7 +6438,7 @@ const OVERLAY_CLOSERS=[
   ['setScrim', closeSettings], ['tsSheetView', closeTsSheet], ['splitScrim', closeSplit],
   ['mealScrim', closeMealBuilder], ['goalScrim', closeGoalDetail], ['modScrim', closeModuleEdit],
   ['modDetailScrim', closeModuleDetail], ['habScrim', closeHabitManage], ['trimov', closeTrim],
-  ['tsScrim', ()=>tsCloseLog(false)], ['breakov', ()=>endRest(true)],
+  ['tsScrim', ()=>tsCloseLog(false)], ['breakFloat', ()=>endRest(true)],
 ];
 function closeAnyOpenOverlay(){
   const mv=$('#missionov');

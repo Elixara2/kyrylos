@@ -904,11 +904,22 @@
   /* ---------- WORK: one screen, no scroll ----------
      The panel is pinned to the viewport between header and tab bar and the middle
      section is the only flexible part, so the slider stays at the top and the
-     controls stay welded above the tabs no matter the phone height. */
+     controls stay welded above the tabs no matter the phone height.
+     Height used to be a hardcoded `calc(100dvh - 128px)` guess at how tall the
+     header+tabbar chrome is — which is exactly what broke the last two times:
+     it doesn't know about the Pip-Boy sub-tab rail's height, and it goes stale
+     the moment either chrome piece changes again. sizeWorkPanel() (JS) measures
+     the real header/pipsub/tabbar boxes and sets this height precisely instead;
+     the calc() below is only the fallback for the first paint before JS runs. */
+  /* !important because body.pipboy #wrap sets its own padding-bottom (the CRT
+     "screen bezel" reserve) at the SAME specificity (1,1,0) — a tie that source
+     order alone would hand to whichever layer happens to sit later in the sheet,
+     which is exactly why this quietly lost the first time. */
+  #wrap.work-fit{ padding-bottom:var(--safe-b) !important; }
   #wrap #p-work.on{
     display:flex; flex-direction:column;
     height:calc(100dvh - var(--safe-t) - var(--safe-b) - 128px);
-    min-height:420px; overflow:hidden;
+    min-height:360px; overflow:hidden;
   }
   #wrap #p-work.on > *{ animation:none; }   /* no stagger here — it would reflow the pinned layout */
   #wrap .whidden{ display:none; }
@@ -931,11 +942,16 @@
   #wrap .wsliver .commit-range{ margin-top:5px; padding:4px 10px; font-size:11px; gap:6px; }
   #wrap .wsliver .commit-range .arrow{ font-size:10px; }
 
-  /* 1b · active quests — sits between the slither and Clock in. Capped SHORT
-     (not vh-based — a tall cap was exactly what pushed Clock in into the foot
-     controls before) and always leaves the stage genuinely fixed room. */
+  /* 1b · active quests — sits between the slither and Clock in. Sized to its
+     own content (flex:0 0 auto) up to a generous cap, with its own scroll past
+     that (overflow-y:auto) — a long list scrolls IN HERE, never the panel.
+     Tried making this the flexible element that stretches to fill all leftover
+     space instead: looked worse, not better — one or two quests turned it into
+     a mostly-empty box taller than the screen needed. A fixed cap that leaves a
+     little breathing room above the button beats a box that over-grows to fill
+     it artificially. */
   #wrap .wquests{
-    flex:0 0 auto; margin-top:7px; padding:7px 10px 5px; max-height:112px; overflow-y:auto;
+    flex:0 0 auto; margin-top:7px; padding:7px 10px 5px; max-height:168px; overflow-y:auto;
     border-radius:13px; border:1px solid var(--hud-line);
     background:linear-gradient(180deg, var(--hud-tint), transparent 70%), var(--panel);
   }
@@ -948,28 +964,29 @@
   #wrap .wq-text{ font-size:12px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   #wrap .wq-row.on .wq-text{ color:var(--accent); font-weight:700; }
 
-  /* 2 · centre stage — the button is capped by height (vh) as well as width, so
-     it actually shrinks when the slither/quests block above it take more room,
-     instead of forcing its old fixed size and spilling into the foot controls
-     below it (which is what "totally fucked" the layout: wbig never shrank when
-     the quests block was added above it, so it visually overlapped the session
-     pill and log/reset/end buttons underneath). */
+  /* 2 · centre stage — flex:1 so it absorbs whatever's left after the (capped)
+     slither and quests block above it, then flex-end pulls its content down to
+     sit right above the foot controls instead of centering with dead space on
+     both sides. The button is capped by height as well as width so it can't
+     force the stage bigger than the room actually left for it — that mismatch
+     (fixed vw-based size vs. however much space was left) is what overlapped
+     the foot controls in the first place. */
   #wrap .wstage{ flex:1 1 auto; display:flex; flex-direction:column; align-items:center;
-    justify-content:center; gap:8px; min-height:0; overflow:hidden; }
+    justify-content:flex-end; gap:6px; min-height:0; overflow:hidden; padding-bottom:4px; }
   #wrap .wbig{
-    width:min(148px,38vw,22vh); aspect-ratio:1; border-radius:50%; flex:0 0 auto;
-    font-size:15px; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
+    width:min(112px,30vw,16vh); aspect-ratio:1; border-radius:50%; flex:0 0 auto;
+    font-size:13px; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
     color:var(--bg); border:none;
     background:radial-gradient(circle at 50% 34%, var(--accent), var(--accent2));
     box-shadow:0 0 0 1px rgba(var(--pip-rgb,255,255,255),.22) inset,
-               0 0 40px -12px var(--accent), 0 16px 34px -22px #000;
+               0 0 30px -10px var(--accent), 0 12px 26px -18px #000;
     animation:wpulse 3.4s ease-in-out infinite;
     transition:transform .18s var(--ease), box-shadow .25s;
   }
   #wrap .wbig:active{ transform:scale(.955); }
-  @keyframes wpulse{ 0%,100%{box-shadow:0 0 0 1px rgba(var(--pip-rgb,255,255,255),.22) inset,0 0 40px -12px var(--accent),0 16px 34px -22px #000}
-                     50%{box-shadow:0 0 0 1px rgba(var(--pip-rgb,255,255,255),.3) inset,0 0 58px -6px var(--accent),0 16px 34px -22px #000} }
-  #wrap .wbar{ width:min(148px,38vw,22vh); flex:0 0 auto; }
+  @keyframes wpulse{ 0%,100%{box-shadow:0 0 0 1px rgba(var(--pip-rgb,255,255,255),.22) inset,0 0 30px -10px var(--accent),0 12px 26px -18px #000}
+                     50%{box-shadow:0 0 0 1px rgba(var(--pip-rgb,255,255,255),.3) inset,0 0 44px -6px var(--accent),0 12px 26px -18px #000} }
+  #wrap .wbar{ width:min(112px,30vw,16vh); flex:0 0 auto; }
   #wrap .wstage-sub{ text-align:center; font-size:10.5px; flex:0 0 auto; }
 
   /* 3 · pinned foot */
@@ -1536,20 +1553,25 @@
   /* ---------- 9d · SUB-TAB RAIL ----------
      The device's second row: which page of the current section you're on. */
   #pipsub{ display:none; }
+  /* the active sub-tab is its own pill — filled solid phosphor, lifted off the
+     divider line, glowing downward onto it ("underlight") — the same inverted
+     "this one is live" language as a tracked quest or the bottom tab bar's
+     current tab, not just a thin underline. */
   body.pipboy #pipsub{
-    display:flex; gap:0; margin:0 0 14px; padding:0; list-style:none;
+    display:flex; gap:8px; margin:0 0 14px; padding:0 1px 9px; list-style:none;
     border-bottom:1px solid var(--pip-hair);
   }
   body.pipboy #pipsub li{
-    flex:1; text-align:center; padding:7px 2px 6px; cursor:pointer;
-    font-size:9.5px; letter-spacing:.18em; text-transform:uppercase;
+    flex:1; text-align:center; padding:6px 4px; cursor:pointer;
+    font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; font-weight:400;
     color:rgba(var(--pip-rgb),.42); position:relative; white-space:nowrap;
-    overflow:hidden; text-overflow:ellipsis;
+    overflow:hidden; text-overflow:ellipsis; border-radius:999px;
+    transition:background .18s, color .18s, box-shadow .18s;
   }
-  body.pipboy #pipsub li.on{ color:rgb(var(--pip-rgb)); }
-  body.pipboy #pipsub li.on::after{
-    content:''; position:absolute; left:12%; right:12%; bottom:-1px; height:2px;
-    background:rgb(var(--pip-rgb)); box-shadow:0 0 12px rgba(var(--pip-rgb),.9);
+  body.pipboy #pipsub li.on{
+    color:#02100a !important; text-shadow:none !important; font-weight:700;
+    background:rgb(var(--pip-rgb));
+    box-shadow:0 5px 16px -3px rgba(var(--pip-rgb),.85);
   }
 
   /* ---------- 10 · BOOT SEQUENCE ----------
@@ -2367,7 +2389,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260903-144249';
+const KOS_BUILD='20260903-153935';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -2708,6 +2730,14 @@ function applyPipboy(){
   ensurePipboyAuthentic();
   document.body.classList.toggle('pipboy', !!SET.pipboySkin);
   crtSync();                       // before the early return, so toggling OFF stops the shader
+  // the sub-tab rail only exists in Pip-Boy mode, so flipping the skin changes how
+  // much vertical chrome sits above the Work panel — re-measure either direction.
+  // (Settings closes over the panel rather than re-running showTab(), so this is
+  // the only place a mid-session toggle gets picked up.)
+  if(typeof activeTab!=='undefined'){
+    if(SET.pipboySkin) renderPipSub(activeTab); else { const el=$('#pipsub'); if(el) el.innerHTML=''; }
+    sizeWorkPanel();
+  }
   if(!SET.pipboySkin) return;
   const h = SET.pipboyHue!=null ? SET.pipboyHue : 147;   // 147 @100/55 = #1aff80
   const p = pipboyPalette(h), s = document.body.style;
@@ -3973,6 +4003,28 @@ function tsCloseLog(saveIt){
 $('#tsNote').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); tsCloseLog(true); } });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape' && ts.mode==='resting') endRest(true); });
 
+/* Measures the header/sub-tab-rail/tab-bar chrome that's actually on screen right
+   now and sets #p-work's height to exactly what's left — replacing a hardcoded
+   "128px of chrome" guess that broke the moment the Pip-Boy sub-tab rail was
+   added above it (that height was never in the guess), and will break again the
+   next time header/tabbar changes if left as a magic number. Cheap (a few
+   getBoundingClientRect calls), so it's fine to call on every renderWork(). */
+function sizeWorkPanel(){
+  const panel=$('#p-work'); if(!panel || !panel.classList.contains('on')) return;
+  const header=document.querySelector('#wrap > header');
+  const sub=$('#pipsub');
+  const tabbar=$('#tabbar');
+  const wrap=$('#wrap');
+  const headerH = header ? header.getBoundingClientRect().height : 0;
+  const subH = (sub && getComputedStyle(sub).display!=='none') ? sub.getBoundingClientRect().height : 0;
+  const tabbarH = tabbar ? tabbar.getBoundingClientRect().height : 0;
+  const wrapPadTop = wrap ? parseFloat(getComputedStyle(wrap).paddingTop)||0 : 0;
+  const marginBelowHeader=10;   // matches header{margin-bottom} + the gap before pipsub/panel
+  const avail = innerHeight - wrapPadTop - headerH - subH - marginBelowHeader - tabbarH;
+  panel.style.height = Math.max(360, Math.round(avail))+'px';
+}
+addEventListener('resize', ()=>{ if(activeTab==='work') sizeWorkPanel(); });
+
 function renderWork(){
   const span=SET.tsInt*60000;
   let leftMs = ts.mode==='working' ? ts.nextLogAt-Date.now() : ts.mode==='paused' ? (ts.pausedLeft||span) : span;
@@ -4054,6 +4106,7 @@ function renderWork(){
     sesBox.appendChild(d);
   });
   renderWorkQuests();
+  sizeWorkPanel();
 }
 
 /* ---- Active Quests, pinned above Clock in ----
@@ -6340,18 +6393,28 @@ if(!NAV_TABS.includes(activeTab) && !SUB_PARENT[activeTab]) activeTab='today';
 function showTab(name){
   activeTab=name; jsave('tab',name);
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on', p.id==='p-'+name));
+  // #wrap's baseline padding-bottom reserves 84px of clearance so normal SCROLLING
+  // tabs don't end up hidden under the fixed tab bar. Work's panel height is
+  // computed to fit exactly between header and tab bar already (sizeWorkPanel()
+  // subtracts the tab bar's own height) — so that reserve is pure extra document
+  // height on top of an already-exact fit, which is what pushed the whole PAGE
+  // (not the panel) a few dozen px past one screen. Drop it only for this tab.
+  $('#wrap').classList.toggle('work-fit', name==='work');
   const navHi = NAV_TABS.includes(name) ? name : (SUB_PARENT[name]||'today');
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on', t.dataset.tab===navHi));
   const bb=$('#backBar');
   if(bb){ const parent=SUB_PARENT[name];
     if(parent){ bb.textContent='‹ '+(parent==='health'?'Health':'Metrics'); bb.style.display=''; bb.dataset.parent=parent; }
     else bb.style.display='none'; }
+  // populate the sub-tab rail BEFORE renderAll()/renderWork() runs — sizeWorkPanel()
+  // (called from renderWork) measures #pipsub's real height, and it needs this
+  // tab's rows in there already, not last tab's (or an empty <ul> on first paint).
+  if(SET.pipboySkin) renderPipSub(name);
   renderAll();
   window.scrollTo({top:0});
   if(SET.pipboySkin){
     pipTabClick();
     pipWipe();
-    renderPipSub(name);
     pipCursorReset();
   }
 }

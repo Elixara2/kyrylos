@@ -2389,7 +2389,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260903-153935';
+const KOS_BUILD='20260904-003443';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -2831,6 +2831,7 @@ void main(){
 }`;
 
 let crtGL=null, crtRAF=null, crtU={}, crtFlick=0, crtStart=performance.now();
+let crtCanvasBound=false;   // context-loss listeners go on the CANVAS once — it survives context loss, only the GL context dies
 function initCrt(){
   const cv=$('#crt'); if(!cv || crtGL) return;
   const gl = cv.getContext('webgl', {alpha:false, antialias:false, depth:false, powerPreference:'low-power'});
@@ -2852,6 +2853,18 @@ function initCrt(){
   crtGL=gl;
   crtResize();
   addEventListener('resize', crtResize);
+  /* A backgrounded tab/app is a routine way to lose a WebGL context on a phone —
+     the OS reclaims GPU memory, or Android's WebView just drops it. Without this,
+     the canvas goes permanently blank (drawArrays on a lost context is a silent
+     no-op, forever) until something happens to trigger a full page reload — which
+     might be a long wait. preventDefault() on the loss event is what tells the
+     browser "yes, please try to restore this" per spec; without it most browsers
+     won't even attempt to. */
+  if(!crtCanvasBound){
+    crtCanvasBound=true;
+    cv.addEventListener('webglcontextlost', e=>{ e.preventDefault(); crtStop(); crtGL=null; });
+    cv.addEventListener('webglcontextrestored', ()=>{ initCrt(); crtSync(); });
+  }
 }
 function crtResize(){
   const cv=$('#crt'); if(!cv || !crtGL) return;

@@ -592,6 +592,18 @@
   .goal.done .gtext::after{width:100%}
   .gmeta{font-size:11.5px;color:var(--dim);margin-top:2px}
   .gdel{background:none;border:none;color:var(--dim);font-size:15px;padding:6px;flex:0 0 auto}
+  /* track marker — sets the Work tab's focus quest. Understated outside Pip-Boy
+     mode (a small dot, not the full inverted bar — that treatment belongs to the
+     terminal skin, see the Pip-Boy layer) so the sleek HUD look is untouched. */
+  .gtrack{background:none;border:none;color:var(--dim);font-size:13px;flex:0 0 auto;
+    width:20px;height:20px;padding:0;cursor:pointer;line-height:1;}
+  .gtrack.ghost{visibility:hidden}
+  .goal.tracked .gtrack{color:var(--accent)}
+  .goal.tracked .gtext{color:var(--accent)}
+  /* qSplit: one column everywhere except Pip-Boy mode (below) — the quest-log
+     page split is specifically a Pip-Boy replica, not part of the sleek HUD. */
+  #qSplit{display:block}
+  #qFocusPane{display:none}
   .prio-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
   .prio-btn{background:var(--panel2);border:1px solid var(--line);border-radius:99px;padding:7px 13px;font-size:13px;cursor:pointer}
   .prio-btn.on{background:var(--accent2);border-color:var(--accent2)}
@@ -914,6 +926,24 @@
   #wrap .wsliver .pro-slider{ margin-top:8px; }
   #wrap .wsliver .commit-bar{ margin-top:8px; height:4px; }
 
+  /* 1b · active quests — sits between the slither and Clock in, so Clock in
+     naturally sits lower (wstage still centers in whatever space is left).
+     Capped height + its own scroll so a long list can't push the button off
+     the one-screen Work layout. */
+  #wrap .wquests{
+    flex:0 0 auto; margin-top:10px; padding:10px 12px 8px; max-height:30vh; overflow-y:auto;
+    border-radius:16px; border:1px solid var(--hud-line);
+    background:linear-gradient(180deg, var(--hud-tint), transparent 70%), var(--panel);
+  }
+  #wrap .wq-lbl{ font-size:9.5px; letter-spacing:.24em; text-transform:uppercase; color:var(--dim); margin-bottom:6px; }
+  #wrap .wq-list{ display:flex; flex-direction:column; gap:2px; }
+  #wrap .wq-row{ display:flex; align-items:center; gap:9px; padding:7px 4px; border-radius:10px; cursor:pointer; transition:background .15s; }
+  #wrap .wq-row:active{ background:var(--hud-tint); }
+  #wrap .wq-mark{ flex:0 0 auto; color:var(--dim); font-size:13px; }
+  #wrap .wq-row.on .wq-mark{ color:var(--accent); }
+  #wrap .wq-text{ font-size:13px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #wrap .wq-row.on .wq-text{ color:var(--accent); font-weight:700; }
+
   /* 2 · centre stage */
   #wrap .wstage{ flex:1 1 auto; display:flex; flex-direction:column; align-items:center;
     justify-content:center; gap:14px; min-height:0; }
@@ -1223,10 +1253,72 @@
   body.pipboy #wrap .card-handle{ top:8px; right:10px; }
   /* the Work panel's own containers — the last rounded shapes on the screen */
   body.pipboy #wrap .wsliver, body.pipboy #wrap .wfoot, body.pipboy #wrap .wsession,
-  body.pipboy #wrap .wctl button, body.pipboy #wrap .logov-inner{
+  body.pipboy #wrap .wctl button, body.pipboy #wrap .logov-inner, body.pipboy #wrap .wquests{
     border-radius:0 !important;
     border-color:var(--pip-edge) !important;
     background:var(--pip-fill) !important;
+  }
+  body.pipboy #wrap .wq-row.on{ background:rgb(var(--pip-rgb)) !important; }
+  body.pipboy #wrap .wq-row.on .wq-mark, body.pipboy #wrap .wq-row.on .wq-text{
+    color:#02100a !important; text-shadow:none !important;
+  }
+
+  /* ---------- 4b · QUESTS: the actual quest-log page ----------
+     List on the left, the tracked quest's objectives on the right with the
+     figure above them — this is a direct replica of the device's DATA/Quests
+     page, not a themed reinterpretation like the rest of the app. */
+  body.pipboy #wrap #qSplit{
+    display:grid; grid-template-columns:1.05fr 1fr; gap:0;
+    border:1px solid var(--pip-edge); margin-top:14px;
+  }
+  body.pipboy #wrap #glist{ margin:0 !important; padding:10px 4px; border-right:1px solid var(--pip-hair); }
+  body.pipboy #wrap .goal{
+    padding:9px 6px 9px 8px !important; border-radius:0 !important; gap:6px;
+    border-bottom:none !important;
+  }
+  /* .gtrack/.gdel are <button>s, which the universal Pip-Boy button rule brackets
+     with a border and padding (right, for a real button) — wrong here, this is a
+     dense list and a bracket box around every "○" reads as clutter, not chrome. */
+  body.pipboy #wrap #glist button{
+    border:none !important; background:none !important; padding:0 !important; box-shadow:none !important;
+  }
+  body.pipboy #wrap .gtrack{ color:rgba(var(--pip-rgb),.55); font-size:11px; width:16px; }
+  body.pipboy #wrap .gflag{ display:none; }               /* colour-coded priority reads as a second ink */
+  body.pipboy #wrap .gchk{ display:none; }                 /* the row itself IS the toggle target below */
+  body.pipboy #wrap .gdel{ opacity:.4; font-size:12px; }
+  body.pipboy #wrap .gtext{ font-size:11.5px; letter-spacing:.03em; }
+  body.pipboy #wrap .gtext::after{ display:none; }
+  body.pipboy #wrap .goal.done .gtext{ opacity:.5; }
+  /* the tracked quest — inverted solid phosphor bar, exactly the highlighted row
+     in the reference screenshot */
+  body.pipboy #wrap .goal.tracked{
+    background:rgb(var(--pip-rgb)) !important; color:#02100a;
+  }
+  body.pipboy #wrap .goal.tracked .gtrack,
+  body.pipboy #wrap .goal.tracked .gtext,
+  body.pipboy #wrap .goal.tracked .gmeta{ color:#02100a !important; text-shadow:none !important; }
+
+  body.pipboy #wrap #qFocusPane{
+    display:flex; flex-direction:column; align-items:center;
+    padding:16px 12px 12px; position:relative;
+  }
+  body.pipboy #wrap #qbFigure{ width:46px; opacity:.85; margin-bottom:10px; }
+  body.pipboy #wrap #qbFigure svg{ width:100%; height:auto; filter:drop-shadow(0 0 5px rgba(var(--pip-rgb),.5)); }
+  body.pipboy #wrap #qFocusBody{ width:100%; text-align:left; }
+  body.pipboy #wrap #qFocusEmpty{ text-align:center; font-size:10.5px; opacity:.6; margin-top:4px; }
+  body.pipboy #wrap #qFocusTitle{
+    font-size:12px; letter-spacing:.1em; text-align:center; margin-bottom:10px;
+    padding-bottom:8px; border-bottom:1px solid var(--pip-hair);
+  }
+  body.pipboy #wrap .qobj{ font-size:11px; letter-spacing:.02em; padding:3px 0; line-height:1.5; }
+  body.pipboy #wrap .qobj.done{ opacity:.55; }
+  body.pipboy #wrap #qFocusStatus{
+    margin-top:auto; padding-top:14px; align-self:flex-start;
+    font-size:9.5px; letter-spacing:.1em; opacity:.6; font-variant-numeric:tabular-nums;
+  }
+  @media (max-width:400px){
+    body.pipboy #wrap #qSplit{ grid-template-columns:1fr; }
+    body.pipboy #wrap #glist{ border-right:none; border-bottom:1px solid var(--pip-hair); }
   }
 
   /* ---------- 5 · BUTTONS: bracketed, invert on press ---------- */
@@ -1579,6 +1671,10 @@
       <div class="commit-range" id="commitRange" style="display:none"></div>
     </div>
 
+    <!-- 1b · active quests: pick what you're focusing on before you clock in.
+         Empty when there's nothing left today — see renderWorkQuests(). -->
+    <div class="wquests" id="wquests"></div>
+
     <!-- 2 · centre stage: the one thing you came here to press -->
     <div class="wstage">
       <button class="wbig" id="tsStartBtn" onclick="tsToggle()">Clock in</button>
@@ -1854,7 +1950,30 @@
         <input type="text" id="goalInput" class="grow" placeholder="New quest…" onkeydown="if(event.key==='Enter')addGoal()">
         <button class="addbtn-round" onclick="addGoal()" title="Add quest">+</button>
       </div>
-      <div class="glist" id="glist" style="margin-top:10px"><div class="empty">No active quests — add your first one above.</div></div>
+      <!-- qSplit is a single column outside Pip-Boy mode (see HUD-layer CSS) — the
+           split into a quest-log page (list left, tracked quest right, with the
+           figure and a live status line) is Pip-Boy-only, see the terminal layer. -->
+      <div id="qSplit">
+        <div class="glist" id="glist" style="margin-top:10px"><div class="empty">No active quests — add your first one above.</div></div>
+        <div id="qFocusPane">
+          <!-- an original geometric pictogram, not a copy of the game's mascot —
+               same idea (a little figure marking the objective) drawn from scratch -->
+          <div id="qbFigure"><svg viewBox="0 0 48 64" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
+            <circle cx="24" cy="10" r="7"/>
+            <line x1="24" y1="17" x2="24" y2="38"/>
+            <line x1="24" y1="24" x2="10" y2="16"/>
+            <line x1="24" y1="24" x2="38" y2="30"/>
+            <line x1="24" y1="38" x2="13" y2="58"/>
+            <line x1="24" y1="38" x2="34" y2="58"/>
+          </svg></div>
+          <div id="qFocusBody">
+            <div class="empty" id="qFocusEmpty">Tap ○ next to a quest to track it here.</div>
+            <div id="qFocusTitle"></div>
+            <div id="qFocusObjectives"></div>
+          </div>
+          <div id="qFocusStatus"></div>
+        </div>
+      </div>
       <div class="row" style="margin-top:12px">
         <button class="sm ghost" onclick="carryOverAll()">↩ Carry over all unfinished</button>
       </div>
@@ -2212,7 +2331,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260902-070312';
+const KOS_BUILD='20260903-130219';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -3789,9 +3908,12 @@ function tsOpenLog(){
   // seamless: if the floating timer is popped out, ask right inside it — no separate popup
   if(pipWin && !pipWin.closed){ showPipLog(blockLbl); return; }
   $('#tsBlockLbl').textContent=blockLbl;
-  $('#tsNote').value='';
+  // pre-fill with whatever quest is tracked — that's obviously what this block was.
+  // Still just a starting value: fully editable, Enter/Save still commits whatever's typed.
+  const fq=getFocusQuest();
+  $('#tsNote').value = fq ? fq.text : '';
   $('#tsScrim').classList.add('show');
-  setTimeout(()=>$('#tsNote').focus(),60);
+  setTimeout(()=>{ const inp=$('#tsNote'); inp.focus(); inp.select(); },60);
 }
 /* the one place a block actually gets saved + the session resumes (shared by the
    full-screen popup and the in-widget input) */
@@ -3891,6 +4013,31 @@ function renderWork(){
     d.innerHTML='<div class="t">'+(s.live?'🟢 live · ':'')+clock(s.start)+' – '+(s.end?clock(s.end):'now')+'</div>'+
       '<div class="x">'+(s.workedMin>=60?hrs.toFixed(1)+'h':s.workedMin+'m')+' of '+(s.committedHours||0).toFixed(1)+'h committed'+(met?' · 🎯 hit':'')+'</div>';
     sesBox.appendChild(d);
+  });
+  renderWorkQuests();
+}
+
+/* ---- Active Quests, pinned above Clock in ----
+   Today's unfinished quests, so you pick what you're focusing on before you
+   start the clock. Whichever one is tracked (◉, same mechanic as the Quests
+   tab's ○/● marker) is pinned to the top — "brought to the front" — and its
+   text is what tsOpenLog() pre-fills into the log popup, since that's
+   obviously what you're working on. */
+function renderWorkQuests(){
+  const host=$('#wquests'); if(!host) return;
+  const todos=getGoals().filter(x=>!x.done);
+  if(!todos.length){ host.innerHTML=''; host.style.display='none'; return; }
+  host.style.display='';
+  const focusId=getFocusQuestId();
+  const ordered = focusId ? todos.slice().sort((a,b)=>(a.id===focusId?-1:0)-(b.id===focusId?-1:0)) : todos;
+  host.innerHTML='<div class="wq-lbl">Active quests'+(focusId?' · focused':'')+'</div>'+
+    '<div class="wq-list">'+ordered.map(x=>
+      '<div class="wq-row'+(x.id===focusId?' on':'')+'" data-gid="'+x.id+'">'+
+        '<span class="wq-mark">'+(x.id===focusId?'◉':'○')+'</span>'+
+        '<span class="wq-text">'+esc(x.text)+'</span>'+
+      '</div>').join('')+'</div>';
+  host.querySelectorAll('.wq-row').forEach(row=>{
+    row.onclick=()=>toggleFocusQuest(row.dataset.gid);
   });
 }
 
@@ -4154,7 +4301,8 @@ function showPipLog(blockLbl){
   d.getElementById('pw').style.display='none';
   d.getElementById('pw-log').style.display='flex';
   d.getElementById('pw-block').textContent=blockLbl;
-  const inp=d.getElementById('pw-input'); inp.value='';
+  const fq=getFocusQuest();
+  const inp=d.getElementById('pw-input'); inp.value = fq ? fq.text : '';
   d.body.style.background='radial-gradient(130% 130% at 50% 34%,#1e40af,#0a1330 80%)';
   setTimeout(()=>{ try{ pipWin.focus(); inp.focus(); }catch(e){} },40);
 }
@@ -5196,13 +5344,36 @@ $('#goalInput').addEventListener('keydown',e=>{ if(e.key==='Enter') addGoal(); }
 function toggleGoal(id,ev){
   const g=viewGoals(); const x=g.find(y=>y.id===id); if(!x) return;
   x.done=!x.done; saveViewGoals(g);
-  if(x.done){ chimeDone(); buzz(30); addXP(10,'quest'); confettiBurst(ev?ev.clientX:undefined, ev?ev.clientY:undefined, 34); toast(affirm()); }
-  autoFlow(); renderGoals(); renderToday(); renderTabs();
+  if(x.done){ chimeDone(); buzz(30); addXP(10,'quest'); confettiBurst(ev?ev.clientX:undefined, ev?ev.clientY:undefined, 34); toast(affirm());
+    if(getFocusQuestId()===id) setFocusQuest(null); }   // a tracked quest that's finished can't stay "active"
+  autoFlow(); renderGoals(); renderToday(); renderTabs(); renderWork();
 }
 function delGoal(id){
   const g=viewGoals().filter(y=>y.id!==id); saveViewGoals(g);
-  renderGoals(); renderToday();
+  if(getFocusQuestId()===id) setFocusQuest(null);
+  renderGoals(); renderToday(); renderWork();
 }
+
+/* ================= FOCUS QUEST — "tracking" a quest, Pip-Boy style =================
+   The one quest you're actively working. Tapping ○ on a row (Quests tab) or a row
+   in Work's Active Quests block sets it; it's what Work pins to the top of that
+   list and what the log popup pre-fills its note with — since that's obviously
+   what you're doing right now. Scoped to TODAY's goal list (getGoals(), not the
+   date-nav'd viewGoals()) since Work only ever concerns today, and auto-clears if
+   the day rolls over or the quest gets deleted/completed. */
+function getFocusQuestId(){
+  const f=kget('focusQuest', null);
+  if(!f || f.day!==todayKey()) return null;
+  const g=getGoals().find(x=>x.id===f.id);
+  if(!g || g.done){ kset('focusQuest', null); return null; }
+  return f.id;
+}
+function getFocusQuest(){ const id=getFocusQuestId(); return id ? getGoals().find(x=>x.id===id) : null; }
+function setFocusQuest(id){
+  kset('focusQuest', id ? {id, day:todayKey()} : null);
+  renderGoals(); renderWork();
+}
+function toggleFocusQuest(id){ setFocusQuest(getFocusQuestId()===id ? null : id); if(SET.pipboySkin) pipSelectClick(); }
 /* carry EVERY unfinished goal from any earlier dated page onto today — idempotent
    (dedupes by text), leaves the old pages intact as a record */
 function carryOverAll(){
@@ -5237,6 +5408,7 @@ const bindGoalsDrag=makeDragReorder('#glist','.goal','gid',()=>viewGoals().map(x
 function renderGoals(){
   const g=viewGoals(), box=$('#glist');
   const isToday=goalDate===todayKey();
+  const focusId=getFocusQuestId();
   const d=new Date(goalDate+'T00:00:00');
   $('#goalDateLbl').textContent = isToday ? 'Today' : d.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'});
   $('#goalTodayBtn').style.display = isToday ? 'none' : '';
@@ -5246,26 +5418,64 @@ function renderGoals(){
     const pm=prioMeta(x.priority);
     const subDone=x.subtasks.filter(s=>s.done).length, subN=x.subtasks.length;
     const meta=[]; if(subN) meta.push('☑ '+subDone+'/'+subN); if(x.notes.trim()) meta.push('📝');
-    const div=document.createElement('div'); div.className='goal dragblock'+(x.done?' done':'')+(x.id===gdCurrentId?' selected':'');
+    const tracked = isToday && x.id===focusId;
+    const div=document.createElement('div'); div.className='goal dragblock'+(x.done?' done':'')+(x.id===gdCurrentId?' selected':'')+(tracked?' tracked':'');
     div.dataset.gid=x.id;
     div.innerHTML='<div class="drag-handle">'+DRAG_HANDLE_SVG+'</div>'+
+      // track marker — only meaningful for today's list; a past/future day has
+      // nothing to track since Work only ever concerns today
+      (isToday && !x.done ? '<button class="gtrack" title="Track as active quest">'+(tracked?'●':'○')+'</button>' : '<span class="gtrack ghost"></span>')+
       '<div class="gflag" style="background:'+(x.priority==='none'?'transparent':pm.color)+'"></div>'+
       '<div class="gchk">✓</div>'+
       '<div class="gbody"><div class="gtext">'+esc(x.text)+'</div>'+
         (meta.length?'<div class="gmeta">'+meta.join(' · ')+'</div>':'')+'</div>'+
       '<button class="gdel">✕</button>';
+    const trackBtn=div.querySelector('.gtrack');
+    if(trackBtn && !trackBtn.classList.contains('ghost')) trackBtn.onclick=(e)=>{ e.stopPropagation(); toggleFocusQuest(x.id); };
     div.querySelector('.gchk').onclick=(e)=>{ e.stopPropagation(); toggleGoal(x.id,e); };
     div.querySelector('.gbody').onclick=()=>openGoalDetail(x.id);
     div.querySelector('.gdel').onclick=(e)=>{ e.stopPropagation(); delGoal(x.id); };
     box.appendChild(div);
   });
   bindGoalsDrag();
+  renderQFocusPane();
   let streak=0; const probe=new Date();
   const full=k=>{ const gg=kget('goals:'+k,null); return gg && gg.length>0 && gg.every(x=>x.done); };
   if(!full(todayKey())) probe.setDate(probe.getDate()-1);
   while(full(todayKey(probe))){ streak++; probe.setDate(probe.getDate()-1); }
   $('#goalStreak').textContent = streak? '🔥 '+streak+' day streak of clearing every quest' : 'Clear all your quests today to start a streak.';
 }
+
+/* ---- the quest-log right pane: whichever quest is currently tracked ----
+   CSS hides #qFocusPane entirely outside Pip-Boy mode, so this only has to get
+   the content right, not worry about layout. */
+function renderQFocusPane(){
+  const fq=getFocusQuest();
+  const empty=$('#qFocusEmpty'), titleEl=$('#qFocusTitle'), objEl=$('#qFocusObjectives');
+  if(!empty || !titleEl || !objEl) return;
+  if(!fq){
+    empty.style.display=''; titleEl.style.display='none'; objEl.style.display='none';
+    objEl.innerHTML=''; titleEl.textContent='';
+    return;
+  }
+  empty.style.display='none'; titleEl.style.display=''; objEl.style.display='';
+  titleEl.textContent=fq.text;
+  // undone objectives first (the current thing), done ones after with a check —
+  // matches the reference: the live objective sits above the completed history
+  const undone=fq.subtasks.filter(s=>!s.done), done=fq.subtasks.filter(s=>s.done);
+  const rows = undone.concat(done);
+  objEl.innerHTML = rows.length
+    ? rows.map(s=>'<div class="qobj'+(s.done?' done':'')+'">'+(s.done?'✓ ':'▸ ')+esc(s.text)+'</div>').join('')
+    : '<div class="qobj done">✓ Reach the objective</div>';
+  pipQClockTick();
+}
+function pipQClockTick(){
+  const el=$('#qFocusStatus'); if(!el) return;
+  const now=new Date();
+  el.textContent = now.toLocaleDateString(undefined,{day:'2-digit',month:'2-digit',year:'numeric'})+'   '+
+    now.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+}
+setInterval(()=>{ if(activeTab==='goals' && SET.pipboySkin) pipQClockTick(); }, 15000);
 
 /* ---- quest detail: title, priority, notes, objectives (sub-tasks) ---- */
 let gdCurrentId=null;
@@ -6120,6 +6330,7 @@ function pipWipe(){
    header geometry stays put between tabs. */
 const PIP_SUB={
   today:  [['today','Status'],['goals','Quests'],['track','Data']],
+  goals:  [['goals','Quests']],
   health: [['gym','Gym'],['diet','Diet'],['habits','Habits']],
   track:  [['track','Overview'],['modules','Modules']],
   work:   [['work','Session'],['tsSheet','Log']],

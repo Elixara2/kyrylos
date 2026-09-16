@@ -929,24 +929,24 @@
      globally, shared by every slider in the app — that 8px track / 24px thumb
      is untouched here on purpose, "thickness" was never in question). */
   #wrap .wsliver{
-    flex:0 0 auto; padding:3px 12px 3px; border-radius:11px;
+    flex:0 0 auto; padding:2px 12px 2px; border-radius:11px;
     background:linear-gradient(180deg, var(--hud-tint), transparent 70%), var(--panel);
     border:1px solid var(--hud-line);
   }
-  #wrap .wsl-head{ display:flex; align-items:baseline; gap:6px; }
-  #wrap .wsl-head .lbl{ color:var(--dim); font-size:8px; }
-  #wrap .wsl-num{ font-size:12px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.02em; color:var(--accent); }
-  #wrap .wsl-num::after{ content:' hrs'; font-size:8px; font-weight:700; letter-spacing:.1em; color:var(--dim); }
-  #wrap .wsl-sub{ margin-left:auto; font-size:9px; color:var(--dim); font-variant-numeric:tabular-nums; }
+  #wrap .wsl-head{ display:flex; align-items:baseline; gap:5px; line-height:1; }
+  #wrap .wsl-head .lbl{ color:var(--dim); font-size:7.5px; }
+  #wrap .wsl-num{ font-size:11px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.02em; color:var(--accent); }
+  #wrap .wsl-num::after{ content:' hrs'; font-size:7.5px; font-weight:700; letter-spacing:.08em; color:var(--dim); }
+  #wrap .wsl-sub{ margin-left:auto; font-size:8.5px; color:var(--dim); font-variant-numeric:tabular-nums; }
   #wrap .wsliver .pro-slider{ margin:0; }
-  #wrap .wsliver .commit-bar{ margin-top:2px; height:3px; }
+  #wrap .wsliver .commit-bar{ margin-top:1px; height:3px; }
   /* was its own bordered pill (padding 4px 10px + a background/border box) —
-     now plain inline text, which is most of where the extra height went */
+     now plain inline text on the same tight rhythm as everything else here */
   #wrap .wsliver .commit-range{
-    margin-top:2px; padding:0; font-size:9.5px; gap:5px;
+    margin-top:1px; padding:0; font-size:9px; gap:5px; line-height:1.2;
     border:none !important; background:none !important;
   }
-  #wrap .wsliver .commit-range .arrow{ font-size:9px; }
+  #wrap .wsliver .commit-range .arrow{ font-size:8.5px; }
 
   /* 1b · active quests — THE flexible element on this screen now: Clock in
      shrank specifically to give this room, so this is what actually claims it
@@ -1222,6 +1222,11 @@
     background:transparent !important; letter-spacing:.1em;
   }
   body.pipboy #wrap .panel{ padding-top:22px; }
+  /* Work's session card sits flush against #pipsub as one merged unit now (see
+     #pipsub and .wsliver above) — the blanket 22px every OTHER panel still gets
+     is exactly the gap that broke that seam. Scoped to just this panel since the
+     other tabs' corner-bracket card framing may actually want that clearance. */
+  body.pipboy #wrap #p-work{ padding-top:0; }
 
   /* ---------- 3 · CARDS → FRAMES ----------
      Square, hairline-bordered, with the h2 notched INTO the top border. */
@@ -1314,6 +1319,12 @@
     border-color:var(--pip-edge) !important;
     background:var(--pip-fill) !important;
   }
+  /* Flush against #pipsub right above it — one seam (a hairline), not two full
+     borders with a visible gap between them. Scoped to Work's session card only
+     (the specific combination flagged) rather than every tab's first element —
+     other tabs' first cards use the corner-bracket frame treatment, which a
+     missing top border would visually orphan. */
+  body.pipboy #wrap .wsliver{ margin-top:0 !important; border-top:none !important; }
   /* FOCUS — solid inverted phosphor, same "this is the live one" language as a
      tracked row everywhere else in the skin, just at the scale this deserves */
   body.pipboy #wrap .wfocus{
@@ -1580,13 +1591,23 @@
      divider line, glowing downward onto it ("underlight") — the same inverted
      "this one is live" language as a tracked quest or the bottom tab bar's
      current tab, not just a thin underline. */
+  /* Merged with whatever panel sits directly under it (Work's session card,
+     Quests' Today card, etc.) into ONE unit instead of two stacked boxes with a
+     visible gap between them — "combine these 2 [blocks]" per direct feedback
+     that the pill row + the content below it together were taking up too much
+     of the screen. This rail supplies the outer frame's top edge and rounded top
+     corners; the panel below (see body.pipboy #wrap .wsliver) supplies the rest,
+     seamed by a hairline instead of a second full border. */
   body.pipboy #pipsub{
-    display:flex; gap:8px; margin:0 0 14px; padding:0 1px 9px; list-style:none;
-    border-bottom:1px solid var(--pip-hair);
+    display:flex; gap:5px; margin:0; padding:3px 3px 2px; list-style:none;
+    border:1px solid var(--pip-edge); border-bottom:1px solid var(--pip-hair);
+    border-radius:0;    /* square, matching the terminal's hard frames — everything
+                           downstream in this skin is border-radius:0 */
+    background:var(--pip-fill);
   }
   body.pipboy #pipsub li{
-    flex:1; text-align:center; padding:6px 4px; cursor:pointer;
-    font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; font-weight:400;
+    flex:1; text-align:center; padding:3px 4px; cursor:pointer;
+    font-size:8.5px; letter-spacing:.13em; text-transform:uppercase; font-weight:400;
     color:rgba(var(--pip-rgb),.42); position:relative; white-space:nowrap;
     overflow:hidden; text-overflow:ellipsis; border-radius:999px;
     transition:background .18s, color .18s, box-shadow .18s;
@@ -2416,7 +2437,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260917-090053';
+const KOS_BUILD='20260917-094624';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;

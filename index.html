@@ -954,15 +954,33 @@
     flex:0 0 auto; margin-top:7px; padding:7px 10px 5px; max-height:168px; overflow-y:auto;
     border-radius:13px; border:1px solid var(--hud-line);
     background:linear-gradient(180deg, var(--hud-tint), transparent 70%), var(--panel);
+    transition:opacity .25s;
   }
+  /* the focused quest lives in #wfocus above now, not here — everything left in
+     this list is explicitly NOT what's being worked on, so the whole block
+     recedes rather than reading as a normal, equally-weighted list. */
+  #wrap .wquests.dimmed{ opacity:.38; }
   #wrap .wq-lbl{ font-size:9px; letter-spacing:.2em; text-transform:uppercase; color:var(--dim); margin-bottom:3px; }
   #wrap .wq-list{ display:flex; flex-direction:column; gap:0; }
   #wrap .wq-row{ display:flex; align-items:center; gap:8px; padding:4px 4px; border-radius:8px; cursor:pointer; transition:background .15s; }
   #wrap .wq-row:active{ background:var(--hud-tint); }
   #wrap .wq-mark{ flex:0 0 auto; color:var(--dim); font-size:11px; }
-  #wrap .wq-row.on .wq-mark{ color:var(--accent); }
   #wrap .wq-text{ font-size:12px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  #wrap .wq-row.on .wq-text{ color:var(--accent); font-weight:700; }
+
+  /* 1a · FOCUS — the one thing, bigger and bolder than anything else on this
+     screen apart from Clock in itself. Its own block, its own glow, sitting
+     above everything else so it's the first thing the eye lands on. */
+  #wrap .wfocus{
+    flex:0 0 auto; margin-bottom:9px; padding:11px 14px 12px; cursor:pointer;
+    border-radius:15px; border:1.5px solid var(--accent);
+    background:linear-gradient(180deg, rgba(var(--pip-rgb,120,140,255),.16), transparent 75%), var(--panel);
+    box-shadow:0 0 0 1px rgba(var(--pip-rgb,120,140,255),.12), 0 14px 34px -22px var(--accent);
+    transition:transform .15s var(--ease);
+  }
+  #wrap .wfocus:active{ transform:scale(.985); }
+  #wrap .wf-lbl{ font-size:9.5px; letter-spacing:.24em; text-transform:uppercase; color:var(--accent); font-weight:800; }
+  #wrap .wf-title{ font-size:19px; font-weight:800; letter-spacing:-.01em; line-height:1.25; margin-top:3px; }
+  #wrap .wf-sub{ font-size:11px; color:var(--dim); margin-top:4px; }
 
   /* 2 · centre stage — flex:1 so it absorbs whatever's left after the (capped)
      slither and quests block above it, then flex-end pulls its content down to
@@ -1293,10 +1311,14 @@
     border-color:var(--pip-edge) !important;
     background:var(--pip-fill) !important;
   }
-  body.pipboy #wrap .wq-row.on{ background:rgb(var(--pip-rgb)) !important; }
-  body.pipboy #wrap .wq-row.on .wq-mark, body.pipboy #wrap .wq-row.on .wq-text{
-    color:#02100a !important; text-shadow:none !important;
+  /* FOCUS — solid inverted phosphor, same "this is the live one" language as a
+     tracked row everywhere else in the skin, just at the scale this deserves */
+  body.pipboy #wrap .wfocus{
+    border-radius:0 !important; border:2px solid rgb(var(--pip-rgb)) !important;
+    background:rgb(var(--pip-rgb)) !important;
+    box-shadow:0 0 26px -4px rgba(var(--pip-rgb),.85) !important;
   }
+  body.pipboy #wrap .wfocus, body.pipboy #wrap .wfocus *{ color:#02100a !important; text-shadow:none !important; }
 
   /* ---------- 4b · QUESTS: the actual quest-log page ----------
      List on the left, the tracked quest's objectives on the right with the
@@ -1713,6 +1735,10 @@
 
   <!-- ============ WORK ============ -->
   <section class="panel" id="p-work">
+    <!-- 0 · FOCUS: the one quest you're actually doing right now. Only exists
+         while a quest is tracked — see renderWorkFocus(). Tapping it untracks. -->
+    <div class="wfocus" id="wfocus" style="display:none"></div>
+
     <!-- 1 · session length, as a slither -->
     <div class="wsliver">
       <div class="wsl-head">
@@ -2031,9 +2057,6 @@
           </div>
           <div id="qFocusStatus"></div>
         </div>
-      </div>
-      <div class="row" style="margin-top:12px">
-        <button class="sm ghost" onclick="carryOverAll()">↩ Carry over all unfinished</button>
       </div>
     </div>
   </section>
@@ -2389,7 +2412,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260904-003443';
+const KOS_BUILD='20260917-083452';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -4118,6 +4141,7 @@ function renderWork(){
       '<div class="x">'+(s.workedMin>=60?hrs.toFixed(1)+'h':s.workedMin+'m')+' of '+(s.committedHours||0).toFixed(1)+'h committed'+(met?' · 🎯 hit':'')+'</div>';
     sesBox.appendChild(d);
   });
+  renderWorkFocus();
   renderWorkQuests();
   sizeWorkPanel();
 }
@@ -4128,22 +4152,42 @@ function renderWork(){
    tab's ○/● marker) is pinned to the top — "brought to the front" — and its
    text is what tsOpenLog() pre-fills into the log popup, since that's
    obviously what you're working on. */
+/* The tracked quest gets pulled OUT of this list entirely and shown big/bold in
+   #wfocus above — "one thing, nothing else" only works if it isn't also sitting
+   here as one of the crowd. Everything left in this list is, by definition, NOT
+   what you're doing right now, so the whole block dims (.dimmed) the moment a
+   focus is set — a quiet "these exist, but not now" rather than a normal list. */
 function renderWorkQuests(){
   const host=$('#wquests'); if(!host) return;
-  const todos=getGoals().filter(x=>!x.done);
+  const focusId=getFocusQuestId();
+  const todos=getGoals().filter(x=>!x.done && x.id!==focusId);
   if(!todos.length){ host.innerHTML=''; host.style.display='none'; return; }
   host.style.display='';
-  const focusId=getFocusQuestId();
-  const ordered = focusId ? todos.slice().sort((a,b)=>(a.id===focusId?-1:0)-(b.id===focusId?-1:0)) : todos;
-  host.innerHTML='<div class="wq-lbl">Active quests'+(focusId?' · focused':'')+'</div>'+
-    '<div class="wq-list">'+ordered.map(x=>
-      '<div class="wq-row'+(x.id===focusId?' on':'')+'" data-gid="'+x.id+'">'+
-        '<span class="wq-mark">'+(x.id===focusId?'◉':'○')+'</span>'+
+  host.classList.toggle('dimmed', !!focusId);
+  host.innerHTML='<div class="wq-lbl">'+(focusId?'Other quests':'Active quests')+'</div>'+
+    '<div class="wq-list">'+todos.map(x=>
+      '<div class="wq-row" data-gid="'+x.id+'">'+
+        '<span class="wq-mark">○</span>'+
         '<span class="wq-text">'+esc(x.text)+'</span>'+
       '</div>').join('')+'</div>';
   host.querySelectorAll('.wq-row').forEach(row=>{
     row.onclick=()=>toggleFocusQuest(row.dataset.gid);
   });
+}
+/* the FOCUS block itself — one quest, big and bold, nothing competing for
+   attention. Tapping it untracks (same toggle the small rows use), which drops
+   it back into the dimmed list above as an ordinary ○ row. */
+function renderWorkFocus(){
+  const host=$('#wfocus'); if(!host) return;
+  const fq=getFocusQuest();
+  if(!fq){ host.style.display='none'; host.innerHTML=''; return; }
+  host.style.display='';
+  const subs=fq.subtasks||[];
+  const doneCt=subs.filter(s=>s.done).length;
+  host.innerHTML='<div class="wf-lbl">◉ Focus</div>'+
+    '<div class="wf-title">'+esc(fq.text)+'</div>'+
+    (subs.length ? '<div class="wf-sub">'+doneCt+' / '+subs.length+' objectives done</div>' : '');
+  host.onclick=()=>toggleFocusQuest(fq.id);
 }
 
 /* ---- deep-work milestones — a real celebration the moment a live session crosses 8/10/12/14h ---- */
@@ -5479,11 +5523,20 @@ function setFocusQuest(id){
   renderGoals(); renderWork();
 }
 function toggleFocusQuest(id){ setFocusQuest(getFocusQuestId()===id ? null : id); if(SET.pipboySkin) pipSelectClick(); }
-/* carry EVERY unfinished goal from any earlier dated page onto today — idempotent
-   (dedupes by text), leaves the old pages intact as a record */
-function carryOverAll(){
+/* Unfinished quests now carry forward FOREVER, automatically, with no button —
+   a quest that isn't done just keeps showing up on Today until it is. Same
+   mechanics as the old manual carryOverAll() (copies as a new id per day, dedupes
+   by text, leaves every past dated page untouched as a real record of what was
+   outstanding that day), just triggered silently instead of on a tap. Gated by
+   lastAutoCarryDay so it does real work at most once per calendar day no matter
+   how often renderAll() runs. */
+let lastAutoCarryDay=null;
+function autoCarryOverGoals(){
   const today=todayKey();
+  if(lastAutoCarryDay===today) return;
+  lastAutoCarryDay=today;
   const dayKeys=Object.keys(KVD).filter(k=>k.startsWith('goals:') && k.slice(6)<today).sort();
+  if(!dayKeys.length) return;
   const cur=(kget('goals:'+today,[])||[]).map(normGoal);
   const have=new Set(cur.map(x=>x.text.trim().toLowerCase()));
   let added=0;
@@ -5497,10 +5550,7 @@ function carryOverAll(){
       added++;
     });
   });
-  if(!added){ toast('Nothing unfinished to carry over'); return; }
-  kset('goals:'+today, cur); doSync(false);
-  goalDate=today; renderGoals(); renderToday();
-  toast('Carried over '+added+' unfinished quest'+(added===1?'':'s'));
+  if(added){ kset('goals:'+today, cur); doSync(false); }
 }
 function reorderGoals(newIdOrder){
   const g=viewGoals();
@@ -6553,6 +6603,7 @@ function renderAll(){
   applyPipboy();
   ensureHabitsSeeded();
   ensureHabitsMigrated();
+  autoCarryOverGoals();
   autoFlow();
   renderDayStreak();
   renderToday(); renderWork(); renderGym(); renderRapPanel(); renderDiet(); renderHabits(); renderGoals(); renderModules(); renderAlarm(); renderTabs();

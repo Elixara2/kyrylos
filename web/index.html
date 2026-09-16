@@ -924,34 +924,37 @@
   #wrap #p-work.on > *{ animation:none; }   /* no stagger here — it would reflow the pinned layout */
   #wrap .whidden{ display:none; }
 
-  /* 1 · the slither — deliberately small: it's a readout, not the point of the
-     screen. Everything here (padding, fonts, the commit-range pill) is roughly
-     half its earlier size, per direct feedback that it was dominating. */
+  /* 1 · the slither — halved again, by explicit request: every internal gap and
+     label shrunk, but NOT input[type=range].pro-slider itself (defined once,
+     globally, shared by every slider in the app — that 8px track / 24px thumb
+     is untouched here on purpose, "thickness" was never in question). */
   #wrap .wsliver{
-    flex:0 0 auto; padding:6px 12px 7px; border-radius:13px;
+    flex:0 0 auto; padding:3px 12px 3px; border-radius:11px;
     background:linear-gradient(180deg, var(--hud-tint), transparent 70%), var(--panel);
     border:1px solid var(--hud-line);
   }
-  #wrap .wsl-head{ display:flex; align-items:baseline; gap:8px; }
-  #wrap .wsl-head .lbl{ color:var(--dim); font-size:9px; }
-  #wrap .wsl-num{ font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.02em; color:var(--accent); }
-  #wrap .wsl-num::after{ content:' hrs'; font-size:9px; font-weight:700; letter-spacing:.12em; color:var(--dim); }
-  #wrap .wsl-sub{ margin-left:auto; font-size:10px; color:var(--dim); font-variant-numeric:tabular-nums; }
-  #wrap .wsliver .pro-slider{ margin-top:5px; }
-  #wrap .wsliver .commit-bar{ margin-top:5px; height:3px; }
-  #wrap .wsliver .commit-range{ margin-top:5px; padding:4px 10px; font-size:11px; gap:6px; }
-  #wrap .wsliver .commit-range .arrow{ font-size:10px; }
+  #wrap .wsl-head{ display:flex; align-items:baseline; gap:6px; }
+  #wrap .wsl-head .lbl{ color:var(--dim); font-size:8px; }
+  #wrap .wsl-num{ font-size:12px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.02em; color:var(--accent); }
+  #wrap .wsl-num::after{ content:' hrs'; font-size:8px; font-weight:700; letter-spacing:.1em; color:var(--dim); }
+  #wrap .wsl-sub{ margin-left:auto; font-size:9px; color:var(--dim); font-variant-numeric:tabular-nums; }
+  #wrap .wsliver .pro-slider{ margin:0; }
+  #wrap .wsliver .commit-bar{ margin-top:2px; height:3px; }
+  /* was its own bordered pill (padding 4px 10px + a background/border box) —
+     now plain inline text, which is most of where the extra height went */
+  #wrap .wsliver .commit-range{
+    margin-top:2px; padding:0; font-size:9.5px; gap:5px;
+    border:none !important; background:none !important;
+  }
+  #wrap .wsliver .commit-range .arrow{ font-size:9px; }
 
-  /* 1b · active quests — sits between the slither and Clock in. Sized to its
-     own content (flex:0 0 auto) up to a generous cap, with its own scroll past
-     that (overflow-y:auto) — a long list scrolls IN HERE, never the panel.
-     Tried making this the flexible element that stretches to fill all leftover
-     space instead: looked worse, not better — one or two quests turned it into
-     a mostly-empty box taller than the screen needed. A fixed cap that leaves a
-     little breathing room above the button beats a box that over-grows to fill
-     it artificially. */
+  /* 1b · active quests — THE flexible element on this screen now: Clock in
+     shrank specifically to give this room, so this is what actually claims it
+     (flex:1, was flex:0 0 auto capped at 168px). Still scrolls internally
+     (overflow-y:auto) past whatever it's given, so it's never the panel that
+     scrolls, no matter how many quests are on today's list. */
   #wrap .wquests{
-    flex:0 0 auto; margin-top:7px; padding:7px 10px 5px; max-height:168px; overflow-y:auto;
+    flex:1 1 auto; margin-top:6px; padding:7px 10px 5px; min-height:0; overflow-y:auto;
     border-radius:13px; border:1px solid var(--hud-line);
     background:linear-gradient(180deg, var(--hud-tint), transparent 70%), var(--panel);
     transition:opacity .25s;
@@ -982,30 +985,28 @@
   #wrap .wf-title{ font-size:19px; font-weight:800; letter-spacing:-.01em; line-height:1.25; margin-top:3px; }
   #wrap .wf-sub{ font-size:11px; color:var(--dim); margin-top:4px; }
 
-  /* 2 · centre stage — flex:1 so it absorbs whatever's left after the (capped)
-     slither and quests block above it, then flex-end pulls its content down to
-     sit right above the foot controls instead of centering with dead space on
-     both sides. The button is capped by height as well as width so it can't
-     force the stage bigger than the room actually left for it — that mismatch
-     (fixed vw-based size vs. however much space was left) is what overlapped
-     the foot controls in the first place. */
-  #wrap .wstage{ flex:1 1 auto; display:flex; flex-direction:column; align-items:center;
-    justify-content:flex-end; gap:6px; min-height:0; overflow:hidden; padding-bottom:4px; }
+  /* 2 · centre stage — now sized to its own (tiny) content, not flex:1: the
+     quests list is what's meant to stretch on this screen, Clock in is just a
+     small fixed control sitting right above the foot, out of its way. */
+  #wrap .wstage{ flex:0 0 auto; display:flex; flex-direction:column; align-items:center;
+    gap:4px; padding:6px 0 2px; }
+  /* ~3x smaller than before (112px → 40px), per direct request to free up the
+     quest list. Held at 40px rather than a literal 112/3≈37px — Apple/Android's
+     own minimum comfortable tap target is ~40-44px, and going below that would
+     trade "list has more room" for "button is hard to hit", which wasn't asked
+     for. Icon-only: no text fits a circle this small (see the JS that used to
+     write Clock in/Pause/Resume into it — now just ▶/⏸). */
   #wrap .wbig{
-    width:min(112px,30vw,16vh); aspect-ratio:1; border-radius:50%; flex:0 0 auto;
-    font-size:13px; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
-    color:var(--bg); border:none;
+    width:min(40px,11vw,6vh); aspect-ratio:1; border-radius:50%; flex:0 0 auto;
+    font-size:15px; font-weight:800; color:var(--bg); border:none;
     background:radial-gradient(circle at 50% 34%, var(--accent), var(--accent2));
     box-shadow:0 0 0 1px rgba(var(--pip-rgb,255,255,255),.22) inset,
-               0 0 30px -10px var(--accent), 0 12px 26px -18px #000;
-    animation:wpulse 3.4s ease-in-out infinite;
+               0 0 16px -6px var(--accent), 0 6px 14px -10px #000;
     transition:transform .18s var(--ease), box-shadow .25s;
   }
-  #wrap .wbig:active{ transform:scale(.955); }
-  @keyframes wpulse{ 0%,100%{box-shadow:0 0 0 1px rgba(var(--pip-rgb,255,255,255),.22) inset,0 0 30px -10px var(--accent),0 12px 26px -18px #000}
-                     50%{box-shadow:0 0 0 1px rgba(var(--pip-rgb,255,255,255),.3) inset,0 0 44px -6px var(--accent),0 12px 26px -18px #000} }
-  #wrap .wbar{ width:min(112px,30vw,16vh); flex:0 0 auto; }
-  #wrap .wstage-sub{ text-align:center; font-size:10.5px; flex:0 0 auto; }
+  #wrap .wbig:active{ transform:scale(.9); }
+  #wrap .wbar{ width:min(84px,24vw); flex:0 0 auto; height:3px; }
+  #wrap .wstage-sub{ text-align:center; font-size:9.5px; flex:0 0 auto; }
 
   /* 3 · pinned foot */
   #wrap .wfoot{ flex:0 0 auto; display:flex; flex-direction:column; gap:6px; padding-top:2px; }
@@ -1022,7 +1023,9 @@
 
   /* small symbol blocks, welded above the tab bar */
   #wrap .wfoot .wctl{ grid-template-columns:repeat(5,1fr); gap:7px; margin-top:0; }
-  #wrap .wfoot .wctl button{ padding:0; height:40px; font-size:16px; font-weight:700;
+  /* bigger glyphs, per direct feedback that ▶ ✎ ↺ ⏹ ⧉ were too small to read
+     at a glance — the whole point of icon buttons is not having to squint */
+  #wrap .wfoot .wctl button{ padding:0; height:44px; font-size:23px; font-weight:700;
     border-radius:13px; background:var(--hud-tint); border-color:var(--hud-line); }
   #wrap .wfoot .wctl button.danger{ color:#fca5a5; }
 
@@ -1416,16 +1419,14 @@
   body.pipboy #wrap button.primary:active{
     background:rgb(var(--pip-rgb)) !important; color:#02100a !important;
   }
-  /* the big circular Clock in becomes an octagonal terminal key. wpulse is killed
-     because it animates box-shadow, which fights the flat phosphor look. */
+  /* the tiny circular Clock in becomes an octagonal terminal key */
   body.pipboy #wrap .wbig{
     border-radius:0 !important;
     clip-path:polygon(14% 0,86% 0,100% 22%,100% 78%,86% 100%,14% 100%,0 78%,0 22%);
     border:2px solid rgb(var(--pip-rgb)) !important;
     background:rgba(var(--pip-rgb),.10) !important;
     color:rgb(var(--pip-rgb)) !important;
-    animation:none !important; box-shadow:none !important;
-    font-weight:400; letter-spacing:.2em;
+    box-shadow:none !important;
   }
   body.pipboy #wrap .wbig:active{
     background:rgb(var(--pip-rgb)) !important; color:#02100a !important;
@@ -1735,10 +1736,6 @@
 
   <!-- ============ WORK ============ -->
   <section class="panel" id="p-work">
-    <!-- 0 · FOCUS: the one quest you're actually doing right now. Only exists
-         while a quest is tracked — see renderWorkFocus(). Tapping it untracks. -->
-    <div class="wfocus" id="wfocus" style="display:none"></div>
-
     <!-- 1 · session length, as a slither -->
     <div class="wsliver">
       <div class="wsl-head">
@@ -1751,13 +1748,20 @@
       <div class="commit-range" id="commitRange" style="display:none"></div>
     </div>
 
+    <!-- 0 · FOCUS: the one quest you're actually doing right now. Only exists
+         while a quest is tracked — see renderWorkFocus(). Tapping it untracks. -->
+    <div class="wfocus" id="wfocus" style="display:none"></div>
+
     <!-- 1b · active quests: pick what you're focusing on before you clock in.
-         Empty when there's nothing left today — see renderWorkQuests(). -->
+         Empty when there's nothing left today — see renderWorkQuests(). flex:1
+         now — it's the one thing on this screen meant to stretch and fill. -->
     <div class="wquests" id="wquests"></div>
 
-    <!-- 2 · centre stage: the one thing you came here to press -->
+    <!-- 2 · centre stage: Clock in is tiny on purpose now — the quest list is
+         the point of this screen, not the button. Icon-only: at this size text
+         doesn't fit, and ▶/⏸ read faster than words anyway. -->
     <div class="wstage">
-      <button class="wbig" id="tsStartBtn" onclick="tsToggle()">Clock in</button>
+      <button class="wbig" id="tsStartBtn" onclick="tsToggle()">▶</button>
       <div class="bar wbar"><i id="tsBar"></i></div>
       <div class="sub wstage-sub" id="tsInfo"></div>
     </div>
@@ -2412,7 +2416,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260917-083452';
+const KOS_BUILD='20260917-090053';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -4067,7 +4071,9 @@ function renderWork(){
   if(!SET.logOn){ $('#tsCount').textContent='∞'; $('#tsBar').style.width='0%'; }
   else { $('#tsCount').textContent=hms(leftMs/1000); $('#tsBar').style.width=(100*(1-Math.max(0,leftMs)/span))+'%'; }
   // big centre button + the small symbol block share one action
-  $('#tsStartBtn').textContent = ts.mode==='working' ? 'Pause' : ts.mode==='paused' ? 'Resume' : 'Clock in';
+  // icon-only now the button's tiny — text doesn't fit a ~40px circle. ⏸ mid-session, ▶ otherwise (clock in or resume both just "make it go")
+  $('#tsStartBtn').textContent = ts.mode==='working' ? '⏸' : '▶';
+  $('#tsStartBtn').setAttribute('aria-label', ts.mode==='working' ? 'Pause' : ts.mode==='paused' ? 'Resume' : 'Clock in');
   const ti=$('#tsToggleIcon'); if(ti) ti.textContent = ts.mode==='working' ? '⏸' : '▶';
   $('#tsLbl').textContent = !SET.logOn ? 'straight-through focus' : ts.mode==='idle' ? 'press clock in when work begins' : ts.mode==='paused' ? 'paused' : 'until next log';
   $('#tsInfo').textContent = !SET.logOn ? 'Working straight through — no log popups' : (ts.mode==='idle' ? 'Logging every '+fmtEvery(SET.tsInt)+' once you clock in' : 'Logging every '+fmtEvery(SET.tsInt));

@@ -928,22 +928,26 @@
      label shrunk, but NOT input[type=range].pro-slider itself (defined once,
      globally, shared by every slider in the app — that 8px track / 24px thumb
      is untouched here on purpose, "thickness" was never in question). */
+  /* 2px of vertical padding was strangling this: the slider's thumb is 24px and
+     was overflowing the box, which is why the control looked squashed and
+     misaligned. It needs room for the thumb, and the readouts need to be
+     readable — 7.5px labels were unreadable, not "compact". */
   #wrap .wsliver{
-    flex:0 0 auto; padding:2px 12px 2px; border-radius:11px;
+    flex:0 0 auto; padding:7px 13px 8px; border-radius:11px;
     background:linear-gradient(180deg, var(--hud-tint), transparent 70%), var(--panel);
     border:1px solid var(--hud-line);
   }
-  #wrap .wsl-head{ display:flex; align-items:baseline; gap:5px; line-height:1; }
-  #wrap .wsl-head .lbl{ color:var(--dim); font-size:7.5px; }
-  #wrap .wsl-num{ font-size:11px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.02em; color:var(--accent); }
-  #wrap .wsl-num::after{ content:' hrs'; font-size:7.5px; font-weight:700; letter-spacing:.08em; color:var(--dim); }
-  #wrap .wsl-sub{ margin-left:auto; font-size:8.5px; color:var(--dim); font-variant-numeric:tabular-nums; }
-  #wrap .wsliver .pro-slider{ margin:0; }
-  #wrap .wsliver .commit-bar{ margin-top:1px; height:3px; }
+  #wrap .wsl-head{ display:flex; align-items:baseline; gap:7px; line-height:1; }
+  #wrap .wsl-head .lbl{ color:var(--dim); font-size:8.5px; letter-spacing:.26em; }
+  #wrap .wsl-num{ font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.02em; color:var(--accent); }
+  #wrap .wsl-num::after{ content:' hrs'; font-size:8.5px; font-weight:700; letter-spacing:.1em; color:var(--dim); }
+  #wrap .wsl-sub{ margin-left:auto; font-size:10px; color:var(--dim); font-variant-numeric:tabular-nums; }
+  #wrap .wsliver .pro-slider{ margin:7px 0 0; }
+  #wrap .wsliver .commit-bar{ margin-top:7px; height:3px; }
   /* was its own bordered pill (padding 4px 10px + a background/border box) —
      now plain inline text on the same tight rhythm as everything else here */
   #wrap .wsliver .commit-range{
-    margin-top:1px; padding:0; font-size:9px; gap:5px; line-height:1.2;
+    margin-top:6px; padding:0; font-size:10.5px; gap:6px; line-height:1.2;
     border:none !important; background:none !important;
   }
   #wrap .wsliver .commit-range .arrow{ font-size:8.5px; }
@@ -963,12 +967,24 @@
      this list is explicitly NOT what's being worked on, so the whole block
      recedes rather than reading as a normal, equally-weighted list. */
   #wrap .wquests.dimmed{ opacity:.38; }
-  #wrap .wq-lbl{ font-size:9px; letter-spacing:.2em; text-transform:uppercase; color:var(--dim); margin-bottom:3px; }
+  /* stencilled section label, sitting on the frame's own rule like a plate */
+  #wrap .wq-lbl{
+    font-size:8.5px; letter-spacing:.3em; text-transform:uppercase; color:var(--dim);
+    padding-bottom:5px; margin-bottom:5px; border-bottom:1px solid var(--hud-line);
+  }
   #wrap .wq-list{ display:flex; flex-direction:column; gap:0; }
-  #wrap .wq-row{ display:flex; align-items:center; gap:8px; padding:4px 4px; border-radius:8px; cursor:pointer; transition:background .15s; }
+  /* fixed-width marker gutter so every title starts on the SAME x — the ragged
+     left edge was most of why the old list read as noise rather than a manifest */
+  #wrap .wq-row{
+    display:grid; grid-template-columns:18px 1fr; align-items:center; gap:9px;
+    padding:7px 4px; border-radius:7px; cursor:pointer;
+    border-bottom:1px solid rgba(var(--pip-rgb,255,255,255),.05);
+    transition:background .15s;
+  }
+  #wrap .wq-row:last-child{ border-bottom:none; }
   #wrap .wq-row:active{ background:var(--hud-tint); }
-  #wrap .wq-mark{ flex:0 0 auto; color:var(--dim); font-size:11px; }
-  #wrap .wq-text{ font-size:12px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #wrap .wq-mark{ flex:0 0 auto; color:var(--dim); font-size:11px; text-align:center; }
+  #wrap .wq-text{ font-size:12.5px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
   /* 1a · FOCUS — the one thing, bigger and bolder than anything else on this
      screen apart from Clock in itself. Its own block, its own glow, sitting
@@ -985,28 +1001,27 @@
   #wrap .wf-title{ font-size:19px; font-weight:800; letter-spacing:-.01em; line-height:1.25; margin-top:3px; }
   #wrap .wf-sub{ font-size:11px; color:var(--dim); margin-top:4px; }
 
-  /* 2 · centre stage — now sized to its own (tiny) content, not flex:1: the
-     quests list is what's meant to stretch on this screen, Clock in is just a
-     small fixed control sitting right above the foot, out of its way. */
-  #wrap .wstage{ flex:0 0 auto; display:flex; flex-direction:column; align-items:center;
-    gap:4px; padding:6px 0 2px; }
-  /* ~3x smaller than before (112px → 40px), per direct request to free up the
-     quest list. Held at 40px rather than a literal 112/3≈37px — Apple/Android's
-     own minimum comfortable tap target is ~40-44px, and going below that would
-     trade "list has more room" for "button is hard to hit", which wasn't asked
-     for. Icon-only: no text fits a circle this small (see the JS that used to
-     write Clock in/Pause/Resume into it — now just ▶/⏸). */
+  /* 2 · ACTION BAR — was a 40px circle floating in the middle of nothing, which
+     read as an afterthought rather than the primary control. Now a full-width
+     bar on the same inset as every other block: symmetric, unmissable, icon AND
+     word, and it costs no more vertical space than the little circle did. */
+  #wrap .wstage{ flex:0 0 auto; display:flex; flex-direction:column;
+    align-items:stretch; gap:5px; padding:7px 0 1px; }
   #wrap .wbig{
-    width:min(40px,11vw,6vh); aspect-ratio:1; border-radius:50%; flex:0 0 auto;
-    font-size:15px; font-weight:800; color:var(--bg); border:none;
-    background:radial-gradient(circle at 50% 34%, var(--accent), var(--accent2));
-    box-shadow:0 0 0 1px rgba(var(--pip-rgb,255,255,255),.22) inset,
-               0 0 16px -6px var(--accent), 0 6px 14px -10px #000;
-    transition:transform .18s var(--ease), box-shadow .25s;
+    width:100%; height:52px; border-radius:12px; flex:0 0 auto;
+    display:flex; align-items:center; justify-content:center; gap:11px;
+    font-size:15px; font-weight:800; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--bg); border:none;
+    background:linear-gradient(180deg, var(--accent), var(--accent2));
+    box-shadow:0 0 0 1px rgba(var(--pip-rgb,255,255,255),.25) inset,
+               0 10px 26px -14px var(--accent);
+    transition:transform .14s var(--ease), box-shadow .25s, filter .2s;
   }
-  #wrap .wbig:active{ transform:scale(.9); }
-  #wrap .wbar{ width:min(84px,24vw); flex:0 0 auto; height:3px; }
-  #wrap .wstage-sub{ text-align:center; font-size:9.5px; flex:0 0 auto; }
+  #wrap .wbig svg{ width:24px; height:24px; fill:currentColor; flex:0 0 auto; }
+  #wrap .wbig b{ font:inherit; }
+  #wrap .wbig:active{ transform:scale(.982); filter:brightness(1.12); }
+  #wrap .wbar{ width:100%; flex:0 0 auto; height:3px; }
+  #wrap .wstage-sub{ text-align:center; font-size:9.5px; flex:0 0 auto; letter-spacing:.1em; }
 
   /* 3 · pinned foot */
   #wrap .wfoot{ flex:0 0 auto; display:flex; flex-direction:column; gap:6px; padding-top:2px; }
@@ -1021,13 +1036,21 @@
   #wrap .wsession-r{ display:flex; flex-direction:column; align-items:flex-end; gap:1px; text-align:right; }
   #wrap .wsession-r .sub{ font-size:9.5px; line-height:1.3; }
 
-  /* small symbol blocks, welded above the tab bar */
-  #wrap .wfoot .wctl{ grid-template-columns:repeat(5,1fr); gap:7px; margin-top:0; }
-  /* bigger glyphs, per direct feedback that ▶ ✎ ↺ ⏹ ⧉ were too small to read
-     at a glance — the whole point of icon buttons is not having to squint */
-  #wrap .wfoot .wctl button{ padding:0; height:44px; font-size:23px; font-weight:700;
-    border-radius:13px; background:var(--hud-tint); border-color:var(--hud-line); }
+  /* control row — five equal cells, each a big drawn symbol with its own word.
+     No more guessing what ⧉ meant. */
+  #wrap .wfoot .wctl{ grid-template-columns:repeat(5,1fr); gap:6px; margin-top:0; }
+  #wrap .wfoot .wctl button{
+    padding:0; height:52px; border-radius:11px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+    background:var(--hud-tint); border-color:var(--hud-line);
+  }
+  #wrap .wctl button svg{ width:25px; height:25px; fill:currentColor; display:block; }
+  #wrap .wctl button b{
+    font-size:8px; font-weight:700; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--dim); line-height:1;
+  }
   #wrap .wfoot .wctl button.danger{ color:#fca5a5; }
+  #wrap .wfoot .wctl button.danger b{ color:#fca5a5; opacity:.75; }
 
   /* ══════════════════════════════════════════════════════════════════════
      FAILING-HARDWARE GLITCHES
@@ -1334,6 +1357,86 @@
   }
   body.pipboy #wrap .wfocus, body.pipboy #wrap .wfocus *{ color:#02100a !important; text-shadow:none !important; }
 
+  /* ---------- 5b · WEAR — the "lost for 200 years but still runs" pass ----------
+     What was missing wasn't colour, it was AGE. A clean 1px green rectangle on
+     black reads as cheap plastic; a real salvaged device has heavy machined
+     frames, corner hardware, oxidised edges and grime in the corners. Rust is
+     deliberately RARE and only ever at edges/corners — phosphor green stays the
+     only ink for anything you actually read, so nothing gets less legible. */
+  body.pipboy{ --rust:#8c4a1d; --rust-lit:#c2712f; }
+
+  /* heavier machined frame: a bright outer edge + a dark inner bevel */
+  body.pipboy #wrap .wsliver, body.pipboy #wrap .wquests,
+  body.pipboy #wrap .wfoot, body.pipboy #wrap .wsession, body.pipboy #wrap .wctl button{
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.55), inset 0 1px 0 rgba(var(--pip-rgb),.14) !important;
+  }
+  /* corner hardware on the main list frame — four stencilled brackets */
+  body.pipboy #wrap .wquests{ position:relative; }
+  body.pipboy #wrap .wquests::before,
+  body.pipboy #wrap .wquests::after{
+    content:''; position:absolute; width:10px; height:10px; pointer-events:none;
+    border:2px solid rgba(var(--pip-rgb),.55);
+  }
+  body.pipboy #wrap .wquests::before{ top:-1px; left:-1px; border-right:none; border-bottom:none; }
+  body.pipboy #wrap .wquests::after{ bottom:-1px; right:-1px; border-left:none; border-top:none; }
+
+  /* oxidisation: warm corrosion creeping in from the corners of the screen and
+     along the action bar's underside. Low alpha on purpose — it should read as
+     grime you stop noticing, not as a second theme colour. */
+  body.pipboy #wrap::after{
+    content:''; position:absolute; inset:0; pointer-events:none; z-index:0; border-radius:inherit;
+    background:
+      radial-gradient(60% 40% at 0% 0%,   rgba(140,74,29,.16), transparent 70%),
+      radial-gradient(55% 35% at 100% 4%, rgba(140,74,29,.11), transparent 72%),
+      radial-gradient(70% 45% at 96% 100%,rgba(140,74,29,.13), transparent 70%);
+    mix-blend-mode:screen;
+  }
+  body.pipboy #wrap{ position:relative; }
+  body.pipboy #wrap > *{ position:relative; z-index:1; }
+
+  /* the action bar is the one piece of hardware you hit constantly — so it's the
+     one with visible wear on its edge */
+  body.pipboy #wrap .wbig{
+    border-radius:0 !important;
+    background:rgba(var(--pip-rgb),.13) !important;
+    border:2px solid rgb(var(--pip-rgb)) !important;
+    color:rgb(var(--pip-rgb)) !important;
+    box-shadow:inset 0 -2px 0 rgba(140,74,29,.55), 0 0 22px -6px rgba(var(--pip-rgb),.7) !important;
+  }
+  body.pipboy #wrap .wbig:active{
+    background:rgb(var(--pip-rgb)) !important; color:#02100a !important; filter:none;
+  }
+  /* SLIDERS — the global style is a white ball on a grey track, which is the
+     single most plastic-looking thing left on the screen. In here it becomes a
+     machined phosphor handle on a dark slot: square, bordered, with the filled
+     run lit up behind it. (Same 8px track / 24px handle footprint as the global
+     rule, so nothing reflows — only the material changes.) */
+  body.pipboy #wrap input[type=range].pro-slider{
+    background:rgba(0,0,0,.55) !important;
+    border:1px solid var(--pip-edge); border-radius:0 !important;
+  }
+  body.pipboy #wrap input[type=range].pro-slider::-webkit-slider-thumb{
+    width:16px; height:22px; border-radius:0;
+    background:rgb(var(--pip-rgb));
+    border:2px solid #02100a;
+    box-shadow:0 0 14px -2px rgba(var(--pip-rgb),.9);
+  }
+  body.pipboy #wrap input[type=range].pro-slider::-moz-range-thumb{
+    width:16px; height:22px; border-radius:0;
+    background:rgb(var(--pip-rgb)); border:2px solid #02100a;
+  }
+  body.pipboy #wrap input[type=range].pro-slider::-moz-range-progress{
+    background:rgba(var(--pip-rgb),.55);
+  }
+  body.pipboy #wrap .commit-bar{ background:rgba(0,0,0,.5) !important; }
+
+  /* control glyphs sit at full phosphor; their labels stay quiet underneath */
+  body.pipboy #wrap .wctl button svg{ fill:rgb(var(--pip-rgb)); }
+  body.pipboy #wrap .wctl button b{ color:rgba(var(--pip-rgb),.5); }
+  body.pipboy #wrap .wctl button:active{ background:rgb(var(--pip-rgb)) !important; }
+  body.pipboy #wrap .wctl button:active svg{ fill:#02100a; }
+  body.pipboy #wrap .wctl button:active b{ color:#02100a; }
+
   /* ---------- 4b · QUESTS: the actual quest-log page ----------
      List on the left, the tracked quest's objectives on the right with the
      figure above them — this is a direct replica of the device's DATA/Quests
@@ -1344,9 +1447,10 @@
   }
   body.pipboy #wrap #glist{ margin:0 !important; padding:10px 4px; border-right:1px solid var(--pip-hair); }
   body.pipboy #wrap .goal{
-    padding:9px 6px 9px 8px !important; border-radius:0 !important; gap:6px;
-    border-bottom:none !important;
+    padding:10px 8px 10px 10px !important; border-radius:0 !important; gap:9px;
+    border-bottom:1px solid rgba(var(--pip-rgb),.07) !important;
   }
+  body.pipboy #wrap .goal:last-child{ border-bottom:none !important; }
   /* .gtrack/.gdel are <button>s, which the universal Pip-Boy button rule brackets
      with a border and padding (right, for a real button) — wrong here, this is a
      dense list and a bracket box around every "○" reads as clutter, not chrome. */
@@ -1371,7 +1475,7 @@
   body.pipboy #wrap .subtask.done .subchk{ background:rgb(var(--pip-rgb)) !important; color:#02100a !important; }
   body.pipboy #wrap table.gridtable td.gc.n{ text-shadow:none !important; }
   body.pipboy #wrap .gdel{ opacity:.4; font-size:12px; }
-  body.pipboy #wrap .gtext{ font-size:11.5px; letter-spacing:.03em; }
+  body.pipboy #wrap .gtext{ font-size:13px; letter-spacing:.02em; line-height:1.35; }
   body.pipboy #wrap .gtext::after{ display:none; }
   body.pipboy #wrap .goal.done .gtext{ opacity:.5; }
   /* the tracked quest — inverted solid phosphor bar, exactly the highlighted row
@@ -1387,8 +1491,6 @@
     display:flex; flex-direction:column; align-items:center;
     padding:16px 12px 12px; position:relative;
   }
-  body.pipboy #wrap #qbFigure{ width:46px; opacity:.85; margin-bottom:10px; }
-  body.pipboy #wrap #qbFigure svg{ width:100%; height:auto; filter:drop-shadow(0 0 5px rgba(var(--pip-rgb),.5)); }
   body.pipboy #wrap #qFocusBody{ width:100%; text-align:left; }
   body.pipboy #wrap #qFocusEmpty{ text-align:center; font-size:10.5px; opacity:.6; margin-top:4px; }
   body.pipboy #wrap #qFocusTitle{
@@ -1401,7 +1503,12 @@
     margin-top:auto; padding-top:14px; align-self:flex-start;
     font-size:9.5px; letter-spacing:.1em; opacity:.6; font-variant-numeric:tabular-nums;
   }
-  @media (max-width:400px){
+  /* 400px was far too low a bar for the two-column split: a phone-width window
+     (~420px) cleared it and kept both columns, leaving the quest column ~180px
+     wide — every title wrapped to two or three lines and the whole list became
+     unreadable. Below 620px there simply isn't room for a list AND a detail
+     pane side by side, so go single-column and let titles have the full width. */
+  @media (max-width:620px){
     body.pipboy #wrap #qSplit{ grid-template-columns:1fr; }
     body.pipboy #wrap #glist{ border-right:none; border-bottom:1px solid var(--pip-hair); }
   }
@@ -1430,19 +1537,12 @@
   body.pipboy #wrap button.primary:active{
     background:rgb(var(--pip-rgb)) !important; color:#02100a !important;
   }
-  /* the tiny circular Clock in becomes an octagonal terminal key */
-  body.pipboy #wrap .wbig{
-    border-radius:0 !important;
-    clip-path:polygon(14% 0,86% 0,100% 22%,100% 78%,86% 100%,14% 100%,0 78%,0 22%);
-    border:2px solid rgb(var(--pip-rgb)) !important;
-    background:rgba(var(--pip-rgb),.10) !important;
-    color:rgb(var(--pip-rgb)) !important;
-    box-shadow:none !important;
-  }
-  body.pipboy #wrap .wbig:active{
-    background:rgb(var(--pip-rgb)) !important; color:#02100a !important;
-    text-shadow:none; transform:none;
-  }
+  /* NOTE: the octagonal clip-path that used to live here was cut deliberately.
+     It was designed for a small circular key; stretched across the full-width
+     action bar it sliced the left/right ends clean off, and its box-shadow:none
+     also wiped the bar's wear detail. The bar's own styling (with the rust edge)
+     is in section 5b above. */
+  body.pipboy #wrap .wbig:active{ text-shadow:none; transform:none; }
 
   /* ---------- 6 · INPUTS ---------- */
   body.pipboy #wrap input[type=text], body.pipboy #wrap input[type=number],
@@ -1799,12 +1899,29 @@
           <span class="sub" id="tsStartedLbl">Ready when you are</span>
         </div>
       </div>
+      <!-- Unicode glyphs (▶ ✎ ↺ ⏹ ⧉) were the single worst "cheap plastic" tell:
+           every one came from a different part of the font at a different optical
+           weight and size, so the row read as mismatched junk. These are drawn to
+           one spec — 24px box, same stroke weight, same visual mass — and each
+           carries its own word underneath so nothing is a guess. -->
       <div class="wctl">
-        <button id="tsToggleIcon" onclick="tsToggle()" title="Start / pause">▶</button>
-        <button onclick="tsOpenLog()" title="Log now">✎</button>
-        <button id="tsResetBtn" onclick="tsResetSession()" title="Reset session">↺</button>
-        <button id="tsEndBtn" class="danger" onclick="tsClockOut()" title="End session">⏹</button>
-        <button onclick="popOutTimer()" title="Float timer">⧉</button>
+        <button id="tsToggleIcon" onclick="tsToggle()" title="Start / pause"></button>
+        <button onclick="tsOpenLog()" title="Log now">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M6 15.5V17h1.5l8-8-1.5-1.5-8 8zM15 6l1.5-1.5a1.4 1.4 0 0 1 2 0l.5.5a1.4 1.4 0 0 1 0 2L17.5 8.5z"/></svg>
+          <b>Log</b>
+        </button>
+        <button id="tsResetBtn" onclick="tsResetSession()" title="Reset session">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12a7 7 0 1 1 2.6 5.4" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square"/><path d="M4 5.5v5h5z"/></svg>
+          <b>Reset</b>
+        </button>
+        <button id="tsEndBtn" class="danger" onclick="tsClockOut()" title="End session">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12"/></svg>
+          <b>End</b>
+        </button>
+        <button onclick="popOutTimer()" title="Float timer">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="6.5" width="12" height="11" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M13 3.5h7.5V11h-2.2V7.2L13.8 11 12.3 9.5l3.8-3.8H13z"/></svg>
+          <b>Float</b>
+        </button>
       </div>
     </div>
 
@@ -2065,16 +2182,6 @@
       <div id="qSplit">
         <div class="glist" id="glist" style="margin-top:10px"><div class="empty">No active quests — add your first one above.</div></div>
         <div id="qFocusPane">
-          <!-- an original geometric pictogram, not a copy of the game's mascot —
-               same idea (a little figure marking the objective) drawn from scratch -->
-          <div id="qbFigure"><svg viewBox="0 0 48 64" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
-            <circle cx="24" cy="10" r="7"/>
-            <line x1="24" y1="17" x2="24" y2="38"/>
-            <line x1="24" y1="24" x2="10" y2="16"/>
-            <line x1="24" y1="24" x2="38" y2="30"/>
-            <line x1="24" y1="38" x2="13" y2="58"/>
-            <line x1="24" y1="38" x2="34" y2="58"/>
-          </svg></div>
           <div id="qFocusBody">
             <div class="empty" id="qFocusEmpty">Tap ○ next to a quest to track it here.</div>
             <div id="qFocusTitle"></div>
@@ -2437,7 +2544,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260917-094624';
+const KOS_BUILD='20260919-125827';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -4086,16 +4193,25 @@ function sizeWorkPanel(){
 }
 addEventListener('resize', ()=>{ if(activeTab==='work') sizeWorkPanel(); });
 
+/* one spec for every control glyph: 24px box, solid mass, no font dependency —
+   Unicode ▶/⏸/↺/⏹ came out at five different weights and sizes depending on
+   which font fell through, which is what made the control row look cheap */
+const ICON_PLAY  = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg>';
+const ICON_PAUSE = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4.2" height="14"/><rect x="13.8" y="5" width="4.2" height="14"/></svg>';
+
 function renderWork(){
   const span=SET.tsInt*60000;
   let leftMs = ts.mode==='working' ? ts.nextLogAt-Date.now() : ts.mode==='paused' ? (ts.pausedLeft||span) : span;
   if(!SET.logOn){ $('#tsCount').textContent='∞'; $('#tsBar').style.width='0%'; }
   else { $('#tsCount').textContent=hms(leftMs/1000); $('#tsBar').style.width=(100*(1-Math.max(0,leftMs)/span))+'%'; }
-  // big centre button + the small symbol block share one action
-  // icon-only now the button's tiny — text doesn't fit a ~40px circle. ⏸ mid-session, ▶ otherwise (clock in or resume both just "make it go")
-  $('#tsStartBtn').textContent = ts.mode==='working' ? '⏸' : '▶';
-  $('#tsStartBtn').setAttribute('aria-label', ts.mode==='working' ? 'Pause' : ts.mode==='paused' ? 'Resume' : 'Clock in');
-  const ti=$('#tsToggleIcon'); if(ti) ti.textContent = ts.mode==='working' ? '⏸' : '▶';
+  // big centre button + the small symbol block share one action. Both draw from
+  // the same two SVGs so the play/pause mark is literally identical in each.
+  const working = ts.mode==='working';
+  const word = working ? 'Pause' : ts.mode==='paused' ? 'Resume' : 'Clock in';
+  $('#tsStartBtn').innerHTML = (working?ICON_PAUSE:ICON_PLAY)+'<b>'+word+'</b>';
+  $('#tsStartBtn').setAttribute('aria-label', word);
+  const ti=$('#tsToggleIcon');
+  if(ti){ ti.innerHTML=(working?ICON_PAUSE:ICON_PLAY)+'<b>'+(working?'Pause':'Start')+'</b>'; }
   $('#tsLbl').textContent = !SET.logOn ? 'straight-through focus' : ts.mode==='idle' ? 'press clock in when work begins' : ts.mode==='paused' ? 'paused' : 'until next log';
   $('#tsInfo').textContent = !SET.logOn ? 'Working straight through — no log popups' : (ts.mode==='idle' ? 'Logging every '+fmtEvery(SET.tsInt)+' once you clock in' : 'Logging every '+fmtEvery(SET.tsInt));
   $('#tsStartedLbl').textContent = ts.mode!=='idle' && ts.sessionStart ? 'Started '+clock(ts.sessionStart) : 'Ready when you are';

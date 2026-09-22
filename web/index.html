@@ -2544,7 +2544,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260922-143750';
+const KOS_BUILD='20260923-082958';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -4096,6 +4096,7 @@ function tsToggle(){
     wtResume();
   }
   else { // stuck in a transient state (logging/resting) — recover so the button always works
+    clearTimeout(logAutoSkipTimer);   // manual recovery — the 2-min self-heal must not also fire later
     $('#tsScrim').classList.remove('show'); $('#breakFloat').classList.remove('show');
     ts.mode='working'; ts.blockStart=ts.blockStart||Date.now(); ts.nextLogAt=Date.now()+SET.tsInt*60000;
     wtStart();
@@ -4104,6 +4105,7 @@ function tsToggle(){
 }
 function tsClockOut(){
   if(ts.mode==='idle') return;
+  clearTimeout(logAutoSkipTimer);   // session is OVER — a late self-heal firing must not resurrect it
   const workedMin=sessionWorkedMin();
   const sessions=getTodaySessions();
   sessions.push({start:ts.sessionStart, end:Date.now(), committedHours:ts.committedHours||6, workedMin});
@@ -4126,6 +4128,7 @@ function tsClockOut(){
 function tsResetSession(){
   if(ts.mode==='idle') return;
   if(!confirm('Reset this session? The clock restarts from zero — anything already logged stays saved.')) return;
+  clearTimeout(logAutoSkipTimer);   // same reason as tsClockOut — nothing pending should outlive the reset
   clearInterval(restTicker);
   $('#breakFloat').classList.remove('show');
   ts={mode:'idle', nextLogAt:0, blockStart:0, sessionStart:0};
@@ -7010,7 +7013,7 @@ if(!hasSrv){ $('#localnote').style.display='block'; setSyncUI(null); } else { se
 applyTabOrder(); bindTabDrag();
 showTab(activeTab);
 let lastDay=todayKey();
-setInterval(()=>{ if(todayKey()!==lastDay){ lastDay=todayKey(); ts=jload('tsrun',{mode:'idle'}); ts.mode='idle'; tsSave(); renderAll(); } }, 30000);
+setInterval(()=>{ if(todayKey()!==lastDay){ lastDay=todayKey(); clearTimeout(logAutoSkipTimer); ts=jload('tsrun',{mode:'idle'}); ts.mode='idle'; tsSave(); renderAll(); } }, 30000);
 setInterval(checkAlarm, 10000); checkAlarm();
 nativeAlarmInit();
 wtSync();

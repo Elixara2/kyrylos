@@ -2544,7 +2544,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260919-141146';
+const KOS_BUILD='20260922-143750';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -4201,6 +4201,7 @@ function setBigLen(min){ SET.bigLen=parseFloat(min)||15; kset('settings',SET); r
 
 /* ---- log a block: a quick in-app note, always — writes straight into our own
    sheet (no external site to open, wait on, or lose focus to) ---- */
+let logAutoSkipTimer=null;
 function tsOpenLog(){
   if(ts.mode==='idle') return;
   ts.mode='logging'; tsSave();
@@ -4208,19 +4209,27 @@ function tsOpenLog(){
   try{ if('Notification' in window && Notification.permission==='granted')
     new Notification('K-OS · Time to log',{body:'What did you do this block?'}); }catch(e){}
   const blockLbl='Block '+clock(ts.blockStart)+' – '+clock(Date.now());
+  /* Self-heal: if this sits unanswered for 2 minutes — the popped-out timer
+     window didn't actually grab OS focus (unreliable for a tiny window.open
+     popup), the phone was locked, whatever — skip it automatically. Without
+     this, ts.mode gets permanently stuck at 'logging': updatePip() refuses to
+     advance the displayed countdown the whole time (frozen number, looks like
+     the app died), and since the 1s ticker only fires the next log/break check
+     when ts.mode==='working', the entire 15-min cycle stops forever, not just
+     once. This is what "stuck on 28, work tab completely broken" actually was. */
+  clearTimeout(logAutoSkipTimer);
+  logAutoSkipTimer=setTimeout(()=>{ if(ts.mode==='logging') commitLog(''); }, 120000);
   // seamless: if the floating timer is popped out, ask right inside it — no separate popup
   if(pipWin && !pipWin.closed){ showPipLog(blockLbl); return; }
   $('#tsBlockLbl').textContent=blockLbl;
-  // pre-fill with whatever quest is tracked — that's obviously what this block was.
-  // Still just a starting value: fully editable, Enter/Save still commits whatever's typed.
-  const fq=getFocusQuest();
-  $('#tsNote').value = fq ? fq.text : '';
+  $('#tsNote').value='';   // was pre-filled with the tracked quest's title — asked to remove it
   $('#tsScrim').classList.add('show');
-  setTimeout(()=>{ const inp=$('#tsNote'); inp.focus(); inp.select(); },60);
+  setTimeout(()=>{ const inp=$('#tsNote'); inp.focus(); },60);
 }
 /* the one place a block actually gets saved + the session resumes (shared by the
    full-screen popup and the in-widget input) */
 function commitLog(note){
+  clearTimeout(logAutoSkipTimer);   // resolved for real — the 2-minute self-heal doesn't need to fire
   if(note){
     const e=getTsEntries(); e.push({s:ts.blockStart, e:Date.now(), text:note});
     kset('ts:entries:'+todayKey(), e);
@@ -4659,8 +4668,7 @@ function showPipLog(blockLbl){
   d.getElementById('pw').style.display='none';
   d.getElementById('pw-log').style.display='flex';
   d.getElementById('pw-block').textContent=blockLbl;
-  const fq=getFocusQuest();
-  const inp=d.getElementById('pw-input'); inp.value = fq ? fq.text : '';
+  const inp=d.getElementById('pw-input'); inp.value='';   // was pre-filled with the tracked quest — removed
   d.body.style.background='radial-gradient(130% 130% at 50% 34%,#1e40af,#0a1330 80%)';
   setTimeout(()=>{ try{ pipWin.focus(); inp.focus(); }catch(e){} },40);
 }

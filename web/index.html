@@ -2544,7 +2544,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20260923-082958';
+const KOS_BUILD='20261001-125557';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -4277,6 +4277,40 @@ addEventListener('resize', ()=>{ if(activeTab==='work') sizeWorkPanel(); });
 const ICON_PLAY  = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg>';
 const ICON_PAUSE = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4.2" height="14"/><rect x="13.8" y="5" width="4.2" height="14"/></svg>';
 
+/* The 1-second ticker used to call the FULL renderWork() every tick — which
+   rebuilds two off-screen hidden lists (#tsEntries/#tsSessions) from scratch,
+   re-paints all five Settings sliders via styleSlider(), rebuilds the entire
+   quest list and focus block, and forces a layout reflow via sizeWorkPanel().
+   None of that changes second-to-second; only the countdown and the worked-time
+   progress do. Doing all of it 60 times a minute anyway is exactly the kind of
+   thing that reads as "not smooth, not 60fps" on a real device — this is the
+   cheap path that's actually safe to run every second, and the full renderWork()
+   now only fires from real state changes (tab switches, clock in/out, log
+   commits, settings edits), same call sites it already had. */
+function renderWorkTick(){
+  if(!$('#tsCount')) return;
+  const span=SET.tsInt*60000;
+  const leftMs = ts.mode==='working' ? ts.nextLogAt-Date.now() : ts.mode==='paused' ? (ts.pausedLeft||span) : span;
+  if(!SET.logOn){ $('#tsCount').textContent='∞'; $('#tsBar').style.width='0%'; }
+  else { $('#tsCount').textContent=hms(leftMs/1000); $('#tsBar').style.width=(100*(1-Math.max(0,leftMs)/span))+'%'; }
+
+  const committed=getCommittedHours();
+  const workedMin=sessionWorkedMin();
+  const workedHrs=workedMin/60;
+  $('#commitProgress').textContent=workedHrs.toFixed(1)+' / '+committed.toFixed(1)+' hrs';
+  $('#commitBar').style.width=(committed>0?Math.min(100,workedHrs/committed*100):0)+'%';
+  const todayMin=todayWorkedMin();
+  const sessionCountToday=getTodaySessions().length + (ts.mode!=='idle'?1:0);
+  $('#commitToday').textContent=(todayMin>=60?(todayMin/60).toFixed(1)+' hrs':todayMin+' min')+' today across '+sessionCountToday+' session'+(sessionCountToday===1?'':'s');
+
+  const rangeEl=$('#commitRange');
+  if(ts.mode!=='idle'){
+    const nowMs=Date.now(), end=nowMs+committed*3600000;
+    rangeEl.innerHTML='<b>'+clock(nowMs)+'</b><span class="arrow">→</span><b>'+clock(end)+'</b>';
+  }
+  tsCheckMilestones();
+}
+
 function renderWork(){
   const span=SET.tsInt*60000;
   let leftMs = ts.mode==='working' ? ts.nextLogAt-Date.now() : ts.mode==='paused' ? (ts.pausedLeft||span) : span;
@@ -4528,7 +4562,7 @@ setInterval(()=>{
     if(SET.logOn && Date.now()>=ts.nextLogAt){ tsOpenLog(); }
     else if(SET.restOn && ts.bigNextAt && Date.now()>=ts.bigNextAt){ startRest('big',false); }
     else if(SET.restOn && ts.miniNextAt && Date.now()>=ts.miniNextAt){ startRest('mini',false); }
-    else if(document.visibilityState==='visible' && document.querySelector('#p-work.on')) renderWork();
+    else if(document.visibilityState==='visible' && document.querySelector('#p-work.on')) renderWorkTick();
   }
 },1000);
 
@@ -5718,8 +5752,31 @@ function toggleGoal(id,ev){
   autoFlow(); renderGoals(); renderToday(); renderTabs(); renderWork();
 }
 function delGoal(id){
-  const g=viewGoals().filter(y=>y.id!==id); saveViewGoals(g);
+  const g=viewGoals();
+  const victim=g.find(y=>y.id===id);
+  saveViewGoals(g.filter(y=>y.id!==id));
   if(getFocusQuestId()===id) setFocusQuest(null);
+  /* Deleting has to mean deleting. autoCarryOverGoals() pulls any UNFINISHED
+     entry from an earlier dated page into today by matching text — it has no
+     idea this one was deleted, so on the very next reload (which happens
+     constantly: every auto-update check reloads the page) it would just copy
+     the exact same quest back in from whatever earlier day it originated on.
+     That's the actual "doesn't remember my deleted quests" bug. Retiring the
+     matching entry everywhere it appears (marking done, not erasing — stays
+     honest about what that day's page actually looked like) is what makes the
+     carry-over loop's existing `if(x.done) return` permanently skip it. */
+  if(victim){
+    const key=victim.text.trim().toLowerCase();
+    Object.keys(KVD).filter(k=>k.startsWith('goals:') && k!==goalKey()).forEach(k=>{
+      const arr=kget(k,[]); if(!Array.isArray(arr) || !arr.length) return;
+      let changed=false;
+      const next=arr.map(x=>{
+        if(!x.done && (x.text||'').trim().toLowerCase()===key){ changed=true; return Object.assign({},x,{done:true}); }
+        return x;
+      });
+      if(changed) kset(k, next);
+    });
+  }
   renderGoals(); renderToday(); renderWork();
 }
 
@@ -5750,11 +5807,19 @@ function toggleFocusQuest(id){ setFocusQuest(getFocusQuestId()===id ? null : id)
    outstanding that day), just triggered silently instead of on a tap. Gated by
    lastAutoCarryDay so it does real work at most once per calendar day no matter
    how often renderAll() runs. */
-let lastAutoCarryDay=null;
+/* Was a bare in-memory `let` — reset to null on every page load, which meant
+   this re-scanned every earlier day's list on every single reload (and the
+   auto-update check reloads constantly). Harmless on its own since re-adding
+   an item already present is a no-op, but it's also what made a freshly
+   DELETED quest come right back the moment the page next reloaded, before
+   delGoal() retired it from history properly (see delGoal). Persisted now so
+   a day is only ever scanned once, full stop, not once per reload. */
+let lastAutoCarryDay=kget('lastAutoCarryDay', null);
 function autoCarryOverGoals(){
   const today=todayKey();
   if(lastAutoCarryDay===today) return;
   lastAutoCarryDay=today;
+  kset('lastAutoCarryDay', today);
   const dayKeys=Object.keys(KVD).filter(k=>k.startsWith('goals:') && k.slice(6)<today).sort();
   if(!dayKeys.length) return;
   const cur=(kget('goals:'+today,[])||[]).map(normGoal);

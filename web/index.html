@@ -958,21 +958,33 @@
      (overflow-y:auto) past whatever it's given, so it's never the panel that
      scrolls, no matter how many quests are on today's list. */
   #wrap .wquests{
-    flex:1 1 auto; margin-top:6px; padding:7px 10px 5px; min-height:0; overflow-y:auto;
+    flex:1 1 auto; margin-top:6px; padding:7px 10px 5px; min-height:0;
+    display:flex; flex-direction:column;   /* so .wq-add can pin while .wq-scroll scrolls */
     border-radius:13px; border:1px solid var(--hud-line);
     background:linear-gradient(180deg, var(--hud-tint), transparent 70%), var(--panel);
     transition:opacity .25s;
   }
   /* the focused quest lives in #wfocus above now, not here — everything left in
      this list is explicitly NOT what's being worked on, so the whole block
-     recedes rather than reading as a normal, equally-weighted list. */
-  #wrap .wquests.dimmed{ opacity:.38; }
+     recedes rather than reading as a normal, equally-weighted list. The add
+     row is excluded (see its own rule) — adding a quest is never "not now". */
+  #wrap .wquests.dimmed .wq-scroll{ opacity:.38; }
+  /* only the label+rows scroll — the add-quest row below stays pinned and
+     reachable no matter how long today's list gets */
+  #wrap .wq-scroll{ flex:1 1 auto; min-height:0; overflow-y:auto; }
   /* stencilled section label, sitting on the frame's own rule like a plate */
   #wrap .wq-lbl{
     font-size:8.5px; letter-spacing:.3em; text-transform:uppercase; color:var(--dim);
     padding-bottom:5px; margin-bottom:5px; border-bottom:1px solid var(--hud-line);
   }
   #wrap .wq-list{ display:flex; flex-direction:column; gap:0; }
+  /* quick-capture, pinned to the bottom of the quests block */
+  #wrap .wq-add{
+    flex:0 0 auto; display:flex; align-items:center; gap:8px;
+    margin-top:7px; padding-top:7px; border-top:1px solid var(--hud-line);
+  }
+  #wrap .wq-add input{ flex:1; min-width:0; font-size:12.5px; padding:8px 11px; height:auto; }
+  #wrap .wq-add .addbtn-round{ width:30px; height:30px; font-size:16px; }
   /* fixed-width marker gutter so every title starts on the SAME x — the ragged
      left edge was most of why the old list read as noise rather than a manifest */
   #wrap .wq-row{
@@ -1000,6 +1012,12 @@
   #wrap .wf-lbl{ font-size:9.5px; letter-spacing:.24em; text-transform:uppercase; color:var(--accent); font-weight:800; }
   #wrap .wf-title{ font-size:19px; font-weight:800; letter-spacing:-.01em; line-height:1.25; margin-top:3px; }
   #wrap .wf-sub{ font-size:11px; color:var(--dim); margin-top:4px; }
+  #wrap .wf-addobj{ display:flex; align-items:center; gap:7px; margin-top:9px; }
+  #wrap .wf-addobj input{ flex:1; min-width:0; font-size:11.5px; padding:7px 10px; height:auto; }
+  #wrap .wf-addobj button{
+    flex:0 0 auto; width:26px; height:26px; border-radius:50%; border:none;
+    background:var(--bg); color:var(--accent); font-size:15px; font-weight:800; cursor:pointer;
+  }
 
   /* 2 · ACTION BAR — was a 40px circle floating in the middle of nothing, which
      read as an afterthought rather than the primary control. Now a full-width
@@ -1036,20 +1054,27 @@
   #wrap .wsession-r{ display:flex; flex-direction:column; align-items:flex-end; gap:1px; text-align:right; }
   #wrap .wsession-r .sub{ font-size:9.5px; line-height:1.3; }
 
-  /* control row — five equal cells, each a big drawn symbol with its own word.
+  /* control row — six equal cells, each a big drawn symbol with its own word.
      No more guessing what ⧉ meant. */
-  #wrap .wfoot .wctl{ grid-template-columns:repeat(5,1fr); gap:6px; margin-top:0; }
+  #wrap .wfoot .wctl{ grid-template-columns:repeat(6,1fr); gap:5px; margin-top:0; }
   #wrap .wfoot .wctl button{
     padding:0; height:52px; border-radius:11px;
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
     background:var(--hud-tint); border-color:var(--hud-line);
+    transition:background .15s, border-color .15s, color .15s;
   }
-  #wrap .wctl button svg{ width:25px; height:25px; fill:currentColor; display:block; }
+  #wrap .wctl button svg{ width:22px; height:22px; fill:currentColor; display:block; }
   #wrap .wctl button b{
-    font-size:8px; font-weight:700; letter-spacing:.13em; text-transform:uppercase;
+    font-size:7.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
     color:var(--dim); line-height:1;
   }
   #wrap .wfoot .wctl button.danger{ color:#fca5a5; }
+  /* Breaks ON reads as "lit up", same language as .danger meaning something —
+     not just a plain dim icon indistinguishable from an inert button */
+  #wrap .wfoot .wctl button#tsBreaksBtn.on{
+    background:rgba(34,197,94,.14); border-color:rgba(34,197,94,.4); color:var(--green);
+  }
+  #wrap .wfoot .wctl button#tsBreaksBtn.on b{ color:var(--green); }
   #wrap .wfoot .wctl button.danger b{ color:#fca5a5; opacity:.75; }
 
   /* ══════════════════════════════════════════════════════════════════════
@@ -1356,6 +1381,24 @@
     box-shadow:0 0 26px -4px rgba(var(--pip-rgb),.85) !important;
   }
   body.pipboy #wrap .wfocus, body.pipboy #wrap .wfocus *{ color:#02100a !important; text-shadow:none !important; }
+  /* the blanket rule above forces dark ink on EVERYTHING in here, including the
+     add-objective input — but the generic Pip-Boy input style gives inputs a
+     dark background (built for the normal black screen), which would put dark
+     text on a dark field and make it unreadable. Keep the block's own bright
+     phosphor showing through instead, dark-on-light, same as everything else
+     in this inverted block.
+     NOTE the [type=text] on the selector below is load-bearing, not decoration:
+     without it this ties the generic rule's specificity exactly (1,2,2) and
+     LOSES the tie by sitting earlier in the sheet — verified by reading the
+     computed style back (it was rendering dark text on a dark field before
+     this fix). Matching the attribute selector too makes it (1,3,2), which
+     wins outright regardless of source order. */
+  body.pipboy #wrap .wf-addobj input[type=text]{
+    background:rgba(2,16,10,.16) !important; border-color:#02100a !important;
+  }
+  body.pipboy #wrap .wf-addobj input[type=text]::placeholder{ color:rgba(2,16,10,.6) !important; }
+  body.pipboy #wrap .wf-addobj button{ border:1px solid #02100a !important; }
+  body.pipboy #wrap .wf-addobj button:active{ background:#02100a !important; color:rgb(var(--pip-rgb)) !important; }
 
   /* ---------- 5b · WEAR — the "lost for 200 years but still runs" pass ----------
      What was missing wasn't colour, it was AGE. A clean 1px green rectangle on
@@ -1874,9 +1917,21 @@
     <div class="wfocus" id="wfocus" style="display:none"></div>
 
     <!-- 1b · active quests: pick what you're focusing on before you clock in.
-         Empty when there's nothing left today — see renderWorkQuests(). flex:1
-         now — it's the one thing on this screen meant to stretch and fill. -->
-    <div class="wquests" id="wquests"></div>
+         flex:1 — it's the one thing on this screen meant to stretch and fill.
+         #wqLbl/#wqList are the only parts renderWorkQuests() rebuilds — the add
+         row below is static markup so typing in it never gets wiped out by an
+         unrelated re-render (clock in/out, a quest elsewhere ticking its box,
+         the auto-break timer firing, etc. all trigger a full renderWork()). -->
+    <div class="wquests" id="wquests">
+      <div class="wq-scroll">
+        <div class="wq-lbl" id="wqLbl" style="display:none"></div>
+        <div class="wq-list" id="wqList"></div>
+      </div>
+      <div class="wq-add">
+        <input type="text" id="wqNewQuest" placeholder="New quest…" autocomplete="off" onkeydown="if(event.key==='Enter')addGoalFromWork()">
+        <button class="addbtn-round" onclick="addGoalFromWork()" title="Add quest">+</button>
+      </div>
+    </div>
 
     <!-- 2 · centre stage: Clock in is tiny on purpose now — the quest list is
          the point of this screen, not the button. Icon-only: at this size text
@@ -1921,6 +1976,13 @@
         <button onclick="popOutTimer()" title="Float timer">
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="6.5" width="12" height="11" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M13 3.5h7.5V11h-2.2V7.2L13.8 11 12.3 9.5l3.8-3.8H13z"/></svg>
           <b>Float</b>
+        </button>
+        <!-- one-tap "work straight through" — was buried in Settings; renderWork()
+             toggles .on (lit) vs not (dim) off SET.restOn, same on/off language the
+             rest of the row already uses for state (.danger on End). -->
+        <button id="tsBreaksBtn" onclick="toggleRestEnabled(!SET.restOn)" title="Breaks on/off">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11v5.5a4.5 4.5 0 0 1-4.5 4.5H9.5A4.5 4.5 0 0 1 5 9.5V4z" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M16 7h1.5a2.5 2.5 0 0 1 0 5H16" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M4 20h13" stroke="currentColor" stroke-width="2.2"/></svg>
+          <b>Breaks</b>
         </button>
       </div>
     </div>
@@ -2544,7 +2606,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261001-125557';
+const KOS_BUILD='20261008-170442';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -4366,6 +4428,7 @@ function renderWork(){
   $('#logSchedRow').style.pointerEvents = SET.logOn ? '' : 'none';
   $('#restToggle').checked = SET.restOn;
   $('#restStateLbl').textContent = (SET.logOn?'log on':'straight-through') + (SET.restOn ? ' · breaks on' : ' · breaks off');
+  const breaksBtn=$('#tsBreaksBtn'); if(breaksBtn){ breaksBtn.classList.toggle('on', SET.restOn); breaksBtn.title = SET.restOn ? 'Breaks on — tap to work straight through' : 'Breaks off — tap to turn auto-breaks back on'; }
   const tsIntS=$('#tsIntSlider'); if(document.activeElement!==tsIntS) tsIntS.value=SET.tsInt; styleSlider(tsIntS);
   $('#tsIntVal').textContent=fmtEvery(SET.tsInt);
   const miS=$('#miniEverySlider'); if(document.activeElement!==miS) miS.value=SET.miniEvery; styleSlider(miS);
@@ -4413,19 +4476,21 @@ function renderWork(){
    what you're doing right now, so the whole block dims (.dimmed) the moment a
    focus is set — a quiet "these exist, but not now" rather than a normal list. */
 function renderWorkQuests(){
-  const host=$('#wquests'); if(!host) return;
+  const host=$('#wquests'), lbl=$('#wqLbl'), list=$('#wqList');
+  if(!host || !lbl || !list) return;
   const focusId=getFocusQuestId();
   const todos=getGoals().filter(x=>!x.done && x.id!==focusId);
-  if(!todos.length){ host.innerHTML=''; host.style.display='none'; return; }
-  host.style.display='';
+  // the container itself (and its always-present add-quest row below) stay up
+  // even with zero quests — that's precisely when adding one matters most
   host.classList.toggle('dimmed', !!focusId);
-  host.innerHTML='<div class="wq-lbl">'+(focusId?'Other quests':'Active quests')+'</div>'+
-    '<div class="wq-list">'+todos.map(x=>
-      '<div class="wq-row" data-gid="'+x.id+'">'+
-        '<span class="wq-mark">○</span>'+
-        '<span class="wq-text">'+esc(x.text)+'</span>'+
-      '</div>').join('')+'</div>';
-  host.querySelectorAll('.wq-row').forEach(row=>{
+  lbl.style.display = todos.length ? '' : 'none';
+  lbl.textContent = focusId ? 'Other quests' : 'Active quests';
+  list.innerHTML = todos.map(x=>
+    '<div class="wq-row" data-gid="'+x.id+'">'+
+      '<span class="wq-mark">○</span>'+
+      '<span class="wq-text">'+esc(x.text)+'</span>'+
+    '</div>').join('');
+  list.querySelectorAll('.wq-row').forEach(row=>{
     row.onclick=()=>toggleFocusQuest(row.dataset.gid);
   });
 }
@@ -4441,8 +4506,41 @@ function renderWorkFocus(){
   const doneCt=subs.filter(s=>s.done).length;
   host.innerHTML='<div class="wf-lbl">◉ Focus</div>'+
     '<div class="wf-title">'+esc(fq.text)+'</div>'+
-    (subs.length ? '<div class="wf-sub">'+doneCt+' / '+subs.length+' objectives done</div>' : '');
+    (subs.length ? '<div class="wf-sub">'+doneCt+' / '+subs.length+' objectives done</div>' : '')+
+    // the whole block untracks on tap (see host.onclick below) — this row has
+    // to swallow its own clicks or typing a letter would untrack the quest
+    '<div class="wf-addobj" onclick="event.stopPropagation()">'+
+      '<input type="text" id="wfNewObj" placeholder="Add objective…" autocomplete="off" onkeydown="if(event.key===\'Enter\')addSubtaskFromWork()">'+
+      '<button onclick="addSubtaskFromWork()" title="Add objective">+</button>'+
+    '</div>';
   host.onclick=()=>toggleFocusQuest(fq.id);
+}
+/* Quick-capture from the Work tab — both write straight to TODAY's key
+   (kget/kset 'goals:'+todayKey()), not viewGoals()/goalKey(): those follow
+   goalDate, the Quests tab's date-browser cursor, which has nothing to do with
+   what day Work means (always today) — using them here would silently file a
+   new quest under whatever day the Quests tab was last left browsing. */
+function addGoalFromWork(){
+  const inp=$('#wqNewQuest'); const t=(inp.value||'').trim(); if(!t) return;
+  const key='goals:'+todayKey();
+  const g=(kget(key,[])||[]).map(normGoal);
+  g.push({id:newId(), text:t, done:false, priority:'none', notes:'', subtasks:[]});
+  kset(key,g); doSync(false);
+  inp.value='';
+  renderGoals(); renderToday(); renderWork();
+}
+function addSubtaskFromWork(){
+  const fid=getFocusQuestId(); if(!fid) return;
+  const inp=$('#wfNewObj'); const t=(inp.value||'').trim(); if(!t) return;
+  const key='goals:'+todayKey();
+  const g=(kget(key,[])||[]).map(normGoal);
+  const x=g.find(y=>y.id===fid); if(!x) return;
+  x.subtasks.push({id:newId(), text:t, done:false});
+  kset(key,g); doSync(false);
+  renderGoals(); renderWork();
+  // renderWork() just rebuilt #wfocus from scratch (fresh, empty input already)
+  // — the old `inp` reference above is detached now, so re-grab it to focus it
+  const fresh=$('#wfNewObj'); if(fresh) fresh.focus();
 }
 
 /* ---- deep-work milestones — a real celebration the moment a live session crosses 8/10/12/14h ---- */

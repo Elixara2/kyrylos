@@ -2610,7 +2610,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261018-124444';
+const KOS_BUILD='20261018-124534';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -4715,9 +4715,13 @@ function tsNextBreak(){
 }
 let pipWin=null;
 let pipLocked=jload('pipLocked',false);   // when locked, the native shell freezes the window in place
-const PIP_W=240, PIP_H=78;   // +18px over the original 60 — a dedicated strip
-                              // across the very top for whichever quest is
-                              // tracked, matching desktop/main.js's own PIP_H
+const PIP_W=280, PIP_H=78;   // W: +40px over the original 240 — 4 control
+                              // buttons + the time digits alone were already
+                              // eating ~200px, leaving almost nothing for
+                              // "until next log"/"no breaks" (hence the
+                              // squished/truncated text). H: +18px — a
+                              // dedicated strip for the tracked mission.
+                              // Matches desktop/main.js's own PIP_W/PIP_H
                               // (which actually sizes the native window in the
                               // Electron shell; this copy only matters for the
                               // plain-browser window.open() fallback path)

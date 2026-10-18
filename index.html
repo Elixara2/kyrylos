@@ -30,21 +30,44 @@
 
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;height:100%}
-  /* two large, very soft colour glows fixed in the viewport — the difference
-     between "flat black" and "dark with depth" is almost entirely this: nothing
-     here is meant to be consciously noticed, it just stops every screen from
-     reading as a single flat rectangle. */
   body{
-    background:
-      radial-gradient(900px circle at 12% -8%, rgba(59,130,246,.11), transparent 60%),
-      radial-gradient(760px circle at 108% 18%, rgba(167,139,250,.08), transparent 55%),
-      var(--bg);
-    background-attachment:fixed;
+    background:var(--bg);
     color:var(--txt);
     font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     -webkit-font-smoothing:antialiased;overscroll-behavior:none}
-  #wrap{max-width:760px;margin:0 auto;padding:calc(var(--safe-t) + 14px) 16px calc(var(--safe-b) + 84px)}
+  #wrap{max-width:760px;margin:0 auto;padding:calc(var(--safe-t) + 14px) 16px calc(var(--safe-b) + 84px);
+    position:relative; z-index:1; }
   #fx{position:fixed;inset:0;z-index:96;pointer-events:none}
+
+  /* ---------- AURORA: the background is alive ----------
+     Three blurred colour discs, each on its own slow drift+breathe loop (26-38s,
+     never in sync with each other so the whole thing never visibly "loops").
+     transform+opacity only — the compositor handles this for free, nothing here
+     ever triggers layout. Sits at z-index:-1 behind #wrap (which gets z-index:1
+     above), and bleeds straight through every glass panel's backdrop-filter,
+     which is the whole point: that's what finally makes the blur look like
+     something real is behind it instead of blurring flat black into flat black. */
+  #aurora{ position:fixed; inset:-10vh -10vw; z-index:-1; overflow:hidden; pointer-events:none; }
+  #aurora i{ position:absolute; border-radius:50%; filter:blur(70px); opacity:.5; will-change:transform; }
+  #aurora i:nth-child(1){
+    width:62vw; height:62vw; left:-18vw; top:-24vh;
+    background:radial-gradient(circle, #3b82f6, transparent 72%);
+    animation:auroraA 28s ease-in-out infinite alternate;
+  }
+  #aurora i:nth-child(2){
+    width:56vw; height:56vw; right:-20vw; top:4vh;
+    background:radial-gradient(circle, #a78bfa, transparent 72%);
+    animation:auroraB 34s ease-in-out infinite alternate;
+  }
+  #aurora i:nth-child(3){
+    width:50vw; height:50vw; left:14vw; bottom:-26vh;
+    background:radial-gradient(circle, #22c55e, transparent 72%);
+    animation:auroraC 40s ease-in-out infinite alternate;
+  }
+  @keyframes auroraA{ from{transform:translate(0,0) scale(1)} to{transform:translate(12vw,10vh) scale(1.25)} }
+  @keyframes auroraB{ from{transform:translate(0,0) scale(1.15)} to{transform:translate(-10vw,14vh) scale(.9)} }
+  @keyframes auroraC{ from{transform:translate(0,0) scale(1)} to{transform:translate(8vw,-12vh) scale(1.2)} }
+  @media (prefers-reduced-motion:reduce){ #aurora i{ animation:none; } }
 
   /* slim header: one single-line slither — logo · date · $ on the left, status on the
      right. Everything is nowrap so it can never grow to a second row. */
@@ -658,6 +681,33 @@
   .setgrid label{font-size:12.5px;color:var(--dim);display:block;margin-bottom:4px}
   .lvlcard{text-align:center;max-width:340px}
 
+  /* ---------- COMMAND PALETTE ----------
+     Anchored near the top (Spotlight/Linear convention, not a centred modal) —
+     your thumb/eye is already up near the header when you summon it. */
+  .cmdk-scrim{ align-items:flex-start !important; padding-top:12vh !important; }
+  .cmdk{
+    width:100%; max-width:520px; border-radius:18px; overflow:hidden;
+    background:linear-gradient(180deg, rgba(255,255,255,.06), transparent 50%), rgba(18,22,28,.82);
+    backdrop-filter:blur(32px) saturate(170%); -webkit-backdrop-filter:blur(32px) saturate(170%);
+    border:1px solid rgba(255,255,255,.14); box-shadow:0 30px 90px -20px rgba(0,0,0,.7), 0 0 0 1px rgba(0,0,0,.3);
+    animation:cmdkIn .22s var(--spring) both;
+  }
+  @keyframes cmdkIn{ from{opacity:0; transform:translateY(-14px) scale(.96)} to{opacity:1; transform:none} }
+  .cmdk-input-row{ display:flex; align-items:center; gap:10px; padding:16px 18px; border-bottom:1px solid rgba(255,255,255,.08); }
+  .cmdk-ic{ font-size:17px; color:var(--accent); flex:0 0 auto; }
+  #cmdkInput{ flex:1; background:none; border:none; color:var(--txt); font:inherit; font-size:16px; padding:0; }
+  #cmdkInput:focus{ outline:none; }
+  .cmdk-esc{ flex:0 0 auto; font:inherit; font-size:10.5px; color:var(--dim); background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.1); border-radius:6px; padding:3px 7px; }
+  .cmdk-list{ max-height:50vh; overflow-y:auto; padding:8px; }
+  .cmdk-row{ display:flex; align-items:center; gap:12px; padding:11px 12px; border-radius:11px; cursor:pointer;
+    transition:background .12s; }
+  .cmdk-row .cmdk-row-ic{ font-size:17px; width:24px; text-align:center; flex:0 0 auto; }
+  .cmdk-row b{ font-size:14px; font-weight:650; flex:1; min-width:0; }
+  .cmdk-row span.cmdk-hint{ font-size:11px; color:var(--dim); flex:0 0 auto; }
+  .cmdk-row.sel{ background:linear-gradient(90deg, rgba(59,130,246,.2), rgba(167,139,250,.08)); }
+  .cmdk-empty{ padding:24px 12px; text-align:center; color:var(--dim); font-size:13px; }
+
   /* appearance / theme picker */
   .swatches{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 4px}
   .sw{width:44px;height:44px;border-radius:12px;cursor:pointer;border:2px solid transparent;position:relative;
@@ -730,6 +780,16 @@
   }
   #wrap .lbl{ letter-spacing:.24em; font-size:9.5px; }
   #wrap .big{ font-size:74px; letter-spacing:-.03em; font-weight:800; }
+  /* hero numbers get a gradient fill instead of a flat colour — cheap (just a
+     background-clip trick), but it's the difference between "a number" and
+     "a number that looks like it belongs to a premium product". .wsl-num's own
+     rule further down (it needs its own color:var(--accent) removed) gets the
+     same treatment rather than duplicated here, so there's no specificity tie
+     between two rules fighting over the same `color` property. */
+  #wrap .big, #wrap .rmid b{
+    background:linear-gradient(135deg, var(--accent), #a78bfa 65%, var(--accent2));
+    -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent;
+  }
   #wrap .rmid b{ font-size:30px; letter-spacing:-.02em; }
 
   /* ---------- BUTTONS ---------- */
@@ -763,9 +823,9 @@
      right slides the new panel in from the right, moving left from the left.
      transform-only (no layout props), so it's safe even on #p-work's pinned
      flex column where the CHILD stagger below is deliberately turned off. */
-  @keyframes panelSlide{ from{opacity:0; transform:translateX(var(--slide-x,18px))}
-                         to{opacity:1; transform:translateX(0)} }
-  .panel.on{ animation:panelSlide .36s var(--ease) both; }
+  @keyframes panelSlide{ from{opacity:0; transform:translateX(var(--slide-x,18px)) scale(.97)}
+                         to{opacity:1; transform:translateX(0) scale(1)} }
+  .panel.on{ animation:panelSlide .4s var(--ease) both; }
   .panel.on > *{ animation:hudIn .5s var(--ease) both; }
   .panel.on > *:nth-child(1){animation-delay:0s}
   .panel.on > *:nth-child(2){animation-delay:.05s}
@@ -921,7 +981,9 @@
   }
   #wrap .wsl-head{ display:flex; align-items:baseline; gap:7px; line-height:1; }
   #wrap .wsl-head .lbl{ color:var(--dim); font-size:8.5px; letter-spacing:.26em; }
-  #wrap .wsl-num{ font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.02em; color:var(--accent); }
+  #wrap .wsl-num{ font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.02em;
+    background:linear-gradient(135deg, var(--accent), #a78bfa 65%, var(--accent2));
+    -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent; }
   #wrap .wsl-num::after{ content:' hrs'; font-size:8.5px; font-weight:700; letter-spacing:.1em; color:var(--dim); }
   #wrap .wsl-sub{ margin-left:auto; font-size:10px; color:var(--dim); font-variant-numeric:tabular-nums; }
   #wrap .wsliver .pro-slider{ margin:7px 0 0; }
@@ -993,8 +1055,9 @@
      screen apart from Clock in itself. Its own block, its own glow, sitting
      above everything else so it's the first thing the eye lands on. */
   #wrap .wfocus{
+    position:relative; isolation:isolate;
     flex:0 0 auto; margin-bottom:9px; padding:11px 16px 14px; cursor:pointer;
-    border-radius:15px; border:1.5px solid var(--accent);
+    border-radius:15px; border:1.5px solid transparent;
     background:linear-gradient(180deg, rgba(var(--pip-rgb,120,140,255),.16), transparent 75%), var(--hud-glass);
     backdrop-filter:blur(var(--hud-blur)) saturate(160%);
     -webkit-backdrop-filter:blur(var(--hud-blur)) saturate(160%);
@@ -1002,6 +1065,26 @@
     transition:transform .15s var(--ease);
   }
   #wrap .wfocus:active{ transform:scale(.985); }
+  /* ---------- the ring: one thing in the whole app that's visibly alive -----
+     A conic gradient masked down to just the card's own outline (mask-
+     composite:exclude = "outer shape minus inner shape" = only the border ring
+     survives). The colours cycle by animating the gradient's OWN start angle
+     (--wf-angle, registered below) rather than rotating the element — rotating
+     a ROUNDED RECTANGLE (unlike a circle) swings its corners outside the card's
+     bounding box, which is exactly what the first version of this did: a
+     diagonal streak shooting past the card instead of a clean travelling
+     border. Animating the angle keeps the ring's shape perfectly static while
+     only the colour travels around it. */
+  @property --wf-angle{ syntax:'<angle>'; initial-value:0deg; inherits:false; }
+  #wrap .wfocus::before{
+    content:''; position:absolute; inset:-3px; z-index:-1; border-radius:17px; padding:2.5px;
+    background:conic-gradient(from var(--wf-angle), var(--accent), #a78bfa, #22c55e, var(--accent2), var(--accent));
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor; mask-composite:exclude;
+    animation:wfRingSpin 5s linear infinite;
+  }
+  @keyframes wfRingSpin{ to{ --wf-angle:360deg; } }
+  @media (prefers-reduced-motion:reduce){ #wrap .wfocus::before{ animation:none; } }
   #wrap .wf-lbl{ font-size:9.5px; letter-spacing:.24em; text-transform:uppercase; color:var(--accent); font-weight:800; }
   #wrap .wf-title{ font-size:19px; font-weight:800; letter-spacing:-.01em; line-height:1.25; margin-top:3px; }
   #wrap .wf-sub{ font-size:11px; color:var(--dim); margin-top:4px; }
@@ -1077,6 +1160,12 @@
 </style>
 </head>
 <body>
+<!-- AURORA — three huge, heavily-blurred colour blobs drifting behind everything.
+     This is what actually makes the glass cards read as glass: backdrop-filter
+     blur needs something with real colour and movement behind it to blur, and a
+     flat dark page gives it nothing to work with. Pure transform+opacity
+     keyframes (GPU-composited, no layout cost) so it's free even on a phone. -->
+<div id="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
 <canvas id="fx"></canvas>
 <div id="tt"></div>
 <div id="toast"></div>
@@ -1114,6 +1203,7 @@
         <span class="streakflame">🔥</span><b id="streakNum">0</b><span class="streaklbl">day streak</span>
       </div>
       <span class="syncdot" id="syncdot"></span>
+      <button class="icobtn" onclick="openCmdk()" title="Command palette (⌘K)">⌘</button>
       <button class="icobtn" onclick="openSettings()">⚙</button>
     </div>
   </header>
@@ -1630,6 +1720,19 @@
   <button class="tab" data-tab="track"><span class="ic">📈</span><span class="lbl">Metrics</span><span class="dotdone"></span></button>
 </div></nav>
 
+<!-- command palette: ⌘K / Ctrl+K, or the search icon in the header. Jump
+     anywhere or fire a common action without hunting through tabs. -->
+<div class="scrim cmdk-scrim" id="cmdkScrim" onclick="if(event.target===this)closeCmdk()">
+  <div class="cmdk" role="dialog" aria-label="Command palette">
+    <div class="cmdk-input-row">
+      <span class="cmdk-ic">⌘</span>
+      <input type="text" id="cmdkInput" placeholder="Jump to a tab, or run a command…" autocomplete="off">
+      <kbd class="cmdk-esc">esc</kbd>
+    </div>
+    <div class="cmdk-list" id="cmdkList"></div>
+  </div>
+</div>
+
 <!-- time-study log modal -->
 <div class="logov" id="tsScrim">
   <div class="logov-inner">
@@ -1860,7 +1963,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261018-164801';
+const KOS_BUILD='20261018-175814';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -2223,6 +2326,72 @@ function openSettings(){
   $('#setScrim').classList.add('show');
 }
 function closeSettings(){ $('#setScrim').classList.remove('show'); }
+
+/* ================= command palette =================
+   A fixed list of navigation targets plus a small set of context-aware actions
+   (clock in/out changes label+icon depending on ts.mode, breaks on/off shows
+   its current state) — built fresh every time it opens rather than cached, so
+   it's never stale after a clock-in/out that happened elsewhere. */
+function cmdkCommands(){
+  const working = typeof ts!=='undefined' && ts.mode!=='idle';
+  return [
+    {ic:'☀️', label:'Go to Today', run:()=>showTab('today')},
+    {ic:'✅', label:'Go to Missions', run:()=>showTab('goals')},
+    {ic:'⏱', label:'Go to Work', run:()=>showTab('work')},
+    {ic:'🎤', label:'Go to Studio', run:()=>showTab('rap')},
+    {ic:'🏋️', label:'Go to Health', run:()=>showTab('health')},
+    {ic:'📈', label:'Go to Metrics', run:()=>showTab('track')},
+    {ic: working?'⏸':'▶', label: working?'Pause / resume work':'Clock in', run:()=>{ showTab('work'); tsToggle(); }},
+    ...(working ? [{ic:'⏹', label:'Clock out', run:()=>{ showTab('work'); tsClockOut(); }}] : []),
+    {ic:'☕', label:(typeof SET!=='undefined' && SET.restOn)?'Turn breaks off':'Turn breaks on', run:()=>toggleRestEnabled(!SET.restOn)},
+    {ic:'➕', label:'Add a new mission', run:()=>{ showTab('goals'); setTimeout(()=>{ const i=$('#goalInput'); if(i){ i.focus(); } }, 350); }},
+    {ic:'⚙', label:'Open settings', run:()=>openSettings()},
+  ];
+}
+let cmdkSel=0, cmdkFiltered=[];
+function openCmdk(){
+  $('#cmdkScrim').classList.add('show');
+  const inp=$('#cmdkInput'); inp.value=''; cmdkSel=0;
+  renderCmdkList('');
+  setTimeout(()=>inp.focus(), 50);   // after the show transition starts, or iOS eats the focus
+}
+function closeCmdk(){ $('#cmdkScrim').classList.remove('show'); }
+function renderCmdkList(q){
+  q=(q||'').trim().toLowerCase();
+  const all=cmdkCommands();
+  cmdkFiltered = q ? all.filter(c=>c.label.toLowerCase().includes(q)) : all;
+  cmdkSel = Math.min(cmdkSel, Math.max(0, cmdkFiltered.length-1));
+  const list=$('#cmdkList');
+  list.innerHTML = cmdkFiltered.length ? cmdkFiltered.map((c,i)=>
+    '<div class="cmdk-row'+(i===cmdkSel?' sel':'')+'" data-i="'+i+'">'+
+      '<span class="cmdk-row-ic">'+c.ic+'</span><b>'+esc(c.label)+'</b>'+
+      (i===cmdkSel?'<span class="cmdk-hint">↵</span>':'')+
+    '</div>').join('')
+    : '<div class="cmdk-empty">No matches</div>';
+  list.querySelectorAll('.cmdk-row').forEach(row=>{
+    row.onclick=()=>cmdkRun(+row.dataset.i);
+    row.addEventListener('pointerenter', ()=>{ cmdkSel=+row.dataset.i; renderCmdkList($('#cmdkInput').value); });
+  });
+}
+function cmdkRun(i){
+  const c=cmdkFiltered[i]; if(!c) return;
+  closeCmdk(); c.run();
+}
+$('#cmdkInput').addEventListener('input', e=>renderCmdkList(e.target.value));
+$('#cmdkInput').addEventListener('keydown', e=>{
+  if(e.key==='ArrowDown'){ e.preventDefault(); cmdkSel=Math.min(cmdkFiltered.length-1, cmdkSel+1); renderCmdkList(e.target.value); }
+  else if(e.key==='ArrowUp'){ e.preventDefault(); cmdkSel=Math.max(0, cmdkSel-1); renderCmdkList(e.target.value); }
+  else if(e.key==='Enter'){ e.preventDefault(); cmdkRun(cmdkSel); }
+  else if(e.key==='Escape'){ closeCmdk(); }
+});
+// ⌘K / Ctrl+K from anywhere (unless a text field already has focus and isn't empty —
+// never hijack an actual typing session), and the bare "/" as a one-handed phone
+// shortcut when nothing is focused.
+document.addEventListener('keydown', e=>{
+  const typing = /^(INPUT|TEXTAREA)$/.test(document.activeElement?.tagName||'');
+  if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); openCmdk(); }
+  else if(e.key==='/' && !typing && !document.querySelector('.scrim.show')){ e.preventDefault(); openCmdk(); }
+});
 function saveSettings(){
   SET.ascendUrl=$('#setAscend').value.trim(); SET.lifeUrl=$('#setLife').value.trim();
   SET.tankMl=parseInt($('#setTank').value,10)||1500; SET.rapGoal=parseInt($('#setRapMin').value,10)||60;

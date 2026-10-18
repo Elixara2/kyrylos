@@ -2606,7 +2606,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261018-110525';
+const KOS_BUILD='20261018-113411';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -4740,7 +4740,11 @@ function popOutTimer(){
     '#pw-time{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1;letter-spacing:-.02em;flex:0 0 auto;cursor:pointer}'+
     '#pw-mid{flex:1;min-width:0;overflow:hidden;display:flex;flex-direction:column;justify-content:center;gap:0}'+
     '#pw-top{display:flex;align-items:center;gap:4px;font-size:10px;color:#8b949e;font-weight:600;white-space:nowrap}'+
-    '#pw-state{font-size:8px}'+
+    '#pw-state{font-size:8px;flex:0 0 auto}'+
+    // the tracked quest's title lands here (see updatePip) — needs its own
+    // truncation since it can run much longer than "☕ 9m" ever did
+    '#pw-brk{min-width:0;overflow:hidden;text-overflow:ellipsis}'+
+    '#pw-brk.quest{color:#e6edf3;font-weight:700}'+
     '#pw-lbl{font-size:8px;text-transform:uppercase;letter-spacing:.5px;color:#8b949e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'+
     '#pw-ctl{display:flex;gap:3px;flex:0 0 auto}'+
     '#pw-ctl button{width:24px;height:24px;border-radius:6px;border:1px solid #2a323d;background:#1c232d;color:#e6edf3;'+
@@ -4886,27 +4890,29 @@ function updatePip(){
   if(ts.mode==='resting'){
     const left=Math.max(0,Math.round((ts.restEndAt-Date.now())/1000));
     time.textContent=hms(left); lbl.textContent=(ts.restKind==='big'?'big break':'mini break');
-    state.textContent='●'; state.style.color='#fff'; brk.textContent=(ts.restKind==='big'?'🛋 rest':'☕ rest');
+    state.textContent='●'; state.style.color='#fff'; brk.classList.remove('quest'); brk.textContent=(ts.restKind==='big'?'🛋 rest':'☕ rest');
     body.style.background='radial-gradient(120% 120% at 50% 40%,#1f9d55,#0a3d22)'; setBreakBar(); return;
   }
   body.style.background='#0e1116';
-  if(ts.mode==='idle'){ time.textContent='—'; lbl.textContent='clock in'; state.style.color='#8b949e'; brk.textContent='—'; setBreakBar(); return; }
-  // whatever quest is tracked shows here instead of the generic status word —
-  // "the active quest should show on the floating timer so I can stay
-  // focused" was the literal ask, and the label line is the one bit of this
-  // tiny widget with room for it (ellipsis-truncated via #pw-lbl's own CSS).
-  const fq = ts.mode==='working' ? getFocusQuest() : null;
-  lbl.title = fq ? fq.text : '';   // full text on hover — the line itself is ellipsis-truncated
+  if(ts.mode==='idle'){ time.textContent='—'; lbl.textContent='clock in'; state.style.color='#8b949e'; brk.classList.remove('quest'); brk.textContent='—'; setBreakBar(); return; }
   if(!SET.logOn){
     const el=Math.max(0,Math.floor((Date.now()-ts.sessionStart)/1000));
-    time.textContent=hms(el); lbl.textContent = fq ? fq.text : 'focus';
+    time.textContent=hms(el); lbl.textContent='focus';
   } else {
     const span=SET.tsInt*60000, leftMs = ts.mode==='paused' ? (ts.pausedLeft||span) : (ts.nextLogAt-Date.now());
-    time.textContent=hms(Math.max(0,leftMs)/1000);
-    lbl.textContent = ts.mode==='paused' ? 'paused' : (fq ? fq.text : 'until next log');
+    time.textContent=hms(Math.max(0,leftMs)/1000); lbl.textContent = ts.mode==='paused'?'paused':'until next log';
   }
   state.textContent='●'; state.style.color = ts.mode==='paused' ? '#f59e0b' : '#22c55e';
-  brk.textContent = nb ? (nb.kind==='big'?'🛋':'☕')+' '+Math.max(1,Math.ceil(nb.leftMs/60000))+'m' : (SET.restOn?'—':'no breaks');
+  /* the tracked quest takes over the TOP line — "should be along the top", per
+     direct feedback that it wasn't visible at all buried in the tiny bottom
+     label. Shows in working AND paused (not just working): staying focused on
+     WHAT you're doing matters especially right as you're about to resume.
+     Falls back to the usual break countdown when nothing's tracked. */
+  const fq = (ts.mode==='working'||ts.mode==='paused') ? getFocusQuest() : null;
+  brk.classList.toggle('quest', !!fq);
+  brk.title = fq ? fq.text : '';
+  brk.textContent = fq ? fq.text
+    : (nb ? (nb.kind==='big'?'🛋':'☕')+' '+Math.max(1,Math.ceil(nb.leftMs/60000))+'m' : (SET.restOn?'—':'no breaks'));
   setBreakBar();
 }
 

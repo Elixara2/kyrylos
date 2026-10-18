@@ -2606,7 +2606,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261008-170442';
+const KOS_BUILD='20261018-110525';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -2794,7 +2794,7 @@ function doSync(manual){
     .catch(()=>{ clearTimeout(syncWatchdog); syncing=false; setSyncUI('err'); });
 }
 setInterval(()=>{ if(document.visibilityState==='visible' && hasSrv) doSync(false); }, 5000);
-document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'){ doSync(false); renderAll(); } });
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'){ checkStaleSession(); doSync(false); renderAll(); } });
 window.addEventListener('focus',()=>{ if(hasSrv) doSync(false); });
 window.addEventListener('pageshow',()=>{ if(hasSrv) doSync(false); });
 
@@ -4059,17 +4059,49 @@ function renderToday(){
 
 /* ================= WORK · time study ================= */
 let ts = jload('tsrun', {mode:'idle', nextLogAt:0, blockStart:0, sessionStart:0});
-/* transient overlay states (logging/resting) must never survive a reload — if a log
-   popup or break got orphaned (tab closed, window shut mid-log), the app was left
-   frozen in that mode and Clock in/Pause did nothing. Recover to a usable state. */
-(function recoverTs(){
-  if(ts.mode==='logging' || ts.mode==='resting'){
-    ts.mode = ts.sessionStart ? 'working' : 'idle';
-    if(ts.mode==='working') ts.nextLogAt = Date.now() + ((typeof SET!=='undefined' && SET.tsInt) ? SET.tsInt : 15)*60000;
-    ts.blockStart = ts.blockStart || Date.now();
-    jsave('tsrun', ts);
+/* ts persists in localStorage, so it survives a full app close, the computer
+   sleeping, or just forgetting the tab existed for hours — and on its own the
+   app has no way to tell "closed" from "still open". lastAlive is a heartbeat
+   written every second this page is actually ticking (see the 1s loop below);
+   the gap between it and now is a real measure of how long nobody was here,
+   immune to the system clock jumping around sleep/wake. Without this check,
+   reopening after a long gap just silently resumed 'working' with the SAME old
+   blockStart/sessionStart and a fresh 15-min log timer — which is exactly "the
+   app forgets I closed it, thinks we're still working", and why the eventual
+   log prompt showed an absurd overnight-length "block". Runs at load AND on
+   visibilitychange (see below) — a tab left backgrounded for hours without a
+   full reload needs the same check, not just a cold start. */
+const STALE_SESSION_MS = 45*60000;   // longer than a big break, short enough to catch "closed overnight"
+function checkStaleSession(){
+  if(ts.mode==='idle') return;
+  const last = ts.lastAlive || ts.blockStart || ts.sessionStart || 0;
+  const gap = Date.now() - last;
+  if(gap >= STALE_SESSION_MS){
+    if(ts.sessionStart && last>ts.sessionStart){
+      const dayKey='ts:sessions:'+todayKey(new Date(ts.sessionStart));   // the day it STARTED, not today — a gap can cross midnight
+      const sessions=kget(dayKey,[]);
+      sessions.push({start:ts.sessionStart, end:last, committedHours:ts.committedHours||6,
+        workedMin:Math.max(0,Math.round((last-ts.sessionStart)/60000)), autoClosed:true});
+      kset(dayKey, sessions);
+    }
+    ts={mode:'idle', nextLogAt:0, blockStart:0, sessionStart:0};
+    tsSave();
+    const hrs=gap/3600000;
+    setTimeout(()=>toast('⏱ Session auto-ended — you were away '+(hrs>=1?hrs.toFixed(1)+'h':Math.round(gap/60000)+'m')), 800);
+    return;
   }
-})();
+  /* transient overlay states (logging/resting) must never survive a reload — if
+     a log popup or break got orphaned (tab closed, window shut mid-log) within
+     the NOT-stale window, the app was left frozen in that mode and Clock
+     in/Pause did nothing. Recover to a usable state. */
+  if(ts.mode==='logging' || ts.mode==='resting'){
+    ts.mode='working';
+    ts.nextLogAt = Date.now() + ((typeof SET!=='undefined' && SET.tsInt) ? SET.tsInt : 15)*60000;
+    ts.blockStart = ts.blockStart || Date.now();
+    tsSave();
+  }
+}
+checkStaleSession();
 function tsSave(){ jsave('tsrun',ts); }
 function getTsEntries(){ return kget('ts:entries:'+todayKey(),[]); }
 function tsDayInfo(key){ return kget('ts:day:'+(key||todayKey()),{started:false, firstStart:0}); }
@@ -4654,6 +4686,7 @@ function tsSetCell(key,b,val){
   if(key===todayKey()) renderWork();
 }
 setInterval(()=>{
+  if(ts.mode!=='idle'){ ts.lastAlive=Date.now(); tsSave(); }   // the heartbeat checkStaleSession() reads on next load/resume
   updatePip(); // keep the floating widget live in every mode (idle/working/paused/resting)
   if(ts.mode==='working'){
     tsCheckMilestones(); // fires regardless of which tab is open — a marathon session shouldn't need the Work tab up to celebrate
@@ -4794,6 +4827,21 @@ function popOutTimer(){
     if(!pipWin || pipWin.closed){ onClosed(); return; }
   }, 500);
   updatePip();
+  /* The countdown used to depend ENTIRELY on the main window's 1-second loop
+     pushing updates into this popup — so backgrounding/minimizing the main
+     K-OS window (leaving only this floating widget on screen) silently froze
+     the display, even though this popup itself was perfectly visible and
+     never throttled. That's the "stops ticking because it doesn't have focus"
+     bug. Giving the popup its OWN interval fixes it: Chromium throttles
+     setInterval/setTimeout per-document based on THAT document's own
+     visibility, not the opener's, so this keeps firing on schedule regardless
+     of what the main window is doing. It just calls back into the opener's
+     existing updatePip() (a plain synchronous function call, not itself
+     subject to timer throttling) to do the actual rendering — no logic
+     duplicated, just who's driving the clock. */
+  const pipTick=pd.createElement('script');
+  pipTick.textContent='(function(){function t(){try{if(window.opener&&!window.opener.closed)window.opener.updatePip();}catch(e){}}t();setInterval(t,1000);})();';
+  pd.body.appendChild(pipTick);
   toast('Floating timer opened — drag it, tap 🔓 to lock it in place.');
 }
 /* swap the widget into "what did you do?" input mode, then back to the timer */
@@ -4843,12 +4891,19 @@ function updatePip(){
   }
   body.style.background='#0e1116';
   if(ts.mode==='idle'){ time.textContent='—'; lbl.textContent='clock in'; state.style.color='#8b949e'; brk.textContent='—'; setBreakBar(); return; }
+  // whatever quest is tracked shows here instead of the generic status word —
+  // "the active quest should show on the floating timer so I can stay
+  // focused" was the literal ask, and the label line is the one bit of this
+  // tiny widget with room for it (ellipsis-truncated via #pw-lbl's own CSS).
+  const fq = ts.mode==='working' ? getFocusQuest() : null;
+  lbl.title = fq ? fq.text : '';   // full text on hover — the line itself is ellipsis-truncated
   if(!SET.logOn){
     const el=Math.max(0,Math.floor((Date.now()-ts.sessionStart)/1000));
-    time.textContent=hms(el); lbl.textContent='focus';
+    time.textContent=hms(el); lbl.textContent = fq ? fq.text : 'focus';
   } else {
     const span=SET.tsInt*60000, leftMs = ts.mode==='paused' ? (ts.pausedLeft||span) : (ts.nextLogAt-Date.now());
-    time.textContent=hms(Math.max(0,leftMs)/1000); lbl.textContent = ts.mode==='paused'?'paused':'until next log';
+    time.textContent=hms(Math.max(0,leftMs)/1000);
+    lbl.textContent = ts.mode==='paused' ? 'paused' : (fq ? fq.text : 'until next log');
   }
   state.textContent='●'; state.style.color = ts.mode==='paused' ? '#f59e0b' : '#22c55e';
   brk.textContent = nb ? (nb.kind==='big'?'🛋':'☕')+' '+Math.max(1,Math.ceil(nb.leftMs/60000))+'m' : (SET.restOn?'—':'no breaks');

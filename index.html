@@ -76,8 +76,22 @@
   .sub{color:var(--dim);font-size:12.5px}
   button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--txt);
     padding:10px 16px;border-radius:14px;font-weight:550;touch-action:manipulation;
+    position:relative;overflow:hidden;
     transition:transform .18s var(--spring,cubic-bezier(.34,1.42,.64,1)), box-shadow .18s, background .18s, border-color .18s;}
   button:active{transform:scale(.95)}
+  /* ---------- RIPPLE: a soft ring of light expanding from wherever you actually
+     tapped, not the element's centre — spawned by spawnRipple() (see JS, bound
+     once at the document level) on any button/card/row. The single highest-
+     impact "this responds to ME" cue a UI can give; everything else here is
+     static motion by comparison. position:relative + overflow:hidden above is
+     what contains it inside the tapped shape instead of spilling past it. ---- */
+  .ripple{ position:absolute; border-radius:50%; pointer-events:none;
+    background:radial-gradient(circle, rgba(255,255,255,.5), rgba(255,255,255,0) 70%);
+    transform:scale(0); opacity:1; animation:rippleOut .6s ease-out forwards; }
+  @keyframes rippleOut{ to{ transform:scale(1); opacity:0; } }
+  /* every other ripple host (rows, cards aren't buttons) needs its own clip box —
+     buttons got theirs on the base `button` rule above */
+  .hubcard, .goal, .wallitem, .wq-row{ position:relative; overflow:hidden; }
   button.primary{background:var(--accent2);border-color:var(--accent2)}
   button.ghost{background:transparent}
   button.sm{padding:6px 11px;font-size:13px}
@@ -773,6 +787,7 @@
   #wrap .blockhead .lbl{ color:var(--dim); }
   #wrap .flowlist{ display:flex; flex-direction:column; gap:10px; }
   #wrap .flowlist .fitem{
+    position:relative; overflow:hidden;
     border:1px solid var(--hud-line) !important; border-radius:var(--hud-r);
     background:linear-gradient(180deg, var(--hud-tint), transparent 70%), var(--hud-glass);
     backdrop-filter:blur(var(--hud-blur)) saturate(160%);
@@ -1845,7 +1860,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261018-160555';
+const KOS_BUILD='20261018-164801';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -1897,6 +1912,52 @@ const chimeLog     = ()=>beep([[660,.13],[880,.18]]);
 const chimeDone    = ()=>beep([[784,.12],[988,.12],[1319,.22]]);
 const chimeFanfare = ()=>beep([[523,.12],[659,.12],[784,.12],[1047,.32]]);
 const buzz = ms => { try{ navigator.vibrate && navigator.vibrate(ms); }catch(e){} };
+
+/* ---- tap ripple ----
+   One delegated listener instead of per-element handlers, so every button/card/
+   row gets it for free with zero per-render wiring. Sized to the element's own
+   diagonal (not a fixed size) so it always fully covers corner-to-corner from
+   wherever you actually tapped — a ripple centred on the element, or one that's
+   too small to reach the far corner, reads as decoration bolted on rather than
+   the surface actually responding to you. */
+function spawnRipple(x, y, el){
+  const r=el.getBoundingClientRect();
+  const size=Math.hypot(r.width, r.height)*1.15;
+  const span=document.createElement('span');
+  span.className='ripple';
+  span.style.width=span.style.height=size+'px';
+  span.style.left=(x-r.left-size/2)+'px';
+  span.style.top=(y-r.top-size/2)+'px';
+  el.appendChild(span);
+  span.addEventListener('animationend', ()=>span.remove());
+}
+document.addEventListener('pointerdown', e=>{
+  if(e.button!==undefined && e.button>0) return;    // left-click/primary touch only
+  const el=e.target.closest('button, .hubcard, .goal, .wallitem, .wq-row, #wrap .flowlist .fitem');
+  if(!el || el.disabled) return;
+  spawnRipple(e.clientX, e.clientY, el);
+}, {passive:true});
+
+/* ---- number count-up ----
+   A stat that just SNAPS to a new value on every re-render (which in K-OS can
+   fire several times a minute) reads as a spreadsheet cell, not a living number.
+   Guards on the actual previous value (el.dataset.animFrom), not the current
+   textContent, so a renderAll() that fires with an UNCHANGED number never
+   replays the animation — only a genuine change counts up. */
+function animateNumber(el, to, suffix){
+  if(!el) return;
+  suffix = suffix || '';
+  const from = el.dataset.animFrom!=null ? parseFloat(el.dataset.animFrom) : to;
+  el.dataset.animFrom = to;
+  if(from===to || matchMedia('(prefers-reduced-motion:reduce)').matches){ el.textContent=to+suffix; return; }
+  cancelAnimationFrame(el._animRAF);
+  const start=performance.now(), dur=550;
+  (function step(now){
+    const t=Math.min(1, (now-start)/dur), eased=1-Math.pow(1-t,3);
+    el.textContent=Math.round(from+(to-from)*eased)+suffix;
+    if(t<1) el._animRAF=requestAnimationFrame(step);
+  })(start);
+}
 const AFFIRM=["Nice.","That's the standard.","Momentum.","Keep stacking wins.","Locked in.","That's discipline.","Onto the next.","Building the streak.","That's who you are now.","Compounding."];
 const affirm = ()=>AFFIRM[Math.floor(Math.random()*AFFIRM.length)];
 const PHIL_QUOTES=[
@@ -2064,7 +2125,7 @@ function computeDayStreak(threshold){
 }
 function renderDayStreak(){
   const streak=computeDayStreak(90);
-  const n=$('#streakNum'); if(n) n.textContent=streak;
+  animateNumber($('#streakNum'), streak);
   const w=$('#streakBadge');
   if(w) w.title = streak>0 ? streak+' day'+(streak===1?'':'s')+' at 90%+ of your flow complete' : 'Complete 90%+ of your flow to start a streak';
 }
@@ -2904,7 +2965,7 @@ function renderToday(){
   const allBlocks=flowBlocks();
   const doneN=allBlocks.filter(s=>flowBlockDone(s,f)).length;
   const pct=allBlocks.length ? Math.round(doneN/allBlocks.length*100) : 0;
-  $('#dayPct').textContent=pct+'%';
+  animateNumber($('#dayPct'), pct, '%');
   $('#dayRing').style.strokeDashoffset=RC*(1-pct/100);
   const h=new Date().getHours();
   $('#greet').textContent = h<12?'Morning, Kyryl.':h<17?'Keep pushing, Kyryl.':'Evening, Kyryl.';

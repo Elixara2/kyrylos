@@ -848,7 +848,7 @@
      actually slides the glow from its old spot to its new one (moveTabGlow(),
      called from showTab()) rather than fading one out while a different one
      fades in — transform-only, so it rides on the compositor at 60fps. */
-  #tabbar{ border-top:1px solid var(--hud-line); position:relative; }
+  #tabbar{ border-top:1px solid var(--hud-line); }
   #tabbar .inner{ position:relative; }
   #tabbar .tab{ position:relative; }
   #tabGlow{
@@ -1845,7 +1845,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261018-155111';
+const KOS_BUILD='20261018-160555';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;

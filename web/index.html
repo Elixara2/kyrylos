@@ -2606,7 +2606,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261018-113411';
+const KOS_BUILD='20261018-114509';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -4711,7 +4711,12 @@ function tsNextBreak(){
 }
 let pipWin=null;
 let pipLocked=jload('pipLocked',false);   // when locked, the native shell freezes the window in place
-const PIP_W=240, PIP_H=60;
+const PIP_W=240, PIP_H=78;   // +18px over the original 60 — a dedicated strip
+                              // across the very top for whichever quest is
+                              // tracked, matching desktop/main.js's own PIP_H
+                              // (which actually sizes the native window in the
+                              // Electron shell; this copy only matters for the
+                              // plain-browser window.open() fallback path)
 // the native shell reads lock state from the window title and makes the OS window
 // itself movable / immovable — no JS repositioning, so it never snaps to a corner.
 function pipSetTitle(){ try{ pipWin.document.title = pipLocked ? 'K-OS·LOCK' : 'K-OS'; }catch(e){} }
@@ -4734,6 +4739,13 @@ function popOutTimer(){
     '*{margin:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}'+
     'body{background:#0e1116;color:#e6edf3;height:100vh;overflow:hidden;-webkit-user-select:none;user-select:none;cursor:move}'+
     '#pw{height:100vh;display:flex;flex-direction:column;padding:0}'+
+    // a dedicated strip across the VERY TOP of the pill for whichever quest is
+    // tracked — "above everything", per direct correction after the first
+    // attempt squeezed it into an existing row instead. Collapses to nothing
+    // (no reserved space at all) when nothing's tracked, see updatePip().
+    '#pw-quest{flex:0 0 auto;display:none;padding:3px 9px 2px;font-size:9.5px;font-weight:700;'+
+      'color:#fff;background:rgba(255,255,255,.08);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}'+
+    '#pw-quest.on{display:block}'+
     '#pw-brkbar{height:3px;background:#1c232d;flex:0 0 auto}'+
     '#pw-brkbar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#1f9d55,#22c55e);transition:width .5s}'+
     '#pw-row{flex:1;display:flex;align-items:center;gap:7px;padding:0 8px;min-height:0}'+
@@ -4741,10 +4753,7 @@ function popOutTimer(){
     '#pw-mid{flex:1;min-width:0;overflow:hidden;display:flex;flex-direction:column;justify-content:center;gap:0}'+
     '#pw-top{display:flex;align-items:center;gap:4px;font-size:10px;color:#8b949e;font-weight:600;white-space:nowrap}'+
     '#pw-state{font-size:8px;flex:0 0 auto}'+
-    // the tracked quest's title lands here (see updatePip) — needs its own
-    // truncation since it can run much longer than "☕ 9m" ever did
     '#pw-brk{min-width:0;overflow:hidden;text-overflow:ellipsis}'+
-    '#pw-brk.quest{color:#e6edf3;font-weight:700}'+
     '#pw-lbl{font-size:8px;text-transform:uppercase;letter-spacing:.5px;color:#8b949e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'+
     '#pw-ctl{display:flex;gap:3px;flex:0 0 auto}'+
     '#pw-ctl button{width:24px;height:24px;border-radius:6px;border:1px solid #2a323d;background:#1c232d;color:#e6edf3;'+
@@ -4763,6 +4772,7 @@ function popOutTimer(){
   pipWin.document.head.appendChild(st);
   pipWin.document.body.innerHTML =
     '<div id="pw">'+
+      '<div id="pw-quest" title="Tap to open Work"></div>'+
       '<div id="pw-brkbar" title="until next break"><i id="pw-brkfill"></i></div>'+
       '<div id="pw-row">'+
         '<div id="pw-time">—</div>'+
@@ -4778,6 +4788,7 @@ function popOutTimer(){
     '<input id="pw-input" placeholder="what did you do? ⏎" autocomplete="off"><div class="pw-loghint">⏎ save · esc skip</div></div>';
   const pd=pipWin.document;
   pd.getElementById('pw-time').addEventListener('click',()=>{ try{ window.focus(); }catch(e){} showTab('work'); });
+  pd.getElementById('pw-quest').addEventListener('click',()=>{ try{ window.focus(); }catch(e){} showTab('work'); });
   pd.getElementById('pw-toggle').addEventListener('click',ev=>{ ev.stopPropagation(); tsToggle(); updatePip(); });
   pd.getElementById('pw-out').addEventListener('click',ev=>{ ev.stopPropagation(); if(ts.mode!=='idle'){ tsClockOut(); updatePip(); } });
   pd.getElementById('pw-close').addEventListener('click',ev=>{ ev.stopPropagation(); try{ pipWin.close(); }catch(e){} });
@@ -4794,7 +4805,7 @@ function popOutTimer(){
     const nudge=(dx,dy)=>{ if(dx||dy){ try{ window.kosNative&&window.kosNative.dragBy(dx,dy); }catch(_){} } };
     drag.addEventListener('pointerdown',e=>{
       if(e.button!==0) return;
-      if(e.target.closest('#pw-ctl')||e.target.id==='pw-time'||e.target.id==='pw-input') return;
+      if(e.target.closest('#pw-ctl')||e.target.id==='pw-time'||e.target.id==='pw-quest'||e.target.id==='pw-input') return;
       dragging=true; try{ drag.setPointerCapture(e.pointerId); }catch(_){}
     });
     drag.addEventListener('pointermove',e=>{ if(!dragging) return;
@@ -4873,8 +4884,20 @@ function updatePip(){
   if(ts.mode==='logging') return; // widget is showing the "what did you do?" input — don't clobber it
   const d=pipWin.document, g=id=>d.getElementById(id);
   const time=g('pw-time'), lbl=g('pw-lbl'), brk=g('pw-brk'), state=g('pw-state'), bfill=g('pw-brkfill'), body=d.body;
-  const toggle=g('pw-toggle'), out=g('pw-out');
+  const toggle=g('pw-toggle'), out=g('pw-out'), questEl=g('pw-quest');
   if(!time) return;
+  /* A dedicated strip across the very top of the pill, above the time/break row
+     entirely — not squeezed into an existing line. Shows in working AND
+     paused (staying focused on WHAT you're doing matters right as you're
+     about to resume too), collapses to zero height the moment nothing's
+     tracked or a break/idle state takes over, so it never eats space it
+     isn't using. */
+  const fq = (ts.mode==='working'||ts.mode==='paused') ? getFocusQuest() : null;
+  if(questEl){
+    questEl.classList.toggle('on', !!fq);
+    questEl.textContent = fq ? fq.text : '';
+    questEl.title = fq ? fq.text : '';
+  }
   // top green bar = progress toward the next break
   const nb=tsNextBreak();
   const setBreakBar=()=>{
@@ -4890,11 +4913,11 @@ function updatePip(){
   if(ts.mode==='resting'){
     const left=Math.max(0,Math.round((ts.restEndAt-Date.now())/1000));
     time.textContent=hms(left); lbl.textContent=(ts.restKind==='big'?'big break':'mini break');
-    state.textContent='●'; state.style.color='#fff'; brk.classList.remove('quest'); brk.textContent=(ts.restKind==='big'?'🛋 rest':'☕ rest');
+    state.textContent='●'; state.style.color='#fff'; brk.textContent=(ts.restKind==='big'?'🛋 rest':'☕ rest');
     body.style.background='radial-gradient(120% 120% at 50% 40%,#1f9d55,#0a3d22)'; setBreakBar(); return;
   }
   body.style.background='#0e1116';
-  if(ts.mode==='idle'){ time.textContent='—'; lbl.textContent='clock in'; state.style.color='#8b949e'; brk.classList.remove('quest'); brk.textContent='—'; setBreakBar(); return; }
+  if(ts.mode==='idle'){ time.textContent='—'; lbl.textContent='clock in'; state.style.color='#8b949e'; brk.textContent='—'; setBreakBar(); return; }
   if(!SET.logOn){
     const el=Math.max(0,Math.floor((Date.now()-ts.sessionStart)/1000));
     time.textContent=hms(el); lbl.textContent='focus';
@@ -4903,16 +4926,7 @@ function updatePip(){
     time.textContent=hms(Math.max(0,leftMs)/1000); lbl.textContent = ts.mode==='paused'?'paused':'until next log';
   }
   state.textContent='●'; state.style.color = ts.mode==='paused' ? '#f59e0b' : '#22c55e';
-  /* the tracked quest takes over the TOP line — "should be along the top", per
-     direct feedback that it wasn't visible at all buried in the tiny bottom
-     label. Shows in working AND paused (not just working): staying focused on
-     WHAT you're doing matters especially right as you're about to resume.
-     Falls back to the usual break countdown when nothing's tracked. */
-  const fq = (ts.mode==='working'||ts.mode==='paused') ? getFocusQuest() : null;
-  brk.classList.toggle('quest', !!fq);
-  brk.title = fq ? fq.text : '';
-  brk.textContent = fq ? fq.text
-    : (nb ? (nb.kind==='big'?'🛋':'☕')+' '+Math.max(1,Math.ceil(nb.leftMs/60000))+'m' : (SET.restOn?'—':'no breaks'));
+  brk.textContent = nb ? (nb.kind==='big'?'🛋':'☕')+' '+Math.max(1,Math.ceil(nb.leftMs/60000))+'m' : (SET.restOn?'—':'no breaks');
   setBreakBar();
 }
 

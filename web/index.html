@@ -30,7 +30,17 @@
 
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;height:100%}
-  body{background:var(--bg);color:var(--txt);
+  /* two large, very soft colour glows fixed in the viewport — the difference
+     between "flat black" and "dark with depth" is almost entirely this: nothing
+     here is meant to be consciously noticed, it just stops every screen from
+     reading as a single flat rectangle. */
+  body{
+    background:
+      radial-gradient(900px circle at 12% -8%, rgba(59,130,246,.11), transparent 60%),
+      radial-gradient(760px circle at 108% 18%, rgba(167,139,250,.08), transparent 55%),
+      var(--bg);
+    background-attachment:fixed;
+    color:var(--txt);
     font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     -webkit-font-smoothing:antialiased;overscroll-behavior:none}
   #wrap{max-width:760px;margin:0 auto;padding:calc(var(--safe-t) + 14px) 16px calc(var(--safe-b) + 84px)}
@@ -65,8 +75,9 @@
   .card h2{font-size:14px;margin:0 0 10px;font-weight:650;letter-spacing:.2px;display:flex;justify-content:space-between;align-items:center;gap:8px}
   .sub{color:var(--dim);font-size:12.5px}
   button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--txt);
-    padding:10px 16px;border-radius:10px;font-weight:550;transition:.12s;touch-action:manipulation}
-  button:active{transform:scale(.97)}
+    padding:10px 16px;border-radius:14px;font-weight:550;touch-action:manipulation;
+    transition:transform .18s var(--spring,cubic-bezier(.34,1.42,.64,1)), box-shadow .18s, background .18s, border-color .18s;}
+  button:active{transform:scale(.95)}
   button.primary{background:var(--accent2);border-color:var(--accent2)}
   button.ghost{background:transparent}
   button.sm{padding:6px 11px;font-size:13px}
@@ -723,13 +734,24 @@
   /* the Work controls: one slim strip, equal weight */
   #wrap .wctl{ display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-top:12px; }
   #wrap .wctl button{ padding:11px 4px; font-size:11.5px; font-weight:800; border-radius:13px;
-    letter-spacing:.04em; background:var(--hud-tint); border-color:var(--hud-line); }
+    letter-spacing:.04em; background:linear-gradient(180deg, rgba(255,255,255,.06), transparent 65%), var(--hud-glass);
+    backdrop-filter:blur(var(--hud-blur)); -webkit-backdrop-filter:blur(var(--hud-blur));
+    border-color:var(--hud-line);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.07), 0 6px 16px -12px #000; }
   #wrap .wctl button:disabled{ opacity:.3; pointer-events:none; }
 
   /* ---------- MOTION: panels assemble ---------- */
   @keyframes hudIn{ from{opacity:0; transform:translateY(16px) scale(.985); filter:blur(3px)}
                     to{opacity:1; transform:none; filter:blur(0)} }
-  .panel.on{ animation:none; }
+  /* ---------- MOTION: the panel itself slides in, directionally ----------
+     --slide-x is set in JS (showTab) just before the class toggle, from the
+     NAV_TABS order of the tab you were on vs the one you're going to — moving
+     right slides the new panel in from the right, moving left from the left.
+     transform-only (no layout props), so it's safe even on #p-work's pinned
+     flex column where the CHILD stagger below is deliberately turned off. */
+  @keyframes panelSlide{ from{opacity:0; transform:translateX(var(--slide-x,18px))}
+                         to{opacity:1; transform:translateX(0)} }
+  .panel.on{ animation:panelSlide .36s var(--ease) both; }
   .panel.on > *{ animation:hudIn .5s var(--ease) both; }
   .panel.on > *:nth-child(1){animation-delay:0s}
   .panel.on > *:nth-child(2){animation-delay:.05s}
@@ -821,15 +843,22 @@
     border-color:var(--accent); box-shadow:0 0 0 3px rgba(var(--pip-rgb,120,140,255),.13);
   }
 
-  /* ---------- TAB BAR: a light bar travels to the active tab ---------- */
-  #tabbar{ border-top:1px solid var(--hud-line); }
+  /* ---------- TAB BAR: a light bar travels to the active tab ----------
+     One shared element instead of a per-tab pseudo-element, so switching tabs
+     actually slides the glow from its old spot to its new one (moveTabGlow(),
+     called from showTab()) rather than fading one out while a different one
+     fades in — transform-only, so it rides on the compositor at 60fps. */
+  #tabbar{ border-top:1px solid var(--hud-line); position:relative; }
+  #tabbar .inner{ position:relative; }
   #tabbar .tab{ position:relative; }
-  #tabbar .tab::after{
-    content:''; position:absolute; bottom:1px; left:50%; width:0; height:2px; border-radius:2px;
-    margin-left:-12px; background:var(--accent); box-shadow:0 0 14px var(--accent);
-    transition:width .32s var(--ease), opacity .32s; opacity:0;
+  #tabGlow{
+    position:absolute; bottom:1px; left:0; width:24px; height:2px; border-radius:2px;
+    background:var(--accent); box-shadow:0 0 14px var(--accent);
+    transform:translateX(-999px); opacity:0;
+    transition:transform .38s var(--spring), opacity .25s;
+    pointer-events:none;
   }
-  #tabbar .tab.on::after{ width:24px; opacity:1; }
+  #tabGlow.on{ opacity:1; }
   #tabbar .tab .ic{ transition:transform .32s var(--ease), filter .32s; }
   #tabbar .tab.on .ic{ transform:translateY(-2px) scale(1.1); filter:drop-shadow(0 0 9px var(--accent)); }
 
@@ -899,9 +928,18 @@
     flex:1 1 auto; margin-top:6px; padding:7px 10px 5px; min-height:0;
     display:flex; flex-direction:column;   /* so .wq-add can pin while .wq-scroll scrolls */
     border-radius:13px; border:1px solid var(--hud-line);
-    background:linear-gradient(180deg, var(--hud-tint), transparent 70%), var(--panel);
+    background:linear-gradient(180deg, var(--hud-tint), transparent 70%), var(--hud-glass);
+    backdrop-filter:blur(var(--hud-blur)) saturate(160%);
+    -webkit-backdrop-filter:blur(var(--hud-blur)) saturate(160%);
     transition:opacity .25s;
   }
+  #wrap .wq-empty{
+    flex:1 1 auto; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:4px; color:var(--dim); opacity:.55; text-align:center; padding:0 20px;
+    animation:hudIn .5s var(--ease) both;
+  }
+  #wrap .wq-empty b{ font-size:13px; font-weight:700; color:var(--dim); }
+  #wrap .wq-empty span{ font-size:11px; }
   /* the focused quest lives in #wfocus above now, not here — everything left in
      this list is explicitly NOT what's being worked on, so the whole block
      recedes rather than reading as a normal, equally-weighted list. The add
@@ -940,9 +978,11 @@
      screen apart from Clock in itself. Its own block, its own glow, sitting
      above everything else so it's the first thing the eye lands on. */
   #wrap .wfocus{
-    flex:0 0 auto; margin-bottom:9px; padding:11px 14px 12px; cursor:pointer;
+    flex:0 0 auto; margin-bottom:9px; padding:11px 16px 14px; cursor:pointer;
     border-radius:15px; border:1.5px solid var(--accent);
-    background:linear-gradient(180deg, rgba(var(--pip-rgb,120,140,255),.16), transparent 75%), var(--panel);
+    background:linear-gradient(180deg, rgba(var(--pip-rgb,120,140,255),.16), transparent 75%), var(--hud-glass);
+    backdrop-filter:blur(var(--hud-blur)) saturate(160%);
+    -webkit-backdrop-filter:blur(var(--hud-blur)) saturate(160%);
     box-shadow:0 0 0 1px rgba(var(--pip-rgb,120,140,255),.12), 0 14px 34px -22px var(--accent);
     transition:transform .15s var(--ease);
   }
@@ -953,9 +993,13 @@
   #wrap .wf-addobj{ display:flex; align-items:center; gap:7px; margin-top:9px; }
   #wrap .wf-addobj input{ flex:1; min-width:0; font-size:11.5px; padding:7px 10px; height:auto; }
   #wrap .wf-addobj button{
-    flex:0 0 auto; width:26px; height:26px; border-radius:50%; border:none;
-    background:var(--bg); color:var(--accent); font-size:15px; font-weight:800; cursor:pointer;
+    flex:0 0 auto; width:28px; height:28px; border-radius:50%; border:1px solid rgba(255,255,255,.1);
+    background:linear-gradient(180deg, var(--accent), var(--accent2)); color:var(--bg);
+    box-shadow:0 4px 12px -4px var(--accent); font-size:15px; font-weight:800; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; line-height:1;
+    transition:transform .15s var(--spring);
   }
+  #wrap .wf-addobj button:active{ transform:scale(.88); }
 
   /* 2 · ACTION BAR — was a 40px circle floating in the middle of nothing, which
      read as an afterthought rather than the primary control. Now a full-width
@@ -1562,6 +1606,7 @@
 <!-- floating Prophit tab — live on every screen -->
 <!-- tab bar -->
 <nav id="tabbar"><div class="inner">
+  <i id="tabGlow" aria-hidden="true"></i>
   <button class="tab" data-tab="today"><span class="ic">☀️</span><span class="lbl">Today</span><span class="dotdone"></span></button>
   <button class="tab" data-tab="goals"><span class="ic">✅</span><span class="lbl">Missions</span><span class="dotdone"></span></button>
   <button class="tab" data-tab="work"><span class="ic">⏱</span><span class="lbl">Work</span><span class="dotdone"></span></button>
@@ -1800,7 +1845,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261018-150348';
+const KOS_BUILD='20261018-155111';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -3352,11 +3397,12 @@ function renderWorkQuests(){
   host.classList.toggle('dimmed', !!focusId);
   lbl.style.display = todos.length ? '' : 'none';
   lbl.textContent = focusId ? 'Other missions' : 'Active missions';
-  list.innerHTML = todos.map(x=>
+  list.innerHTML = todos.length ? todos.map(x=>
     '<div class="wq-row" data-gid="'+x.id+'">'+
       '<span class="wq-mark">○</span>'+
       '<span class="wq-text">'+esc(x.text)+'</span>'+
-    '</div>').join('');
+    '</div>').join('')
+    : (focusId ? '' : '<div class="wq-empty"><b>No missions yet</b><span>Add one below to start tracking it</span></div>');
   list.querySelectorAll('.wq-row').forEach(row=>{
     row.onclick=()=>toggleFocusQuest(row.dataset.gid);
   });
@@ -5771,8 +5817,16 @@ const SUB_PARENT={gym:'health', diet:'health', habits:'health', modules:'track'}
 let activeTab = jload('tab','today');
 if(!NAV_TABS.includes(activeTab) && !SUB_PARENT[activeTab]) activeTab='today';
 function showTab(name){
+  // direction for the panel slide: compare NAV_TABS order of where you're coming
+  // from vs going to (sub-tabs borrow their parent's slot via SUB_PARENT) — a tab
+  // to the right slides the new panel in from the right, and vice versa.
+  const fromIdx = NAV_TABS.indexOf(NAV_TABS.includes(activeTab) ? activeTab : (SUB_PARENT[activeTab]||'today'));
+  const toIdx = NAV_TABS.indexOf(NAV_TABS.includes(name) ? name : (SUB_PARENT[name]||'today'));
+  const dir = toIdx>fromIdx ? 1 : toIdx<fromIdx ? -1 : 0;
+  document.documentElement.style.setProperty('--slide-x', dir===0 ? '0px' : (dir*18)+'px');
   activeTab=name; jsave('tab',name);
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on', p.id==='p-'+name));
+  moveTabGlow(NAV_TABS.includes(name) ? name : (SUB_PARENT[name]||'today'));
   // #wrap's baseline padding-bottom reserves 84px of clearance so normal SCROLLING
   // tabs don't end up hidden under the fixed tab bar. Work's panel height is
   // computed to fit exactly between header and tab bar already (sizeWorkPanel()
@@ -5788,6 +5842,21 @@ function showTab(name){
     else bb.style.display='none'; }
   renderAll();
   window.scrollTo({top:0});
+}
+/* slides #tabGlow under whichever bottom-nav tab is now active. Measures in
+   LAYOUT pixels relative to #tabbar .inner (not the tab's own offsetLeft —
+   that would ignore the bar's flex gap/centering) so it lines up regardless
+   of tab width changes (label length, safe-area insets, etc). */
+function moveTabGlow(navId){
+  const glow=$('#tabGlow'), tab=document.querySelector('.tab[data-tab="'+navId+'"]');
+  if(!glow || !tab) return;
+  const firstRun = !glow.classList.contains('on');   // skip the slide-in from its
+  if(firstRun) glow.style.transition='none';          // off-screen rest position
+  const inner=tab.parentElement.getBoundingClientRect(), tr=tab.getBoundingClientRect();
+  const x = (tr.left - inner.left) + (tr.width - 24)/2;
+  glow.style.transform='translateX('+Math.round(x)+'px)';
+  glow.classList.add('on');
+  if(firstRun) requestAnimationFrame(()=>{ glow.style.transition=''; });
 }
 function backFromSub(){ const p=$('#backBar').dataset.parent||'today'; showTab(p); }
 

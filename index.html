@@ -12,12 +12,6 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icon-192.png">
 <title>K-OS</title>
-<!-- Share Tech Mono is the closest free stand-in for the Pip-Boy's Monofonto (which is
-     licensed, so not something to ship). Purely an enhancement — the monospace fallback
-     stack below it carries the look offline and inside the Electron/Capacitor shells. -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap">
 <style>
   :root{
     --bg:#0e1116; --panel:#161b22; --panel2:#1c232d; --line:#2a323d;
@@ -44,9 +38,8 @@
      never in sync with each other so the whole thing never visibly "loops").
      transform+opacity only — the compositor handles this for free, nothing here
      ever triggers layout. Sits at z-index:-1 behind #wrap (which gets z-index:1
-     above), and bleeds straight through every glass panel's backdrop-filter,
-     which is the whole point: that's what finally makes the blur look like
-     something real is behind it instead of blurring flat black into flat black. */
+     above), and shows softly through every translucent panel — colour and
+     depth without making each card re-blur its backdrop every frame. */
   #aurora{ position:fixed; inset:-10vh -10vw; z-index:-1; overflow:hidden; pointer-events:none; }
   #aurora i{ position:absolute; border-radius:50%; filter:blur(70px); opacity:.5; will-change:transform; }
   #aurora i:nth-child(1){
@@ -557,21 +550,24 @@
   .glist{display:flex;flex-direction:column}
   .goal-datenav{display:flex;align-items:center;gap:10px}
   .goal-datenav button{padding:6px 14px;border-radius:10px}
+  .goal-datenav button:disabled{opacity:.25;pointer-events:none}
   .goal-date{flex:1;text-align:center}
   .goal-date b{font-size:17px}
-  /* ---- Quests: list rows keep a quest-log feel (square markers, monospace
-     titles) in any theme — Pip-Boy mode layers its own colours/glow on top for
-     free via the existing var(--accent) etc, same as every other tab. ---- */
-  .goal{display:flex;align-items:center;gap:10px;padding:11px 8px;border-radius:10px;border-bottom:1px solid var(--line);
-    animation:fade .25s var(--ease);transition:background .25s}
+  /* ---- mission rows ---- */
+  .goal{display:flex;align-items:center;gap:10px;padding:12px 10px;border-radius:14px;border-bottom:1px solid var(--line);
+    transition:background .2s}
   .goal:last-child{border-bottom:none}
-  .goal.selected{background:rgba(var(--pip-rgb,120,140,255),.12)}
-  .gflag{width:4px;align-self:stretch;border-radius:99px;flex:0 0 auto;min-height:24px}
-  .gchk{width:27px;height:27px;border-radius:6px;border:1.5px solid var(--line);flex:0 0 auto;cursor:pointer;
-    display:flex;align-items:center;justify-content:center;color:transparent;font-size:15px;transition:.18s}
-  .goal.done .gchk{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+  .goal.selected{background:rgba(255,255,255,.05)}
+  @media (hover:hover){ .goal:hover{background:rgba(255,255,255,.035)} }
+  .goal.legacy{opacity:.6}
+  .gflag{width:3px;align-self:stretch;border-radius:99px;flex:0 0 auto;min-height:22px}
+  .gchk{width:24px;height:24px;border-radius:50%;border:1.5px solid rgba(255,255,255,.22);flex:0 0 auto;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;color:transparent;font-size:13px;font-weight:900;
+    transition:background .2s, border-color .2s, transform .25s var(--spring)}
+  .gchk:active{transform:scale(.82)}
+  .goal.done .gchk{background:var(--green);border-color:var(--green);color:#06210f}
   .gbody{flex:1;cursor:pointer;min-width:0}
-  .gtext{flex:1;font-size:15px;font-family:ui-monospace,'SF Mono','Courier New',monospace;position:relative;transition:color .3s;word-break:break-word}
+  .gtext{flex:1;font-size:15px;font-weight:550;letter-spacing:-.005em;position:relative;transition:color .3s;word-break:break-word}
   .gtext::after{content:"";position:absolute;left:0;top:52%;height:1.5px;width:0;background:var(--dim);transition:width .35s var(--ease)}
   .goal.done .gtext{color:var(--dim)}
   .goal.done .gtext::after{width:100%}
@@ -584,7 +580,8 @@
      mode (a small dot, not the full inverted bar — that treatment belongs to the
      terminal skin, see the Pip-Boy layer) so the sleek HUD look is untouched. */
   .gtrack{background:none;border:none;color:var(--dim);font-size:13px;flex:0 0 auto;
-    width:20px;height:20px;padding:0;cursor:pointer;line-height:1;}
+    width:22px;height:22px;padding:0;cursor:pointer;line-height:1;opacity:.55;border-radius:50%}
+  .goal.tracked .gtrack{opacity:1;text-shadow:0 0 10px var(--accent)}
   .gtrack.ghost{visibility:hidden}
   .goal.tracked .gtrack{color:var(--accent)}
   .goal.tracked .gtext{color:var(--accent)}
@@ -598,12 +595,12 @@
   .subtask{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
   .subtask .subchk,.subtask .subdel{margin-top:2px}
   .subtask:last-child{border-bottom:none}
-  .subchk{width:25px;height:25px;border-radius:6px;border:1.5px solid var(--line);flex:0 0 auto;cursor:pointer;
+  .subchk{width:23px;height:23px;border-radius:50%;border:1.5px solid var(--line);flex:0 0 auto;cursor:pointer;
     display:flex;align-items:center;justify-content:center;color:transparent;font-size:14px;transition:.18s}
   .subtask.done .subchk{background:var(--accent);border-color:var(--accent);color:var(--bg)}
   /* a real <input> now (was static text) — reset it to look like plain text until
      tapped, so editing an objective feels the same as editing the quest title */
-  .subtext{flex:1;min-width:0;font-size:14.5px;line-height:1.4;font-family:ui-monospace,'SF Mono','Courier New',monospace;word-break:break-word;
+  .subtext{flex:1;min-width:0;font-size:14.5px;line-height:1.4;font-family:inherit;word-break:break-word;
     background:none;border:none;outline:none;color:var(--txt);padding:4px 2px;border-radius:6px;transition:background .15s;
     resize:none;overflow:hidden}
   .subtext:focus{background:var(--panel2)}
@@ -707,6 +704,11 @@
   .cmdk-row span.cmdk-hint{ font-size:11px; color:var(--dim); flex:0 0 auto; }
   .cmdk-row.sel{ background:linear-gradient(90deg, rgba(59,130,246,.2), rgba(167,139,250,.08)); }
   .cmdk-empty{ padding:24px 12px; text-align:center; color:var(--dim); font-size:13px; }
+  .away-card{ max-width:380px; text-align:center; }
+  .away-ic{ font-size:34px; margin-bottom:4px; }
+  .away-card .sub{ margin:6px 0 18px; line-height:1.5; }
+  .away-actions{ display:flex; flex-direction:column; gap:8px; }
+  .away-actions button{ width:100%; padding:13px; font-weight:700; }
 
   /* appearance / theme picker */
   .swatches{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 4px}
@@ -734,6 +736,8 @@
     background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 16px;font-size:13.5px;
     opacity:0;transition:.3s;z-index:95;pointer-events:none;white-space:nowrap;max-width:88vw;overflow:hidden;text-overflow:ellipsis}
   #toast.show{opacity:1;transform:translateX(-50%)}
+  #toast .toast-undo{pointer-events:auto;margin-left:10px;padding:4px 10px;border-radius:8px;font-size:12.5px;
+    font-weight:800;background:var(--accent);border-color:transparent;color:#fff}
   .localnote{background:rgba(245,158,11,.09);border:1px solid rgba(245,158,11,.35);border-radius:12px;
     padding:10px 14px;font-size:12.5px;color:#fbd38d;margin-bottom:14px;display:none}
 
@@ -744,7 +748,7 @@
      ══════════════════════════════════════════════════════════════════════ */
   :root{ --hud-r:22px; --spring:cubic-bezier(.34,1.42,.64,1); --hud-blur:24px; }
   body{ --hud-line:rgba(var(--pip-rgb,255,255,255),.12); --hud-tint:rgba(var(--pip-rgb,255,255,255),.05);
-    --hud-glass:rgba(22,27,34,.58); }
+    --hud-glass:rgba(20,25,33,.72); }
 
   #wrap{ max-width:580px; padding-left:18px; padding-right:18px; }
   ::-webkit-scrollbar{ width:0; height:0 }
@@ -755,8 +759,8 @@
     padding:20px 18px 22px !important;
     margin-bottom:14px !important;
     background:linear-gradient(180deg, var(--hud-tint), transparent 62%), var(--hud-glass) !important;
-    backdrop-filter:blur(var(--hud-blur)) saturate(160%);
-    -webkit-backdrop-filter:blur(var(--hud-blur)) saturate(160%);
+
+
     border:1px solid var(--hud-line) !important;
     box-shadow:0 1px 0 rgba(var(--pip-rgb,255,255,255),.07) inset,
                0 26px 50px -38px #000,
@@ -809,14 +813,15 @@
   #wrap .wctl{ display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-top:12px; }
   #wrap .wctl button{ padding:11px 4px; font-size:11.5px; font-weight:800; border-radius:13px;
     letter-spacing:.04em; background:linear-gradient(180deg, rgba(255,255,255,.06), transparent 65%), var(--hud-glass);
-    backdrop-filter:blur(var(--hud-blur)); -webkit-backdrop-filter:blur(var(--hud-blur));
+
     border-color:var(--hud-line);
     box-shadow:inset 0 1px 0 rgba(255,255,255,.07), 0 6px 16px -12px #000; }
   #wrap .wctl button:disabled{ opacity:.3; pointer-events:none; }
 
   /* ---------- MOTION: panels assemble ---------- */
-  @keyframes hudIn{ from{opacity:0; transform:translateY(16px) scale(.985); filter:blur(3px)}
-                    to{opacity:1; transform:none; filter:blur(0)} }
+  /* no filter:blur in here any more — animating blur on every block of a panel
+     forces a full repaint of each one every frame of every tab switch */
+  @keyframes hudIn{ from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:none} }
   /* ---------- MOTION: the panel itself slides in, directionally ----------
      --slide-x is set in JS (showTab) just before the class toggle, from the
      NAV_TABS order of the tab you were on vs the one you're going to — moving
@@ -850,8 +855,8 @@
     position:relative; overflow:hidden;
     border:1px solid var(--hud-line) !important; border-radius:var(--hud-r);
     background:linear-gradient(180deg, var(--hud-tint), transparent 70%), var(--hud-glass);
-    backdrop-filter:blur(var(--hud-blur)) saturate(160%);
-    -webkit-backdrop-filter:blur(var(--hud-blur)) saturate(160%);
+
+
     padding:16px 16px !important; gap:12px;
     box-shadow:0 18px 36px -34px #000, inset 0 1px 0 rgba(var(--pip-rgb,255,255,255),.06);
     /* `translate` MUST stay in this list — it's what animates a neighbour sliding
@@ -1006,8 +1011,8 @@
     display:flex; flex-direction:column;   /* so .wq-add can pin while .wq-scroll scrolls */
     border-radius:13px; border:1px solid var(--hud-line);
     background:linear-gradient(180deg, var(--hud-tint), transparent 70%), var(--hud-glass);
-    backdrop-filter:blur(var(--hud-blur)) saturate(160%);
-    -webkit-backdrop-filter:blur(var(--hud-blur)) saturate(160%);
+
+
     transition:opacity .25s;
   }
   #wrap .wq-empty{
@@ -1059,8 +1064,8 @@
     flex:0 0 auto; margin-bottom:9px; padding:11px 16px 14px; cursor:pointer;
     border-radius:15px; border:1.5px solid transparent;
     background:linear-gradient(180deg, rgba(var(--pip-rgb,120,140,255),.16), transparent 75%), var(--hud-glass);
-    backdrop-filter:blur(var(--hud-blur)) saturate(160%);
-    -webkit-backdrop-filter:blur(var(--hud-blur)) saturate(160%);
+
+
     box-shadow:0 0 0 1px rgba(var(--pip-rgb,120,140,255),.12), 0 14px 34px -22px var(--accent);
     transition:transform .15s var(--ease);
   }
@@ -1157,6 +1162,115 @@
   #wrap .wfoot .wctl button#tsBreaksBtn.on b{ color:var(--green); }
   #wrap .wfoot .wctl button.danger b{ color:#fca5a5; opacity:.75; }
 
+
+  /* ══════════════════════════════════════════════════════════════════════
+     DESKTOP — 1024px and up (body.desk, set by applyLayout()).
+     The phone layout stretched across a Mac window was one 580px column in a
+     sea of empty space. Here the bottom bar becomes a real sidebar, the canvas
+     uses the width, Work splits into controls | missions, and Today gets a
+     live dashboard column. Everything below is scoped to body.desk, so the
+     phone is untouched.
+     ══════════════════════════════════════════════════════════════════════ */
+  .desk-only{ display:none !important; }
+  body.desk{ --sb-w:236px; }
+
+  /* sidebar */
+  body.desk #tabbar{
+    top:0; bottom:0; left:0; right:auto; width:var(--sb-w);
+    flex-direction:column; justify-content:flex-start; align-items:stretch;
+    padding:22px 14px 18px; border-top:none; border-right:1px solid var(--hud-line);
+    background:linear-gradient(180deg, rgba(17,21,29,.80), rgba(11,14,20,.88));
+    backdrop-filter:blur(26px) saturate(150%); -webkit-backdrop-filter:blur(26px) saturate(150%);
+  }
+  body.desk .sb-brand{ display:block !important; font-size:21px; font-weight:850; letter-spacing:.01em; padding:2px 14px 26px; }
+  body.desk .sb-brand span{ color:var(--accent); }
+  body.desk #tabbar .inner{ flex-direction:column; gap:3px; max-width:none; width:100%; flex:0 0 auto; }
+  body.desk .tab{
+    flex:0 0 auto; flex-direction:row; justify-content:flex-start; gap:13px;
+    padding:11px 14px; border-radius:12px; font-size:13.5px; font-weight:650; letter-spacing:.01em; text-transform:none;
+    color:var(--dim); transition:background .18s, color .18s, translate .22s var(--ease);
+  }
+  body.desk .tab .ic{ font-size:17px; width:22px; text-align:center; }
+  body.desk .tab .lbl{ font-size:13.5px; letter-spacing:.01em; text-transform:none; }
+  body.desk .tab .dotdone{ margin:0 0 0 auto; width:6px; height:6px; }
+  body.desk .tab.done .dotdone{ background:var(--green); box-shadow:0 0 8px var(--green); }
+  body.desk .tab:hover{ background:rgba(255,255,255,.045); color:var(--txt); }
+  body.desk .tab.on{ background:linear-gradient(90deg, rgba(255,255,255,.08), rgba(255,255,255,.03)); color:var(--txt); }
+  body.desk #tabbar .tab.on .ic{ transform:none; }
+  body.desk #tabGlow{ top:0; bottom:auto; left:0; width:3px; height:24px; border-radius:3px; }
+  body.desk .sb-cmd{
+    display:flex !important; align-items:center; justify-content:space-between; gap:8px; margin-top:auto;
+    padding:11px 14px; border-radius:12px; font-size:12.5px; font-weight:600; color:var(--dim);
+    background:rgba(255,255,255,.04); border:1px solid var(--hud-line);
+  }
+  body.desk .sb-cmd:hover{ color:var(--txt); background:rgba(255,255,255,.07); }
+  body.desk .sb-cmd kbd{ font:inherit; font-size:11px; padding:2px 7px; border-radius:6px; background:rgba(255,255,255,.08); }
+
+  /* canvas */
+  body.desk #wrap{ margin-left:var(--sb-w); max-width:none; padding:24px clamp(24px,3.2vw,52px) 40px; }
+  body.desk #wrap > *{ max-width:1320px; margin-left:auto; margin-right:auto; }
+  body.desk #wrap > header{ margin-bottom:18px; }
+  body.desk #wrap > header h1{ display:none; }
+  body.desk #wrap > header .date{ font-size:13px; color:var(--txt); font-weight:600; }
+  body.desk #wrap.work-fit{ padding-bottom:24px !important; }
+  body.desk #backBar{ left:calc(var(--sb-w) + 16px); }
+  body.desk #toast{ bottom:28px; left:calc(50% + var(--sb-w)/2); }
+
+  /* Today: stack | live dashboard */
+  body.desk #p-today.on{ display:grid; grid-template-columns:minmax(0,1fr) minmax(320px,400px); column-gap:26px; align-items:start; }
+  body.desk #p-today > :not(#todayAside){ grid-column:1; }
+  body.desk #todayAside{ display:flex !important; flex-direction:column; gap:14px; grid-column:2; grid-row:1 / span 3;
+    position:sticky; top:20px; }
+  .da-session{ padding:20px !important; }
+  .da-sess-top{ display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; color:var(--dim); }
+  .da-dot{ width:8px; height:8px; border-radius:50%; background:var(--dim); }
+  .da-dot.working, .da-dot.logging{ background:var(--green); box-shadow:0 0 10px var(--green); animation:daPulse 2s ease-in-out infinite; }
+  .da-dot.paused{ background:var(--amber); }
+  .da-dot.resting{ background:#38bdf8; }
+  @keyframes daPulse{ 50%{ opacity:.45 } }
+  .da-state{ color:var(--txt); }
+  .da-today{ margin-left:auto; font-variant-numeric:tabular-nums; }
+  .da-clock{ font-size:46px; font-weight:800; letter-spacing:-.03em; font-variant-numeric:tabular-nums; margin:10px 0 4px;
+    background:linear-gradient(135deg, var(--txt), var(--accent) 140%); -webkit-background-clip:text; background-clip:text;
+    color:transparent; -webkit-text-fill-color:transparent; }
+  .da-focus{ font-size:13px; font-weight:650; color:var(--accent); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .da-focus.dim{ color:var(--dim); font-weight:500; }
+  .da-btns{ display:flex; gap:8px; margin-top:16px; }
+  .da-btns button{ flex:1; padding:11px 8px; font-weight:750; font-size:13px; }
+  .da-btns button.danger{ flex:0 0 auto; }
+  .da-missions{ padding:18px 14px 12px !important; }
+  .da-head{ display:flex; align-items:center; justify-content:space-between; padding:0 6px 10px; }
+  .da-head h2{ margin:0 !important; }
+  .da-add input{ margin-bottom:6px; }
+  .da-row{ display:flex; align-items:center; gap:10px; padding:9px 6px; border-radius:12px; transition:background .15s; }
+  .da-row:hover{ background:rgba(255,255,255,.04); }
+  .da-row .da-text{ flex:1; min-width:0; font-size:14px; font-weight:550; cursor:pointer; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .da-row.tracked .da-text{ color:var(--accent); }
+  .da-row .gchk{ width:21px; height:21px; font-size:11px; padding:0; background:none; }
+  .da-row .gtrack{ padding:0; }
+  .da-row .gtrack{ opacity:0; transition:opacity .15s; }
+  .da-row:hover .gtrack, .da-row.tracked .gtrack{ opacity:1; }
+  .da-donecount{ font-size:12px; color:var(--green); padding:10px 6px 2px; font-weight:650; }
+  #daMissionList{ max-height:52vh; overflow-y:auto; }
+
+  /* Work: controls | missions */
+  body.desk #wrap #p-work.on{ display:grid; grid-template-columns:minmax(380px,460px) minmax(0,1fr);
+    grid-template-rows:auto auto auto auto 1fr; column-gap:24px; align-content:stretch; }
+  body.desk #p-work .wsliver{ grid-column:1; grid-row:1; }
+  body.desk #p-work .wfocus{ grid-column:1; grid-row:2; }
+  body.desk #p-work .wstage{ grid-column:1; grid-row:3; }
+  body.desk #p-work .wfoot{ grid-column:1; grid-row:4; }
+  body.desk #p-work .wquests{ grid-column:2; grid-row:1 / 6; margin-top:0; padding:14px 16px 10px; }
+  body.desk #p-work .wq-text{ font-size:14.5px; white-space:normal; }
+  body.desk #p-work .whidden{ display:none; }
+
+  /* Missions: a comfortable reading width, not a 1300px-wide list */
+  body.desk #p-goals{ max-width:900px; }
+  /* hubs become grids */
+  body.desk #healthHub, body.desk #p-track .hublist{ display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; }
+  /* everything else: wide, but not absurd */
+  body.desk #p-gym, body.desk #p-diet, body.desk #p-habits, body.desk #p-rap, body.desk #p-modules{ max-width:1080px; }
+  body.desk #moduleGrid{ grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); }
 </style>
 </head>
 <body>
@@ -1253,6 +1367,18 @@
         <div id="wallList"></div>
       </div>
     </div>
+    <!-- desktop only: a live dashboard column beside the Today stack — the session
+         and your open missions, usable right here without switching tabs -->
+    <aside class="desk-aside desk-only" id="todayAside">
+      <div class="card da-session" id="daSession"></div>
+      <div class="card da-missions">
+        <div class="da-head"><h2>Missions</h2><button class="sm ghost" onclick="showTab('goals')">All ›</button></div>
+        <div class="da-add"><input type="text" id="daNewMission" placeholder="New mission…" autocomplete="off"
+          onkeydown="if(event.key==='Enter'){ addMission(this.value); this.value=''; renderTodayAside(); renderToday(); }">
+        </div>
+        <div id="daMissionList"></div>
+      </div>
+    </aside>
 
   </section>
 
@@ -1588,7 +1714,7 @@
       <div class="goal-datenav">
         <button class="sm ghost" onclick="goalDateShift(-1)">‹</button>
         <div class="goal-date"><b id="goalDateLbl">Today</b><span class="sub" id="goalCount"></span></div>
-        <button class="sm ghost" onclick="goalDateShift(1)">›</button>
+        <button class="sm ghost" id="goalNextBtn" onclick="goalDateShift(1)">›</button>
         <button class="sm ghost" id="goalTodayBtn" onclick="goalDateToday()" style="display:none">Today</button>
       </div>
       <div class="sub" id="goalStreak" style="margin-top:6px"></div>
@@ -1690,7 +1816,7 @@
 <!-- goal detail — black-book page: title, priority, notes, mini-tasks -->
 <div class="scrim" id="goalScrim" onclick="if(event.target===this)closeGoalDetail()">
   <div class="modal">
-    <input type="text" id="gdTitle" placeholder="Mission title" style="font-size:17px;font-weight:600;font-family:ui-monospace,'SF Mono','Courier New',monospace">
+    <input type="text" id="gdTitle" placeholder="Mission title" style="font-size:17px;font-weight:650">
     <div class="lbl" style="margin-top:14px">Priority</div>
     <div class="prio-row" id="gdPriority"></div>
     <div class="lbl" style="margin-top:14px">Objectives</div>
@@ -1710,7 +1836,9 @@
 
 <!-- floating Prophit tab — live on every screen -->
 <!-- tab bar -->
-<nav id="tabbar"><div class="inner">
+<nav id="tabbar">
+  <div class="sb-brand desk-only">K<span>-OS</span></div>
+  <div class="inner">
   <i id="tabGlow" aria-hidden="true"></i>
   <button class="tab" data-tab="today"><span class="ic">☀️</span><span class="lbl">Today</span><span class="dotdone"></span></button>
   <button class="tab" data-tab="goals"><span class="ic">✅</span><span class="lbl">Missions</span><span class="dotdone"></span></button>
@@ -1718,7 +1846,9 @@
   <button class="tab" data-tab="rap"><span class="ic">🎤</span><span class="lbl">Studio</span><span class="dotdone"></span></button>
   <button class="tab" data-tab="health"><span class="ic">🏋️</span><span class="lbl">Health</span><span class="dotdone"></span></button>
   <button class="tab" data-tab="track"><span class="ic">📈</span><span class="lbl">Metrics</span><span class="dotdone"></span></button>
-</div></nav>
+</div>
+  <button class="sb-cmd desk-only" onclick="openCmdk()"><span>Search & commands</span><kbd>⌘K</kbd></button>
+</nav>
 
 <!-- command palette: ⌘K / Ctrl+K, or the search icon in the header. Jump
      anywhere or fire a common action without hunting through tabs. -->
@@ -1730,6 +1860,21 @@
       <kbd class="cmdk-esc">esc</kbd>
     </div>
     <div class="cmdk-list" id="cmdkList"></div>
+  </div>
+</div>
+
+<!-- away check: a session with no activity for 3h asks once, instead of
+     silently ending (or silently carrying on) -->
+<div class="scrim" id="awayScrim">
+  <div class="modal away-card">
+    <div class="away-ic">⏱</div>
+    <h2>Still working?</h2>
+    <div class="sub" id="awayBody"></div>
+    <div class="away-actions">
+      <button class="primary" onclick="awayKeepGoing()">Keep going</button>
+      <button onclick="awayEndAtLast()" id="awayEndAt">End it</button>
+      <button class="ghost" onclick="closeAway(); tsClockOut()">End now</button>
+    </div>
   </div>
 </div>
 
@@ -1963,7 +2108,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261018-175814';
+const KOS_BUILD='20261104-092711';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -1987,8 +2132,17 @@ const KOS_BUILD='20261018-175814';
   }
   document.addEventListener('visibilitychange',()=>{ if(!document.hidden) checkForUpdate(); });
   window.addEventListener('focus',checkForUpdate);
-  setTimeout(checkForUpdate,3000);            // and shortly after launch
-  setInterval(checkForUpdate,10*60*1000);     // plus a quiet 10-min heartbeat
+  setTimeout(checkForUpdate,1500);            // and right after launch
+  // a quiet heartbeat while you're looking at it (was 10 min, and never ran in the background anyway)
+  setInterval(()=>{ if(!document.hidden) checkForUpdate(); }, 2*60*1000);
+  /* The Android app almost never cold-starts — it RESUMES — and its WebView
+     doesn't reliably fire visibilitychange on resume. So the phone only ever
+     checked on a true relaunch, which is why it sat on old builds and felt like
+     it needed a reinstall. The native resume event (wired up in init) calls this. */
+  window.kosCheckUpdate = checkForUpdate;
+  // just landed on a new build — say so once, and tidy the ?v= off the address
+  const v=new URLSearchParams(location.search).get('v');
+  if(v){ history.replaceState(null,'',location.pathname); if(v===KOS_BUILD) setTimeout(()=>toast('✨ K-OS updated'), 900); }
 })();
 /* ================= utils ================= */
 const $ = s => document.querySelector(s);
@@ -2001,6 +2155,14 @@ const monthKey = (d=new Date()) => d.getFullYear()+'-'+pad(d.getMonth()+1);
 const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show');
   clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2200); }
+/* a toast with an Undo — for destructive taps (delete) that shouldn't need a confirm dialog */
+function toastUndo(msg, undo){
+  const t=$('#toast'); t.innerHTML=''; t.append(msg+' ');
+  const b=document.createElement('button'); b.className='toast-undo'; b.textContent='Undo';
+  b.onclick=()=>{ t.classList.remove('show'); undo(); };
+  t.appendChild(b); t.classList.add('show');
+  clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),5000);
+}
 
 /* ================= audio + haptics ================= */
 let audio=null;
@@ -2143,9 +2305,41 @@ function apiCall(action, payload){
 function jload(k,d){ try{ return JSON.parse(localStorage.getItem('kyos_'+k)) ?? d; }catch(e){ return d; } }
 function jsave(k,v){ localStorage.setItem('kyos_'+k, JSON.stringify(v)); }
 let KVD = jload('kv',{}), dirty = jload('dirty',{}), lastPull = jload('lastPull',0);
-function persist(){ jsave('kv',KVD); jsave('dirty',dirty); jsave('lastPull',lastPull); }
+let lastRev = jload('lastRev',0);          // server-side cursor (proto 2 backend)
+let serverProto2 = jload('serverProto2',false);
+// server clock minus this device's clock, in ms — every edit is stamped in
+// SERVER time, so a phone whose clock runs a minute fast can't make its stale
+// copy beat a newer edit from the Mac
+let clockSkew = jload('clockSkew',0);
+function nowTs(){ return Date.now()+clockSkew; }
+// bumps on every local or remote change — a free cache key for derived lists
+let kvRev = 0;
+// true once this page has pulled from the server at least once. Anything that
+// WRITES derived data (migrations, auto-flow, habit seeding) waits for this,
+// so a device that just woke up can't write from its stale copy before it has
+// even heard what the other device did
+let syncedOnce = !hasSrv;
+/* the whole store was being re-serialised to localStorage on EVERY single
+   write — several times per tap. Batched now, and flushed the moment the page
+   is hidden or closed so nothing is ever lost. */
+let persistTimer=null;
+function persistNow(){ clearTimeout(persistTimer); persistTimer=null;
+  jsave('kv',KVD); jsave('dirty',dirty); jsave('lastPull',lastPull); jsave('lastRev',lastRev);
+  jsave('clockSkew',clockSkew); jsave('serverProto2',serverProto2); }
+function persist(){ if(!persistTimer) persistTimer=setTimeout(persistNow, 300); }
+addEventListener('pagehide', persistNow);
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') persistNow(); });
 function kget(k,def){ const e=KVD[k]; if(!e) return def; try{ return JSON.parse(e.v); }catch(x){ return def; } }
-function kset(k,val){ KVD[k]={v:JSON.stringify(val),t:Date.now()}; dirty[k]=1; persist(); queueSync(400); }
+/* A write that doesn't change anything is skipped entirely. Renders used to
+   re-save identical values constantly — each one a fresh timestamp, so a
+   device just REDRAWING its stale copy could out-rank a real edit from the
+   other device. */
+function kset(k,val){
+  const v=JSON.stringify(val), cur=KVD[k];
+  if(cur && cur.v===v) return;
+  KVD[k]={v, t:Math.max(nowTs(), cur ? cur.t+1 : 0)};
+  dirty[k]=1; kvRev++; persist(); queueSync(400);
+}
 function kkeys(prefix){ return Object.keys(KVD).filter(k=>k.indexOf(prefix)===0); }
 
 let syncTimer=null, syncing=false, syncWatchdog=null, syncStartedAt=0;
@@ -2163,25 +2357,62 @@ function doSync(manual){
   clearTimeout(syncWatchdog);
   syncWatchdog=setTimeout(()=>{ syncing=false; setSyncUI('err'); }, 12000);
   const keys=Object.keys(dirty);
-  const sentT={}; keys.forEach(k=>sentT[k]=KVD[k]?KVD[k].t:0);
-  const items=keys.filter(k=>KVD[k]).map(k=>({k:k, v:KVD[k].v, t:KVD[k].t}));
-  apiCall('sync', {items, since:lastPull})
+  const sentT={};
+  const items=keys.filter(k=>KVD[k]).map(k=>{
+    /* Legacy backend only hands each device the rows stamped AFTER its last pull,
+       so an edit made while this device was offline/asleep (stamped back then)
+       would never reach the other device. Until the backend is on proto 2,
+       restamp anything still unsent that's older than our pull cursor. */
+    if(!serverProto2 && KVD[k].t < lastPull) KVD[k].t = nowTs();
+    sentT[k]=KVD[k].t;
+    return {k:k, v:KVD[k].v, t:KVD[k].t};
+  });
+  const t0=Date.now();
+  apiCall('sync', {items, since: serverProto2 ? lastRev : lastPull, proto:2})
     .then(res=>{
       clearTimeout(syncWatchdog);
       if(!res || res.ok===false) throw new Error((res&&res.error)||'sync failed');
+      const t1=Date.now();
+      // server time ≈ midpoint of the round trip; smoothed so one slow request can't jolt it
+      if(res.now){ const est=res.now-(t0+t1)/2;
+        clockSkew = syncedOnce||clockSkew ? Math.round(clockSkew*0.7+est*0.3) : Math.round(est); }
       keys.forEach(k=>{ if(!KVD[k] || KVD[k].t===sentT[k]) delete dirty[k]; });
-      let changed=false;
+      const changedKeys=[];
       (res.items||[]).forEach(it=>{ const loc=KVD[it.k];
-        if(!loc || it.t>loc.t){ KVD[it.k]={v:it.v,t:it.t}; delete dirty[it.k]; changed=true; } });
-      lastPull=Math.max(lastPull, res.now-3000); persist();
-      syncing=false; setSyncUI('ok');
-      if(changed){ loadSettingsCache(); renderAll(); }
+        if(!loc || it.t>loc.t){ KVD[it.k]={v:it.v,t:it.t}; delete dirty[it.k]; changedKeys.push(it.k); } });
+      if(res.proto===2){ serverProto2=true; lastRev=Math.max(lastRev, res.rev||0); }
+      lastPull=Math.max(lastPull, res.now-3000);
+      if(changedKeys.length) kvRev++;
+      persist();
+      syncing=false; setSyncUI('ok'); lastSyncOkAt=Date.now();
+      const first=!syncedOnce; syncedOnce=true;
+      if(changedKeys.length || first) onRemoteChange(changedKeys, first);
       if(manual) toast('Synced ✓');
     })
     .catch(()=>{ clearTimeout(syncWatchdog); syncing=false; setSyncUI('err'); });
 }
+/* what to do when the other device changed something (or on the very first
+   pull of this page): adopt a work session started/paused elsewhere, run the
+   derived-data writers that were held back until now, and redraw — batched
+   into one frame rather than once per sync callback */
+function onRemoteChange(keys, first){
+  if(first || keys.includes('settings')) loadSettingsCache();
+  if(first || keys.includes('ts:live')) tsAdoptRemote();
+  // first run on the shared-session build: hand this device's running session to the other one
+  if(first && !kget('ts:live',null) && ts.mode!=='idle') kset('ts:live', tsDoc());
+  if(first) migrateMissionsV2();
+  scheduleRender();
+}
+let renderQueued=false;
+function scheduleRender(){ if(renderQueued) return; renderQueued=true;
+  requestAnimationFrame(()=>{ renderQueued=false; renderAll(); }); }
 setInterval(()=>{ if(document.visibilityState==='visible' && hasSrv) doSync(false); }, 5000);
-document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'){ checkStaleSession(); doSync(false); renderAll(); } });
+/* coming back to the app: redraw from timestamps FIRST (so nothing shows a
+   stale frozen number), then pull — never write anything derived until that
+   pull has landed */
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'){
+  if(typeof renderWorkTick==='function') renderWorkTick();
+  tsAwayCheck(); doSync(false); scheduleRender(); } });
 window.addEventListener('focus',()=>{ if(hasSrv) doSync(false); });
 window.addEventListener('pageshow',()=>{ if(hasSrv) doSync(false); });
 
@@ -2321,7 +2552,7 @@ function openSettings(){
   $('#setTank').value=SET.tankMl;
   $('#setRapMin').value=SET.rapGoal; $('#setUnit').value=SET.unit;
   $('#setDayA').value=SET.dayAName; $('#setDayB').value=SET.dayBName;
-  renderThemeUI();
+  renderThemeUI(); renderAlarm(); renderWork();   // the modal holds the alarm + work-schedule controls
   setSyncUI(hasSrv?'ok':null);
   $('#setScrim').classList.add('show');
 }
@@ -2723,15 +2954,16 @@ function tabLift(el,e){
   try{ el.setPointerCapture(e.pointerId); }catch(_){}
   el.classList.add('lifted'); buzz(28); beep([[660,.05]]); // same lift cue as the Today cards
   const box=$('#tabbar .inner'), rect=box.getBoundingClientRect();
-  const order=tabOrder(), n=order.length, slot=rect.width/n;
-  tabDrag={el, id:el.dataset.tab, startX:e.clientX, order, slot, origin:order.indexOf(el.dataset.tab), current:order.indexOf(el.dataset.tab)};
+  const vert=isDesk();   // the sidebar reorders up/down, the phone bar left/right
+  const order=tabOrder(), n=order.length, slot=(vert?rect.height:rect.width)/n;
+  tabDrag={el, id:el.dataset.tab, startX:vert?e.clientY:e.clientX, vert, order, slot, origin:order.indexOf(el.dataset.tab), current:order.indexOf(el.dataset.tab)};
 }
 function tabDragMove(e){
   if(!tabDrag) return;
-  const dx=e.clientX-tabDrag.startX;
+  const dx=(tabDrag.vert?e.clientY:e.clientX)-tabDrag.startX;
   // independent `translate` property — scale/rotate come from .tab.lifted + its
   // jiggle keyframes, so writing the shorthand here would wipe both out
-  tabDrag.el.style.translate=dx+'px -3px';
+  tabDrag.el.style.translate = tabDrag.vert ? '4px '+dx+'px' : dx+'px -3px';
   const {order, slot, origin}=tabDrag;
   let cur=Math.round(origin + dx/slot);
   cur=Math.max(0, Math.min(order.length-1, cur));
@@ -2743,7 +2975,7 @@ function tabDragMove(e){
       let shift=0;
       if(cur<=j && j<origin) shift=1;        // dragged tab moved left past this one → it slides right, opening a gap on the left
       else if(origin<j && j<=cur) shift=-1;  // dragged tab moved right past this one → it slides left
-      sib.style.translate = shift ? (shift*slot)+'px' : '';
+      sib.style.translate = shift ? (tabDrag.vert ? '0 '+(shift*slot)+'px' : (shift*slot)+'px') : '';
     });
   }
 }
@@ -2913,7 +3145,9 @@ async function cancelNativeAlarm(){
 // tapping the notification opens the app — jump straight to the mission, regardless
 // of how long ago the alarm fired (checkAlarm()'s 2-min window is for foreground-only)
 if(NATIVE && LN()){
-  LN().addListener('localNotificationActionPerformed', ()=>{
+  LN().addListener('localNotificationActionPerformed', (ev)=>{
+    const nid = ev && ev.notification && ev.notification.id;
+    if(nid===TS_NOTIF_LOG || nid===TS_NOTIF_BREAK){ showTab('work'); return; }   // work reminders → straight to Work
     kset('mission:alarmFired:'+todayKey(), true);
     const m=getMission();
     if(m.enabled && m.types.length) openMission(); else openSettings();
@@ -2929,36 +3163,46 @@ if(NATIVE && LN()){
    elapsed time shown, with paused stretches excluded (shifted forward on resume) —
    mirrors how tsToggle() already excludes pause time from the next-log countdown. */
 function WT(){ return window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.WorkTimer; }
-let wtDisplayBase=0, wtFrozenElapsed=0;
-function wtStart(){
-  if(!NATIVE || !WT()) return;
-  wtDisplayBase = ts.sessionStart || Date.now();
-  WT().start({ label:'K-OS — Working', sessionStart: wtDisplayBase }).catch(()=>{});
-}
-function wtPause(){
-  if(!NATIVE || !WT()) return;
-  wtFrozenElapsed = Math.max(0, Date.now()-wtDisplayBase);
-  WT().update({ label:'K-OS — Paused', state:'paused', pausedElapsedMs: wtFrozenElapsed }).catch(()=>{});
-}
-function wtResume(){
-  if(!NATIVE || !WT()) return;
-  wtDisplayBase = Date.now()-wtFrozenElapsed;
-  WT().update({ label:'K-OS — Working', state:'working', sessionStart: wtDisplayBase }).catch(()=>{});
-}
-function wtStop(){
-  if(!NATIVE || !WT()) return;
-  WT().stop().catch(()=>{});
-}
-// re-arm the persistent notification to match whatever state we're actually in —
-// covers relaunching the app while a session was already running/paused. (Best
-// effort for the paused case: we don't persist a separate "elapsed excluding past
-// pauses" figure, so this shows time-since-session-start, which is exact except
-// across a relaunch that lands mid-pause — a rare, cosmetic-only edge case.)
+/* The notification's chronometer counts on its own in the OS, from a base
+   instant such that (now - base) = active time. That base is derived straight
+   from the session's own pause total, so it's exact across relaunches, pauses
+   and the other device starting/pausing — there's no separate copy to drift. */
 function wtSync(){
   if(!NATIVE || !WT()) return;
-  if(ts.mode==='working'){ wtStart(); }
-  else if(ts.mode==='paused'){ wtDisplayBase = ts.sessionStart||Date.now(); wtPause(); }
-  else wtStop();
+  const mission=(typeof getFocusQuest==='function' && getFocusQuest()) ? getFocusQuest().text : '';
+  if(ts.mode==='idle'){ WT().stop().catch(()=>{}); return; }
+  if(ts.mode==='paused'){
+    WT().update({ label:'K-OS — Paused'+(mission?' · '+mission:''), state:'paused', pausedElapsedMs: sessionActiveMs() }).catch(()=>{});
+    return;
+  }
+  // working / logging / resting: running clock (device time — that's what the OS ticks against)
+  const base = Date.now()-sessionActiveMs();
+  WT().start({ label:'K-OS — Working'+(mission?' · '+mission:''), sessionStart: base }).catch(()=>{});
+}
+
+/* ---- background reminders ----
+   With the app closed or the phone locked, JS doesn't run — so nothing could
+   ever prompt you to log or take a break, and it all piled up for the moment
+   you reopened. The OS holds these instead: the next log and next break are
+   scheduled as real notifications whenever the session changes, and cancelled
+   the moment they're no longer true. */
+const TS_NOTIF_LOG=7101, TS_NOTIF_BREAK=7102;
+async function tsScheduleNotifs(){
+  if(!NATIVE || !LN()) return;
+  try{ await LN().cancel({ notifications:[{id:TS_NOTIF_LOG},{id:TS_NOTIF_BREAK}] }); }catch(e){}
+  if(ts.mode!=='working' && ts.mode!=='resting') return;
+  const local=t=>new Date(t-clockSkew);   // server-time instant → this device's clock
+  const out=[];
+  if(SET.logOn && ts.nextLogAt > nowTs()+5000)
+    out.push({ id:TS_NOTIF_LOG, title:'⏱ Time to log', body:'What did you do since '+clock(ts.blockStart)+'?',
+      channelId:'kos-alarm', schedule:{ at: local(ts.nextLogAt), allowWhileIdle:true } });
+  if(SET.restOn){
+    const nb=[ts.miniNextAt, ts.bigNextAt].filter(t=>t && t>nowTs()+5000).sort((a,b)=>a-b)[0];
+    if(nb) out.push({ id:TS_NOTIF_BREAK, title: nb===ts.bigNextAt ? '🛋 Big break' : '☕ Quick reset',
+      body: nb===ts.bigNextAt ? 'Step away for '+SET.bigLen+' minutes.' : 'Stand up, look away, breathe.',
+      channelId:'kos-alarm', schedule:{ at: local(nb), allowWhileIdle:true } });
+  }
+  if(out.length){ try{ await LN().schedule({ notifications: out }); }catch(e){} }
 }
 // notification buttons fire this — bring the app's own state and the OS's in sync
 if(NATIVE && WT()){
@@ -3171,51 +3415,82 @@ function renderToday(){
 }
 
 /* ================= WORK · time study ================= */
-let ts = jload('tsrun', {mode:'idle', nextLogAt:0, blockStart:0, sessionStart:0});
-/* ts persists in localStorage, so it survives a full app close, the computer
-   sleeping, or just forgetting the tab existed for hours — and on its own the
-   app has no way to tell "closed" from "still open". lastAlive is a heartbeat
-   written every second this page is actually ticking (see the 1s loop below);
-   the gap between it and now is a real measure of how long nobody was here,
-   immune to the system clock jumping around sleep/wake. Without this check,
-   reopening after a long gap just silently resumed 'working' with the SAME old
-   blockStart/sessionStart and a fresh 15-min log timer — which is exactly "the
-   app forgets I closed it, thinks we're still working", and why the eventual
-   log prompt showed an absurd overnight-length "block". Runs at load AND on
-   visibilitychange (see below) — a tab left backgrounded for hours without a
-   full reload needs the same check, not just a cold start. */
-const STALE_SESSION_MS = 45*60000;   // longer than a big break, short enough to catch "closed overnight"
-function checkStaleSession(){
-  if(ts.mode==='idle') return;
-  const last = ts.lastAlive || ts.blockStart || ts.sessionStart || 0;
-  const gap = Date.now() - last;
-  if(gap >= STALE_SESSION_MS){
-    if(ts.sessionStart && last>ts.sessionStart){
-      const dayKey='ts:sessions:'+todayKey(new Date(ts.sessionStart));   // the day it STARTED, not today — a gap can cross midnight
-      const sessions=kget(dayKey,[]);
-      sessions.push({start:ts.sessionStart, end:last, committedHours:ts.committedHours||6,
-        workedMin:Math.max(0,Math.round((last-ts.sessionStart)/60000)), autoClosed:true});
-      kset(dayKey, sessions);
-    }
-    ts={mode:'idle', nextLogAt:0, blockStart:0, sessionStart:0};
-    tsSave();
-    const hrs=gap/3600000;
-    setTimeout(()=>toast('⏱ Session auto-ended — you were away '+(hrs>=1?hrs.toFixed(1)+'h':Math.round(gap/60000)+'m')), 800);
-    return;
-  }
-  /* transient overlay states (logging/resting) must never survive a reload — if
-     a log popup or break got orphaned (tab closed, window shut mid-log) within
-     the NOT-stale window, the app was left frozen in that mode and Clock
-     in/Pause did nothing. Recover to a usable state. */
-  if(ts.mode==='logging' || ts.mode==='resting'){
-    ts.mode='working';
-    ts.nextLogAt = Date.now() + ((typeof SET!=='undefined' && SET.tsInt) ? SET.tsInt : 15)*60000;
-    ts.blockStart = ts.blockStart || Date.now();
-    tsSave();
-  }
+/* ONE session, shared by every device. It lives in the synced store (ts:live)
+   and is nothing but timestamps: elapsed time is always computed from
+   sessionStart and the pause total at the instant it's drawn, never counted up
+   by a loop. So a phone in your pocket or a Mac window buried behind other apps
+   can't "fall behind" — the very first frame after you come back is already
+   right — and the Mac and the phone show the same session, not two separate
+   timers. All instants are server time (nowTs()) so the devices agree.
+   logging/resting are local overlays on a working session; they're never what
+   gets synced (see tsDoc), so a break or log prompt on one device can't wedge
+   the other. */
+const TS_IDLE={mode:'idle', nextLogAt:0, blockStart:0, sessionStart:0};
+let ts = kget('ts:live', null) || jload('tsrun', TS_IDLE);
+if(ts.mode==='logging') ts.mode='working';
+if(ts.mode==='resting') ts.mode = ts.wasWorking===false ? 'idle' : 'working';
+if(ts.mode==='idle') ts=Object.assign({}, TS_IDLE);
+function tsDoc(){
+  const d=Object.assign({}, ts);
+  if(d.mode==='logging') d.mode='working';
+  if(d.mode==='resting') d.mode = d.wasWorking===false ? 'idle' : 'working';
+  delete d.lastAlive;
+  return d.mode==='idle' ? Object.assign({}, TS_IDLE, {touchedAt:d.touchedAt}) : d;
 }
-checkStaleSession();
-function tsSave(){ jsave('tsrun',ts); }
+// a real change you made (start, pause, log, break, end) — synced, and it's what
+// "last activity" means for the away check
+function tsSave(){ ts.touchedAt=nowTs(); jsave('tsrun',ts); kset('ts:live', tsDoc()); }
+// a local-only overlay change (log prompt opened) — nothing for the other device
+function tsSaveLocal(){ jsave('tsrun',ts); }
+
+function sessionActiveMs(at){
+  if(ts.mode==='idle' || !ts.sessionStart) return 0;
+  at = at || nowTs();
+  let paused = ts.pausedTotal||0;
+  if(ts.mode==='paused' && ts.pausedAt) paused += Math.max(0, at-ts.pausedAt);
+  return Math.max(0, at-ts.sessionStart-paused);
+}
+/* the other device started / paused / logged / ended — take its version, and
+   close any overlay here that its change made moot (it already logged this
+   block, or the session is over) */
+function tsAdoptRemote(){
+  const doc=kget('ts:live', null); if(!doc) return;
+  const overlay = ts.mode==='logging' || ts.mode==='resting';
+  if(overlay && doc.mode==='working' && doc.sessionStart===ts.sessionStart && doc.blockStart===ts.blockStart) return;
+  if(ts.mode==='logging'){ clearTimeout(logAutoSkipTimer); $('#tsScrim').classList.remove('show'); hidePipLog(); }
+  if(ts.mode==='resting' && doc.mode!=='working'){ clearInterval(restTicker); $('#breakFloat').classList.remove('show'); }
+  const keepRest = ts.mode==='resting' && doc.mode==='working' && doc.sessionStart===ts.sessionStart;
+  const restBits = keepRest ? {mode:'resting', restKind:ts.restKind, restEndAt:ts.restEndAt, wasWorking:true} : {};
+  ts = Object.assign({}, doc.mode==='idle' ? TS_IDLE : doc, restBits);
+  jsave('tsrun', ts);
+  wtSync(); tsScheduleNotifs();
+  tsAwayCheck();
+}
+
+/* ---- away check ----
+   Replaces the old silent auto-end, which ended your session any time the app
+   simply wasn't on screen for 45 minutes — i.e. every time your phone sat in
+   your pocket while you worked. Now nothing ends on its own. If a session has
+   had no activity from you for 3 hours, you're asked once, with the honest
+   options: keep it, or end it at the moment you actually stopped. */
+const AWAY_MS = 3*3600000;
+let awayOpen=false;
+function tsLastActivity(){ return ts.touchedAt || ts.blockStart || ts.sessionStart || 0; }
+function tsAwayCheck(){
+  if(ts.mode!=='working' && ts.mode!=='paused'){ closeAway(); return; }
+  const last=tsLastActivity(), gap=nowTs()-last;
+  if(gap<AWAY_MS){ closeAway(); return; }
+  awayOpen=true;
+  const hrs=gap/3600000;
+  $('#awayBody').textContent = 'Session running since '+clock(ts.sessionStart)+'. Your last activity was '+
+    clock(last)+' — '+(hrs>=1 ? hrs.toFixed(1)+'h' : Math.round(gap/60000)+'m')+' ago.';
+  $('#awayEndAt').textContent = 'End it at '+clock(last);
+  $('#awayScrim').classList.add('show');
+}
+function closeAway(){ awayOpen=false; const s=$('#awayScrim'); if(s) s.classList.remove('show'); }
+function awayKeepGoing(){ closeAway(); tsSave(); renderWork(); }
+function awayEndAtLast(){ closeAway(); tsClockOut(tsLastActivity()); }
+
 function getTsEntries(){ return kget('ts:entries:'+todayKey(),[]); }
 function tsDayInfo(key){ return kget('ts:day:'+(key||todayKey()),{started:false, firstStart:0}); }
 
@@ -3272,8 +3547,18 @@ function sessionEntries(){
   if(ts.mode==='idle' || !ts.sessionStart) return all;
   return all.filter(x=>x.s>=ts.sessionStart);
 }
-function sessionWorkedMin(){ return sessionEntries().reduce((a,x)=>a+Math.max(0,Math.round((x.e-x.s)/60000)),0); }
-function todayWorkedMin(){ return getTsEntries().reduce((a,x)=>a+Math.max(0,Math.round((x.e-x.s)/60000)),0); }
+// logged blocks only — what the spreadsheet holds
+function sessionLoggedMin(){ return sessionEntries().reduce((a,x)=>a+Math.max(0,Math.round((x.e-x.s)/60000)),0); }
+/* Progress used to be "minutes of LOGGED blocks", so the bar sat at 0.0 for the
+   whole first block, froze whenever a log got skipped or the phone was asleep,
+   and then leapt when a block finally got written. It's real elapsed working
+   time now (pauses excluded), so it simply counts. */
+function sessionWorkedMin(){ return Math.floor(sessionActiveMs()/60000); }
+function todayWorkedMin(){
+  const done=getTodaySessions().reduce((a,s)=>a+(s.activeMin!=null ? s.activeMin : (s.workedMin||0)),0);
+  const liveToday = ts.mode!=='idle' && ts.sessionStart && todayKey(new Date(ts.sessionStart))===todayKey();
+  return done + (liveToday ? sessionWorkedMin() : 0);
+}
 
 /* ---- generic slider fill (filled-track look on plain input[type=range]) ---- */
 function styleSlider(el){ if(!el) return; const min=+el.min||0, max=+el.max||100, val=+el.value;
@@ -3281,51 +3566,50 @@ function styleSlider(el){ if(!el) return; const min=+el.min||0, max=+el.max||100
   el.style.background='linear-gradient(90deg,var(--accent) '+pct+'%,var(--panel2) '+pct+'%)'; }
 
 function tsToggle(){
+  const now=nowTs();
   if(ts.mode==='idle'){
-    ts.mode='working'; ts.sessionStart=Date.now(); ts.blockStart=Date.now();
-    ts.committedHours=getSessionTarget();
-    ts.nextLogAt=Date.now()+SET.tsInt*60000;
-    ts.miniNextAt=Date.now()+SET.miniEvery*60000;
-    ts.bigNextAt=Date.now()+SET.bigEvery*60000;
+    ts={mode:'working', sessionStart:now, blockStart:now, pausedTotal:0, pausedAt:0,
+      committedHours:getSessionTarget(),
+      nextLogAt:now+SET.tsInt*60000, miniNextAt:now+SET.miniEvery*60000, bigNextAt:now+SET.bigEvery*60000};
     beep([[880,.05]]);
     const st=tsDayInfo();
-    if(!st.started){ st.started=true; st.firstStart=Date.now(); kset('ts:day:'+todayKey(),st); }
-    else if(!st.firstStart){ st.firstStart=tsEffectiveDayStart(todayKey())||Date.now(); kset('ts:day:'+todayKey(),st); }
+    if(!st.started){ st.started=true; st.firstStart=now; kset('ts:day:'+todayKey(),st); }
+    else if(!st.firstStart){ st.firstStart=tsEffectiveDayStart(todayKey())||now; kset('ts:day:'+todayKey(),st); }
     try{ if('Notification' in window && Notification.permission==='default') Notification.requestPermission(); }catch(e){}
-    wtStart();
-  } else if(ts.mode==='working'){ ts.mode='paused'; ts.pausedLeft=ts.nextLogAt-Date.now();
-    ts.miniPausedLeft=(ts.miniNextAt||0)-Date.now(); ts.bigPausedLeft=(ts.bigNextAt||0)-Date.now();
-    wtPause();
-  }
-  else if(ts.mode==='paused'){ ts.mode='working'; ts.nextLogAt=Date.now()+Math.max(1000,ts.pausedLeft||0);
-    if(ts.miniPausedLeft) ts.miniNextAt=Date.now()+Math.max(1000,ts.miniPausedLeft);
-    if(ts.bigPausedLeft) ts.bigNextAt=Date.now()+Math.max(1000,ts.bigPausedLeft);
-    wtResume();
-  }
-  else { // stuck in a transient state (logging/resting) — recover so the button always works
+  } else if(ts.mode==='working'){
+    ts.mode='paused'; ts.pausedAt=now; ts.pausedLeft=ts.nextLogAt-now;
+    ts.miniPausedLeft=(ts.miniNextAt||0)-now; ts.bigPausedLeft=(ts.bigNextAt||0)-now;
+  } else if(ts.mode==='paused'){
+    ts.pausedTotal=(ts.pausedTotal||0)+Math.max(0, now-(ts.pausedAt||now)); ts.pausedAt=0;
+    ts.mode='working'; ts.nextLogAt=now+Math.max(1000,ts.pausedLeft||0);
+    if(ts.miniPausedLeft) ts.miniNextAt=now+Math.max(1000,ts.miniPausedLeft);
+    if(ts.bigPausedLeft) ts.bigNextAt=now+Math.max(1000,ts.bigPausedLeft);
+  } else { // stuck in a transient state (logging/resting) — recover so the button always works
     clearTimeout(logAutoSkipTimer);   // manual recovery — the 2-min self-heal must not also fire later
-    $('#tsScrim').classList.remove('show'); $('#breakFloat').classList.remove('show');
-    ts.mode='working'; ts.blockStart=ts.blockStart||Date.now(); ts.nextLogAt=Date.now()+SET.tsInt*60000;
-    wtStart();
+    $('#tsScrim').classList.remove('show'); $('#breakFloat').classList.remove('show'); hidePipLog();
+    ts.mode='working'; ts.blockStart=ts.blockStart||now; ts.nextLogAt=now+SET.tsInt*60000;
   }
-  tsSave(); renderWork();
+  tsSave(); wtSync(); tsScheduleNotifs(); renderWork();
 }
-function tsClockOut(){
+/* endAt: when the session actually ended — now for a normal clock-out, or the
+   moment of your last activity when ending from the away check */
+function tsClockOut(endAt){
   if(ts.mode==='idle') return;
   clearTimeout(logAutoSkipTimer);   // session is OVER — a late self-heal firing must not resurrect it
-  const workedMin=sessionWorkedMin();
-  const sessions=getTodaySessions();
-  sessions.push({start:ts.sessionStart, end:Date.now(), committedHours:ts.committedHours||6, workedMin});
-  kset('ts:sessions:'+todayKey(), sessions);
-  const hitTarget = (ts.committedHours>0) && (workedMin/60 >= ts.committedHours);
+  const end = typeof endAt==='number' ? endAt : nowTs();
+  const activeMin=Math.floor(sessionActiveMs(end)/60000), loggedMin=sessionLoggedMin();
+  const dayKey='ts:sessions:'+todayKey(new Date(ts.sessionStart||end));   // the day it STARTED — can cross midnight
+  const sessions=kget(dayKey, []);
+  sessions.push({start:ts.sessionStart, end, committedHours:ts.committedHours||6, workedMin:loggedMin, activeMin});
+  kset(dayKey, sessions);
+  const hitTarget = (ts.committedHours>0) && (activeMin/60 >= ts.committedHours);
   chimeDone(); buzz([30,60,30,60,80]);
   addXP(hitTarget?20:10, hitTarget?'session target hit':'session logged');
   confettiBurst(innerWidth/2, innerHeight*.3, hitTarget?90:45);
-  toast('🏁 Session done — '+(workedMin>=60?(workedMin/60).toFixed(1)+'h':workedMin+'m')+' logged'+(hitTarget?' · target hit! 🎯':''));
-  clearInterval(restTicker);
-  ts={mode:'idle', nextLogAt:0, blockStart:0, sessionStart:0};
-  tsSave();
-  wtStop();
+  toast('🏁 Session done — '+(activeMin>=60?(activeMin/60).toFixed(1)+'h':activeMin+'m')+(hitTarget?' · target hit! 🎯':''));
+  clearInterval(restTicker); $('#breakFloat').classList.remove('show'); $('#tsScrim').classList.remove('show'); hidePipLog();
+  ts=Object.assign({}, TS_IDLE);
+  tsSave(); wtSync(); tsScheduleNotifs();
   autoFlow(); renderWork(); renderToday();
 }
 
@@ -3337,9 +3621,9 @@ function tsResetSession(){
   if(!confirm('Reset this session? The clock restarts from zero — anything already logged stays saved.')) return;
   clearTimeout(logAutoSkipTimer);   // same reason as tsClockOut — nothing pending should outlive the reset
   clearInterval(restTicker);
-  $('#breakFloat').classList.remove('show');
-  ts={mode:'idle', nextLogAt:0, blockStart:0, sessionStart:0};
-  tsSave();
+  $('#breakFloat').classList.remove('show'); $('#tsScrim').classList.remove('show'); hidePipLog();
+  ts=Object.assign({}, TS_IDLE);
+  tsSave(); wtSync(); tsScheduleNotifs();
   toast('↺ Session reset');
   renderWork();
 }
@@ -3348,10 +3632,10 @@ function tsResetSession(){
 /* format a minutes value as 30 sec / 15 min / 2.0 hr for slider labels */
 function fmtEvery(mins){ return mins<1 ? Math.round(mins*60)+' sec' : mins<60 ? (Number.isInteger(mins)?mins:mins.toFixed(1))+' min' : (mins/60).toFixed(1)+' hr'; }
 function setTsInt(min){ SET.tsInt=parseFloat(min)||15; kset('settings',SET);
-  if(ts.mode==='working') ts.nextLogAt=Date.now()+SET.tsInt*60000, tsSave();
+  if(ts.mode==='working') ts.nextLogAt=nowTs()+SET.tsInt*60000, tsSave();
   renderWork(); }
 function toggleLogEnabled(on){ SET.logOn=!!on; kset('settings',SET);
-  if(on && ts.mode==='working') ts.nextLogAt=Date.now()+SET.tsInt*60000, tsSave();
+  if(on && ts.mode==='working') ts.nextLogAt=nowTs()+SET.tsInt*60000, tsSave();
   toast(on?'Log reminders on':'Working straight through — no log popups'); renderWork(); }
 
 /* ---- rest / break timer — two tiers: quick "mini" resets, longer "big" breaks ---- */
@@ -3361,16 +3645,16 @@ function startRest(kind, manual){
   ts.wasWorking = (ts.mode==='working');
   ts.mode='resting'; ts.restKind=kind;
   const lenSec = kind==='big' ? SET.bigLen*60 : SET.miniLen;
-  ts.restEndAt=Date.now()+lenSec*1000;
+  ts.restEndAt=nowTs()+lenSec*1000;
   if(kind==='big'){
-    ts.bigNextAt=Date.now()+SET.bigEvery*60000+lenSec*1000;
-    ts.miniNextAt=Date.now()+SET.miniEvery*60000+lenSec*1000; // don't immediately stack a mini break right after
+    ts.bigNextAt=nowTs()+SET.bigEvery*60000+lenSec*1000;
+    ts.miniNextAt=nowTs()+SET.miniEvery*60000+lenSec*1000; // don't immediately stack a mini break right after
   } else {
-    ts.miniNextAt=Date.now()+SET.miniEvery*60000+lenSec*1000;
+    ts.miniNextAt=nowTs()+SET.miniEvery*60000+lenSec*1000;
   }
   // don't let the break eat the current work block — push the log timer out by the break length
   if(ts.nextLogAt) ts.nextLogAt += lenSec*1000;
-  tsSave();
+  tsSave(); tsScheduleNotifs();
   $('#breakFloatIcon').textContent = kind==='big' ? '🛋' : '☕';
   $('#breakKind').textContent = kind==='big' ? 'Big break' : 'Mini break';
   $('#breakCd').textContent=hms(lenSec);
@@ -3385,7 +3669,7 @@ function startRest(kind, manual){
   tickRest();
 }
 function tickRest(){
-  const left=Math.max(0,Math.round((ts.restEndAt-Date.now())/1000));
+  const left=Math.max(0,Math.round((ts.restEndAt-nowTs())/1000));
   $('#breakCd').textContent=hms(left);
   if(left<=3 && left>0) beep([[520,.08]]);
   if(left<=0) endRest(false);
@@ -3395,17 +3679,17 @@ function endRest(skipped){
   $('#breakFloat').classList.remove('show');
   if(!skipped){ chimeDone(); addXP(ts.restKind==='big'?8:4,'took a break'); }
   ts.mode = ts.wasWorking===false ? 'idle' : 'working';
-  if(ts.mode==='working'){ ts.blockStart=ts.blockStart||Date.now(); }
-  tsSave(); renderWork();
+  if(ts.mode==='working'){ ts.blockStart=ts.blockStart||nowTs(); }
+  tsSave(); tsScheduleNotifs(); renderWork();
 }
 function toggleRestEnabled(on){ SET.restOn=!!on; kset('settings',SET);
   toast(on?'Auto-breaks on':'Auto-breaks off'); renderWork(); }
 function setMiniEvery(min){ SET.miniEvery=parseFloat(min)||25; kset('settings',SET);
-  if(ts.mode==='working') ts.miniNextAt=Date.now()+SET.miniEvery*60000, tsSave();
+  if(ts.mode==='working') ts.miniNextAt=nowTs()+SET.miniEvery*60000, tsSave();
   renderWork(); }
 function setMiniLen(sec){ SET.miniLen=parseInt(sec,10)||45; kset('settings',SET); renderWork(); }
 function setBigEvery(min){ SET.bigEvery=parseFloat(min)||120; kset('settings',SET);
-  if(ts.mode==='working') ts.bigNextAt=Date.now()+SET.bigEvery*60000, tsSave();
+  if(ts.mode==='working') ts.bigNextAt=nowTs()+SET.bigEvery*60000, tsSave();
   renderWork(); }
 function setBigLen(min){ SET.bigLen=parseFloat(min)||15; kset('settings',SET); renderWork(); }
 
@@ -3414,11 +3698,14 @@ function setBigLen(min){ SET.bigLen=parseFloat(min)||15; kset('settings',SET); r
 let logAutoSkipTimer=null;
 function tsOpenLog(){
   if(ts.mode==='idle') return;
-  ts.mode='logging'; tsSave();
+  ts.mode='logging'; tsSaveLocal();
   chimeLog(); buzz([40,80,40]);
-  try{ if('Notification' in window && Notification.permission==='granted')
+  try{ if('Notification' in window && Notification.permission==='granted' && !document.hasFocus())
     new Notification('K-OS · Time to log',{body:'What did you do this block?'}); }catch(e){}
-  const blockLbl='Block '+clock(ts.blockStart)+' – '+clock(Date.now());
+  // came back after missing one or more reminders: ONE prompt for the whole
+  // stretch you were away, not a backlog of them firing one after another
+  const span=nowTs()-ts.blockStart, missed=span > SET.tsInt*60000*1.8;
+  const blockLbl=(missed?'While you were away · ':'Block ')+clock(ts.blockStart)+' – '+clock(nowTs());
   /* Self-heal: if this sits unanswered for 2 minutes — the popped-out timer
      window didn't actually grab OS focus (unreliable for a tiny window.open
      popup), the phone was locked, whatever — skip it automatically. Without
@@ -3441,11 +3728,17 @@ function tsOpenLog(){
 function commitLog(note){
   clearTimeout(logAutoSkipTimer);   // resolved for real — the 2-minute self-heal doesn't need to fire
   if(note){
-    const e=getTsEntries(); e.push({s:ts.blockStart, e:Date.now(), text:note});
+    const e=getTsEntries(); e.push({s:ts.blockStart, e:nowTs(), text:note});
     kset('ts:entries:'+todayKey(), e);
     addXP(6,'block logged');
   }
-  ts.mode='working'; ts.blockStart=Date.now(); ts.nextLogAt=Date.now()+SET.tsInt*60000; tsSave();
+  const now=nowTs();
+  ts.mode='working'; ts.blockStart=now; ts.nextLogAt=now+SET.tsInt*60000;
+  // breaks that came due while you were away aren't owed now — reset their clocks
+  // instead of hitting you with one the second you finish this log
+  if(ts.miniNextAt && ts.miniNextAt < now-120000) ts.miniNextAt=now+SET.miniEvery*60000;
+  if(ts.bigNextAt && ts.bigNextAt < now-120000) ts.bigNextAt=now+SET.bigEvery*60000;
+  tsSave(); tsScheduleNotifs();
   autoFlow(); renderWork(); renderToday(); updatePip();
 }
 function tsCloseLog(saveIt){
@@ -3467,7 +3760,7 @@ function sizeWorkPanel(){
   const tabbar=$('#tabbar');
   const wrap=$('#wrap');
   const headerH = header ? header.getBoundingClientRect().height : 0;
-  const tabbarH = tabbar ? tabbar.getBoundingClientRect().height : 0;
+  const tabbarH = (tabbar && !isDesk()) ? tabbar.getBoundingClientRect().height : 0;
   const wrapPadTop = wrap ? parseFloat(getComputedStyle(wrap).paddingTop)||0 : 0;
   const marginBelowHeader=10;   // matches header{margin-bottom} + the gap before panel
   const avail = innerHeight - wrapPadTop - headerH - marginBelowHeader - tabbarH;
@@ -3494,7 +3787,7 @@ const ICON_PAUSE = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5
 function renderWorkTick(){
   if(!$('#tsCount')) return;
   const span=SET.tsInt*60000;
-  const leftMs = ts.mode==='working' ? ts.nextLogAt-Date.now() : ts.mode==='paused' ? (ts.pausedLeft||span) : span;
+  const leftMs = ts.mode==='working' ? ts.nextLogAt-nowTs() : ts.mode==='paused' ? (ts.pausedLeft||span) : span;
   if(!SET.logOn){ $('#tsCount').textContent='∞'; $('#tsBar').style.width='0%'; }
   else { $('#tsCount').textContent=hms(leftMs/1000); $('#tsBar').style.width=(100*(1-Math.max(0,leftMs)/span))+'%'; }
 
@@ -3508,16 +3801,21 @@ function renderWorkTick(){
   $('#commitToday').textContent=(todayMin>=60?(todayMin/60).toFixed(1)+' hrs':todayMin+' min')+' today across '+sessionCountToday+' session'+(sessionCountToday===1?'':'s');
 
   const rangeEl=$('#commitRange');
-  if(ts.mode!=='idle'){
-    const nowMs=Date.now(), end=nowMs+committed*3600000;
-    rangeEl.innerHTML='<b>'+clock(nowMs)+'</b><span class="arrow">→</span><b>'+clock(end)+'</b>';
-  }
+  if(ts.mode!=='idle') rangeEl.innerHTML=commitRangeHTML(committed);
   tsCheckMilestones();
 }
 
+/* now → when you'll actually hit the target: now + whatever's LEFT of it. The
+   right side used to be now + the whole target, so it slid forward every second
+   and never meant anything; now it holds still while you work and only moves
+   when you pause. */
+function commitRangeHTML(committed){
+  const now=nowTs(), end=now+Math.max(0, committed*3600000-sessionActiveMs());
+  return '<b>'+clock(now)+'</b><span class="arrow">→</span><b>'+clock(end)+'</b>';
+}
 function renderWork(){
   const span=SET.tsInt*60000;
-  let leftMs = ts.mode==='working' ? ts.nextLogAt-Date.now() : ts.mode==='paused' ? (ts.pausedLeft||span) : span;
+  let leftMs = ts.mode==='working' ? ts.nextLogAt-nowTs() : ts.mode==='paused' ? (ts.pausedLeft||span) : span;
   if(!SET.logOn){ $('#tsCount').textContent='∞'; $('#tsBar').style.width='0%'; }
   else { $('#tsCount').textContent=hms(leftMs/1000); $('#tsBar').style.width=(100*(1-Math.max(0,leftMs)/span))+'%'; }
   // big centre button + the small symbol block share one action. Both draw from
@@ -3551,12 +3849,11 @@ function renderWork(){
   const todayMin=todayWorkedMin();
   const sessionCountToday=sessions.length + (ts.mode!=='idle'?1:0);
   $('#commitToday').textContent=(todayMin>=60?(todayMin/60).toFixed(1)+' hrs':todayMin+' min')+' today across '+sessionCountToday+' session'+(sessionCountToday===1?'':'s');
-  // committed window tracks the LIVE current time — "from now, N hours" → finish clock.
+  // committed window tracks the LIVE current time — "from now" → finish clock.
   // (anchoring to the original clock-in left a stale start time frozen on screen.)
   const rangeEl=$('#commitRange');
   if(ts.mode!=='idle'){
-    const nowMs=Date.now(), end=nowMs+committed*3600000;
-    rangeEl.innerHTML='<b>'+clock(nowMs)+'</b><span class="arrow">→</span><b>'+clock(end)+'</b>';
+    rangeEl.innerHTML=commitRangeHTML(committed);
     rangeEl.style.display='';
   } else { rangeEl.style.display='none'; }
   tsCheckMilestones();
@@ -3664,22 +3961,14 @@ function renderWorkFocus(){
    what day Work means (always today) — using them here would silently file a
    new quest under whatever day the Quests tab was last left browsing. */
 function addGoalFromWork(){
-  const inp=$('#wqNewQuest'); const t=(inp.value||'').trim(); if(!t) return;
-  const key='goals:'+todayKey();
-  const g=(kget(key,[])||[]).map(normGoal);
-  g.push({id:newId(), text:t, done:false, priority:'none', notes:'', subtasks:[], created:Date.now()});
-  kset(key,g); doSync(false);
+  const inp=$('#wqNewQuest'); if(!addMission(inp.value)) return;
   inp.value='';
   renderGoals(); renderToday(); renderWork();
 }
 function addSubtaskFromWork(){
   const fid=getFocusQuestId(); if(!fid) return;
   const inp=$('#wfNewObj'); const t=(inp.value||'').trim(); if(!t) return;
-  const key='goals:'+todayKey();
-  const g=(kget(key,[])||[]).map(normGoal);
-  const x=g.find(y=>y.id===fid); if(!x) return;
-  x.subtasks.push({id:newId(), text:t, done:false});
-  kset(key,g); doSync(false);
+  mutateMission(fid, x=>x.subtasks.push({id:newId(), text:t, done:false}));
   renderGoals(); renderWork();
   // renderWork() just rebuilt #wfocus from scratch (fresh, empty input already)
   // — the old `inp` reference above is detached now, so re-grab it to focus it
@@ -3796,16 +4085,22 @@ function tsSetCell(key,b,val){
   kset('ts:entries:'+key, entries);
   if(key===todayKey()) renderWork();
 }
+let resumedAt=0, lastSyncOkAt=0;
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') resumedAt=Date.now(); });
 setInterval(()=>{
-  if(ts.mode!=='idle'){ ts.lastAlive=Date.now(); tsSave(); }   // the heartbeat checkStaleSession() reads on next load/resume
   updatePip(); // keep the floating widget live in every mode (idle/working/paused/resting)
-  if(ts.mode==='working'){
-    tsCheckMilestones(); // fires regardless of which tab is open — a marathon session shouldn't need the Work tab up to celebrate
-    if(SET.logOn && Date.now()>=ts.nextLogAt){ tsOpenLog(); }
-    else if(SET.restOn && ts.bigNextAt && Date.now()>=ts.bigNextAt){ startRest('big',false); }
-    else if(SET.restOn && ts.miniNextAt && Date.now()>=ts.miniNextAt){ startRest('mini',false); }
-    else if(document.visibilityState==='visible' && document.querySelector('#p-work.on')) renderWorkTick();
-  }
+  if(ts.mode!=='working' || awayOpen) return;
+  /* just came back to the app: the copy here may be stale (the other device
+     could have logged or ended this session meanwhile). Hold every prompt until
+     the first pull after waking has landed — or 8s, if there's no network. */
+  if(hasSrv && resumedAt>lastSyncOkAt && Date.now()-resumedAt<8000) return;
+  const now=nowTs();
+  tsCheckMilestones(); // fires regardless of which tab is open — a marathon session shouldn't need the Work tab up to celebrate
+  if(SET.logOn && now>=ts.nextLogAt){ tsOpenLog(); }
+  else if(SET.restOn && ts.bigNextAt && now>=ts.bigNextAt){ startRest('big',false); }
+  else if(SET.restOn && ts.miniNextAt && now>=ts.miniNextAt){ startRest('mini',false); }
+  else if(document.visibilityState==='visible' && activeTab==='work') renderWorkTick();
+  else if(document.visibilityState==='visible' && activeTab==='today' && isDesk()) renderAsideTick();
 },1000);
 
 /* ================= floating always-on-top timer (Document Picture-in-Picture) =================
@@ -3818,7 +4113,7 @@ function tsNextBreak(){
   if(ts.miniNextAt) cands.push(['mini',ts.miniNextAt]);
   if(ts.bigNextAt) cands.push(['big',ts.bigNextAt]);
   cands.sort((a,b)=>a[1]-b[1]);
-  return cands.length ? {kind:cands[0][0], leftMs:Math.max(0,cands[0][1]-Date.now())} : null;
+  return cands.length ? {kind:cands[0][0], leftMs:Math.max(0,cands[0][1]-nowTs())} : null;
 }
 let pipWin=null;
 let pipLocked=jload('pipLocked',false);   // when locked, the native shell freezes the window in place
@@ -3947,7 +4242,7 @@ function popOutTimer(){
   const onClosed=()=>{
     const wasLogging = ts.mode==='logging'; pipWin=null; clearInterval(pipPoll);
     if(wasLogging){ // widget closed mid-log — fall back to the in-app popup so nothing's lost
-      $('#tsBlockLbl').textContent='Block '+clock(ts.blockStart)+' – '+clock(Date.now());
+      $('#tsBlockLbl').textContent='Block '+clock(ts.blockStart)+' – '+clock(nowTs());
       $('#tsNote').value=''; $('#tsScrim').classList.add('show'); setTimeout(()=>$('#tsNote').focus(),60);
     }
   };
@@ -3984,6 +4279,12 @@ function showPipLog(blockLbl){
   const inp=d.getElementById('pw-input'); inp.value='';   // was pre-filled with the tracked quest — removed
   d.body.style.background='radial-gradient(130% 130% at 50% 34%,#1e40af,#0a1330 80%)';
   setTimeout(()=>{ try{ pipWin.focus(); inp.focus(); }catch(e){} },40);
+}
+/* the log was answered (or made moot) somewhere else — put the widget back to the timer */
+function hidePipLog(){
+  if(!pipWin || pipWin.closed) return;
+  try{ const d=pipWin.document; d.getElementById('pw-log').style.display='none';
+    d.getElementById('pw').style.display='flex'; d.body.style.background='#0e1116'; }catch(e){}
 }
 function pipSubmitLog(saveIt){
   if(!pipWin || pipWin.closed){ commitLog(''); return; }
@@ -4026,7 +4327,7 @@ function updatePip(){
     toggle.title = ts.mode==='idle' ? 'Clock in' : ts.mode==='working' ? 'Pause' : ts.mode==='paused' ? 'Resume' : 'Working'; }
   if(out){ out.style.visibility = ts.mode==='idle' ? 'hidden' : 'visible'; }
   if(ts.mode==='resting'){
-    const left=Math.max(0,Math.round((ts.restEndAt-Date.now())/1000));
+    const left=Math.max(0,Math.round((ts.restEndAt-nowTs())/1000));
     time.textContent=hms(left); lbl.textContent=(ts.restKind==='big'?'big break':'mini break');
     state.textContent='●'; state.style.color='#fff'; brk.textContent=(ts.restKind==='big'?'🛋 rest':'☕ rest');
     body.style.background='radial-gradient(120% 120% at 50% 40%,#1f9d55,#0a3d22)'; setBreakBar(); return;
@@ -4034,10 +4335,10 @@ function updatePip(){
   body.style.background='#0e1116';
   if(ts.mode==='idle'){ time.textContent='—'; lbl.textContent='clock in'; state.style.color='#8b949e'; brk.textContent='—'; setBreakBar(); return; }
   if(!SET.logOn){
-    const el=Math.max(0,Math.floor((Date.now()-ts.sessionStart)/1000));
+    const el=Math.floor(sessionActiveMs()/1000);
     time.textContent=hms(el); lbl.textContent='focus';
   } else {
-    const span=SET.tsInt*60000, leftMs = ts.mode==='paused' ? (ts.pausedLeft||span) : (ts.nextLogAt-Date.now());
+    const span=SET.tsInt*60000, leftMs = ts.mode==='paused' ? (ts.pausedLeft||span) : (ts.nextLogAt-nowTs());
     time.textContent=hms(Math.max(0,leftMs)/1000); lbl.textContent = ts.mode==='paused'?'paused':'until next log';
   }
   state.textContent='●'; state.style.color = ts.mode==='paused' ? '#f59e0b' : '#22c55e';
@@ -5005,144 +5306,145 @@ const PRIORITIES=[
   {id:'urgent', label:'Urgent', color:'#ef4444',       dot:'🔴'}
 ];
 function prioMeta(id){ return PRIORITIES.find(p=>p.id===id) || PRIORITIES[0]; }
+/* ================= MISSIONS — one synced record per mission =================
+   Each mission is its own key, m:<id>, and lives until it's done or deleted.
+   This replaced "one list per day, copied forward every morning by matching
+   text", which is what kept resurrecting deleted missions: any device holding
+   an older copy of a day's list (a phone waking up, the morning copy running
+   before the phone had synced) wrote the whole list back and out-ranked the
+   delete. The copy-by-text step is also what made duplicates.
+   Now an edit only ever touches the one mission it's about, so editing one
+   on the phone can't overwrite a different one deleted on the Mac. A delete is
+   a tombstone (deleted:true) rather than a missing row, so a stale copy can
+   never bring it back — the tombstone is simply the newer write.
+   Old goals:<date> lists stay untouched as read-only history for past days. */
+const M_PREFIX='m:';
 function normGoal(g){
-  return { id:g.id, text:g.text||'', done:!!g.done,
+  return { id:g.id, text:g.text||'', done:!!g.done, doneAt:g.doneAt||0, deleted:!!g.deleted,
     priority: g.priority||'none', notes: g.notes||'',
-    // when this mission was first created — NOT when today's copy of it was made.
-    // newId() isn't safely parseable for this (its random suffix can start with a
-    // digit, so a naive parseInt would swallow part of it into the timestamp) —
-    // an explicit field is the only reliable way. Missions saved before this
-    // field existed just start counting from whenever they're first read; there's
-    // no way to recover a true age that was never recorded.
-    created: g.created || Date.now(),
+    created: g.created || 0, order: typeof g.order==='number' ? g.order : (g.created||0),
+    legacy: !!g.legacy,
     subtasks: Array.isArray(g.subtasks) ? g.subtasks.map(s=>({id:s.id, text:s.text||'', done:!!s.done})) : [] };
 }
 function newId(){ return Date.now()+Math.random().toString(36).slice(2,6); }
+function missionsReady(){ return !!kget('missions:v2', false); }
+let _mCache=null, _mCacheRev=-1;
+function allMissions(){
+  if(_mCacheRev===kvRev && _mCache) return _mCache;
+  _mCache=kkeys(M_PREFIX).map(k=>kget(k,null)).filter(x=>x && x.id).map(normGoal);
+  _mCacheRev=kvRev;
+  return _mCache;
+}
+const byOrder=(a,b)=>(a.order-b.order)||(a.created-b.created);
+function dayOf(t){ return t ? todayKey(new Date(t)) : ''; }
+/* what Today means: everything still open, plus whatever you finished today */
+function getGoals(){
+  if(!missionsReady()) return (kget('goals:'+todayKey(),[])||[]).map(normGoal);   // pre-migration fallback
+  const today=todayKey();
+  return allMissions().filter(m=>!m.deleted && (!m.done || dayOf(m.doneAt)===today)).sort(byOrder);
+}
+function getMissionRec(id){ const m=kget(M_PREFIX+id, null); return m ? normGoal(m) : null; }
+function putMission(m){
+  const rec=Object.assign({}, m); delete rec.legacy;
+  kset(M_PREFIX+m.id, rec);
+  recordMissionDay();
+}
+function mutateMission(id, fn){ const m=getMissionRec(id); if(!m || m.deleted) return null; fn(m); putMission(m); return m; }
+function addMission(text){
+  const t=(text||'').trim(); if(!t) return null;
+  const open=allMissions().filter(m=>!m.deleted);
+  const order=open.length ? Math.max(...open.map(m=>m.order))+1 : 1;
+  const m={id:newId(), text:t, done:false, doneAt:0, deleted:false, priority:'none', notes:'', subtasks:[], created:nowTs(), order};
+  putMission(m);
+  return m;
+}
+/* today's open/done count, written whenever missions change — the streak used
+   to read each day's own list, which doesn't exist any more */
+function recordMissionDay(){
+  const g=getGoals();
+  kset('mday:'+todayKey(), {open:g.filter(x=>!x.done).length, done:g.filter(x=>x.done).length});
+}
+/* one-time: today's list (exactly what you see right now) becomes the mission
+   set. Runs only after this device has pulled once, so it migrates the latest
+   list rather than a stale local one; ids are kept, so two devices migrating at
+   the same moment write the same records instead of doubling them. Exact-text
+   duplicates collapse to one. */
+function migrateMissionsV2(){
+  if(missionsReady() || !syncedOnce) return;
+  const today=todayKey();
+  const src=Object.keys(KVD).filter(k=>k.startsWith('goals:') && k.slice(6)<=today).sort()
+    .map(k=>kget(k,[])).filter(a=>Array.isArray(a) && a.length).pop() || [];
+  const seen=new Set(); let n=0;
+  src.map(normGoal).forEach((x,i)=>{
+    const key=x.text.trim().toLowerCase(); if(!key || seen.has(key)) return; seen.add(key);
+    if(kget(M_PREFIX+x.id, null)) return;
+    kset(M_PREFIX+x.id, {id:x.id, text:x.text, done:x.done, doneAt:x.done?nowTs():0, deleted:false,
+      priority:x.priority, notes:x.notes, subtasks:x.subtasks, created:x.created||nowTs(), order:i+1});
+    n++;
+  });
+  kset('missions:v2', true);
+  recordMissionDay();
+  scheduleRender();
+}
 
-/* which dated page of the black book we're looking at (default today) */
+/* which day the Missions tab is showing (default today). Past days are history. */
 let goalDate = todayKey();
-function goalKey(){ return 'goals:'+goalDate; }
-function viewGoals(){ return (kget(goalKey(),[])||[]).map(normGoal); }
-function saveViewGoals(arr){ kset(goalKey(), arr); doSync(false); }
-function getGoals(){ return (kget('goals:'+todayKey(),[])||[]).map(normGoal); } // TODAY — for flow/streak/mini
-
+function viewGoals(){
+  const today=todayKey();
+  if(goalDate>=today) return getGoals();
+  // a past day: what you finished that day, plus that day's old list (pre-rebuild history)
+  const done=missionsReady() ? allMissions().filter(m=>!m.deleted && m.done && dayOf(m.doneAt)===goalDate) : [];
+  const seen=new Set(done.map(m=>m.text.trim().toLowerCase()));
+  const legacy=(kget('goals:'+goalDate,[])||[]).map(normGoal)
+    .filter(x=>!seen.has(x.text.trim().toLowerCase())).map(x=>Object.assign(x,{legacy:true}));
+  return done.sort(byOrder).concat(legacy);
+}
 function goalDateShift(days){
   const d=new Date(goalDate+'T00:00:00'); d.setDate(d.getDate()+days);
-  goalDate=todayKey(d); renderGoals();
+  const k=todayKey(d); goalDate = k>todayKey() ? todayKey() : k;   // nothing to show in the future — open missions just carry
+  renderGoals();
 }
 function goalDateToday(){ goalDate=todayKey(); renderGoals(); }
 
 function addGoal(){
-  const t=$('#goalInput').value.trim(); if(!t) return;
-  const g=viewGoals(); g.push({id:newId(), text:t, done:false, priority:'none', notes:'', subtasks:[], created:Date.now()});
-  saveViewGoals(g); $('#goalInput').value='';
-  renderGoals(); renderToday();
+  const inp=$('#goalInput'); if(!addMission(inp.value)) return;
+  inp.value=''; goalDate=todayKey();
+  renderGoals(); renderToday(); renderWork();
 }
 $('#goalInput').addEventListener('keydown',e=>{ if(e.key==='Enter') addGoal(); });
 function toggleGoal(id,ev){
-  const g=viewGoals(); const x=g.find(y=>y.id===id); if(!x) return;
-  x.done=!x.done; saveViewGoals(g);
-  if(x.done){ chimeDone(); buzz(30); addXP(10,'quest'); confettiBurst(ev?ev.clientX:undefined, ev?ev.clientY:undefined, 34); toast(affirm());
-    if(getFocusQuestId()===id) setFocusQuest(null); }   // a tracked quest that's finished can't stay "active"
+  const m=mutateMission(id, x=>{ x.done=!x.done; x.doneAt = x.done ? nowTs() : 0; });
+  if(!m) return;
+  if(m.done){ chimeDone(); buzz(30); addXP(10,'mission'); confettiBurst(ev?ev.clientX:undefined, ev?ev.clientY:undefined, 34); toast(affirm());
+    if(getFocusQuestId()===id) setFocusQuest(null); }   // a tracked mission that's finished can't stay "active"
   autoFlow(); renderGoals(); renderToday(); renderTabs(); renderWork();
 }
 function delGoal(id){
-  const g=viewGoals();
-  const victim=g.find(y=>y.id===id);
-  saveViewGoals(g.filter(y=>y.id!==id));
+  const m=getMissionRec(id); if(!m) return;
+  m.deleted=true; m.deletedAt=nowTs(); putMission(m);
   if(getFocusQuestId()===id) setFocusQuest(null);
-  /* Deleting has to mean deleting. autoCarryOverGoals() pulls any UNFINISHED
-     entry from an earlier dated page into today by matching text — it has no
-     idea this one was deleted, so on the very next reload (which happens
-     constantly: every auto-update check reloads the page) it would just copy
-     the exact same quest back in from whatever earlier day it originated on.
-     That's the actual "doesn't remember my deleted quests" bug. Retiring the
-     matching entry everywhere it appears (marking done, not erasing — stays
-     honest about what that day's page actually looked like) is what makes the
-     carry-over loop's existing `if(x.done) return` permanently skip it. */
-  if(victim){
-    const key=victim.text.trim().toLowerCase();
-    Object.keys(KVD).filter(k=>k.startsWith('goals:') && k!==goalKey()).forEach(k=>{
-      const arr=kget(k,[]); if(!Array.isArray(arr) || !arr.length) return;
-      let changed=false;
-      const next=arr.map(x=>{
-        if(!x.done && (x.text||'').trim().toLowerCase()===key){ changed=true; return Object.assign({},x,{done:true}); }
-        return x;
-      });
-      if(changed) kset(k, next);
-    });
-  }
   renderGoals(); renderToday(); renderWork();
+  toastUndo('Mission deleted', ()=>{ const r=getMissionRec(id); if(r){ r.deleted=false; delete r.deletedAt; putMission(r); renderGoals(); renderToday(); renderWork(); } });
 }
 
-/* ================= FOCUS QUEST — "tracking" a quest, Pip-Boy style =================
-   The one quest you're actively working. Tapping ○ on a row (Quests tab) or a row
-   in Work's Active Quests block sets it; it's what Work pins to the top of that
-   list and what the log popup pre-fills its note with — since that's obviously
-   what you're doing right now. Scoped to TODAY's goal list (getGoals(), not the
-   date-nav'd viewGoals()) since Work only ever concerns today, and auto-clears if
-   the day rolls over or the quest gets deleted/completed. */
+/* ================= FOCUS MISSION — the one you're actively working =================
+   Set from the ○ on a row (Missions tab) or a row in Work's list. Stays tracked
+   across days now (missions persist, so there's no reason to drop it at
+   midnight) until it's finished, deleted, or untracked. */
 function getFocusQuestId(){
-  const f=kget('focusQuest', null);
-  if(!f || f.day!==todayKey()) return null;
+  const f=kget('focusQuest', null); if(!f || !f.id) return null;
   const g=getGoals().find(x=>x.id===f.id);
-  if(!g || g.done){ kset('focusQuest', null); return null; }
-  return f.id;
+  return (g && !g.done) ? f.id : null;
 }
 function getFocusQuest(){ const id=getFocusQuestId(); return id ? getGoals().find(x=>x.id===id) : null; }
 function setFocusQuest(id){
   kset('focusQuest', id ? {id, day:todayKey()} : null);
-  renderGoals(); renderWork();
+  renderGoals(); renderWork(); wtSync();
 }
 function toggleFocusQuest(id){ setFocusQuest(getFocusQuestId()===id ? null : id); }
-/* Unfinished quests now carry forward FOREVER, automatically, with no button —
-   a quest that isn't done just keeps showing up on Today until it is. Same
-   mechanics as the old manual carryOverAll() (copies as a new id per day, dedupes
-   by text, leaves every past dated page untouched as a real record of what was
-   outstanding that day), just triggered silently instead of on a tap. Gated by
-   lastAutoCarryDay so it does real work at most once per calendar day no matter
-   how often renderAll() runs. */
-/* Was a bare in-memory `let` — reset to null on every page load, which meant
-   this re-scanned every earlier day's list on every single reload (and the
-   auto-update check reloads constantly). Harmless on its own since re-adding
-   an item already present is a no-op, but it's also what made a freshly
-   DELETED quest come right back the moment the page next reloaded, before
-   delGoal() retired it from history properly (see delGoal). Persisted now so
-   a day is only ever scanned once, full stop, not once per reload. */
-let lastAutoCarryDay=kget('lastAutoCarryDay', null);
-function autoCarryOverGoals(){
-  const today=todayKey();
-  if(lastAutoCarryDay===today) return;
-  lastAutoCarryDay=today;
-  kset('lastAutoCarryDay', today);
-  const dayKeys=Object.keys(KVD).filter(k=>k.startsWith('goals:') && k.slice(6)<today).sort();
-  if(!dayKeys.length) return;
-  const cur=(kget('goals:'+today,[])||[]).map(normGoal);
-  const have=new Set(cur.map(x=>x.text.trim().toLowerCase()));
-  let added=0;
-  dayKeys.forEach(k=>{
-    (kget(k,[])||[]).map(normGoal).forEach(x=>{
-      if(x.done) return;
-      const key=x.text.trim().toLowerCase();
-      if(have.has(key)) return;
-      have.add(key);
-      // created carries forward from x, the SOURCE entry — not Date.now(). Without
-      // this, a mission's "how long active" clock would silently reset to zero
-      // every single day it gets auto-carried, since each copy is a brand new
-      // object with a brand new id — defeating the entire point of showing
-      // "1 day 12 hours" for something that's genuinely been sitting unfinished.
-      cur.push({id:newId(), text:x.text, done:false, priority:x.priority, notes:x.notes, created:x.created,
-        subtasks:x.subtasks.map(s=>({id:newId(),text:s.text,done:false}))});
-      added++;
-    });
-  });
-  if(added){ kset('goals:'+today, cur); doSync(false); }
-}
 function reorderGoals(newIdOrder){
-  const g=viewGoals();
-  const byId=Object.fromEntries(g.map(x=>[x.id,x]));
-  const reordered=newIdOrder.map(id=>byId[id]).filter(Boolean);
-  saveViewGoals(reordered);
+  if(goalDate<todayKey()) return;   // history doesn't reorder
+  newIdOrder.forEach((id,i)=>{ const m=getMissionRec(id); if(m && m.order!==i+1){ m.order=i+1; putMission(m); } });
 }
 const bindGoalsDrag=makeDragReorder('#glist','.goal','gid',()=>viewGoals().map(x=>x.id),reorderGoals,renderGoals);
 
@@ -5162,14 +5464,16 @@ function renderGoals(){
   const d=new Date(goalDate+'T00:00:00');
   $('#goalDateLbl').textContent = isToday ? 'Today' : d.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'});
   $('#goalTodayBtn').style.display = isToday ? 'none' : '';
+  const nextBtn=$('#goalNextBtn'); if(nextBtn) nextBtn.disabled=isToday;
+  $('#p-goals').classList.toggle('history', !isToday);
   $('#goalCount').textContent = g.length ? '· '+g.filter(x=>x.done).length+'/'+g.length+' done' : '';
-  box.innerHTML = g.length?'':'<div class="empty">'+(isToday?'No active missions — add your first one above.':'No missions logged on this day.')+'</div>';
+  box.innerHTML = g.length?'':'<div class="empty">'+(isToday?'No active missions — add your first one above.':'Nothing finished on this day.')+'</div>';
   g.forEach(x=>{
     const pm=prioMeta(x.priority);
     const subDone=x.subtasks.filter(s=>s.done).length, subN=x.subtasks.length;
     const meta=[]; if(subN) meta.push('☑ '+subDone+'/'+subN); if(x.notes.trim()) meta.push('📝');
     const tracked = isToday && x.id===focusId;
-    const div=document.createElement('div'); div.className='goal dragblock'+(x.done?' done':'')+(x.id===gdCurrentId?' selected':'')+(tracked?' tracked':'');
+    const div=document.createElement('div'); div.className='goal'+(isToday?' dragblock':'')+(x.done?' done':'')+(x.legacy?' legacy':'')+(x.id===gdCurrentId?' selected':'')+(tracked?' tracked':'');
     div.dataset.gid=x.id;
     div.innerHTML='<div class="drag-handle">'+DRAG_HANDLE_SVG+'</div>'+
       // track marker — only meaningful for today's list; a past/future day has
@@ -5179,19 +5483,25 @@ function renderGoals(){
       '<div class="gchk">✓</div>'+
       '<div class="gbody"><div class="gtext">'+esc(x.text)+'</div>'+
         (meta.length?'<div class="gmeta">'+meta.join(' · ')+'</div>':'')+
-        (!x.done ? '<div class="gage">'+fmtMissionAge(x.created)+'</div>' : '')+'</div>'+
-      '<button class="gdel">✕</button>';
+        (!x.done && x.created ? '<div class="gage">'+fmtMissionAge(x.created)+'</div>' : '')+'</div>'+
+      (x.legacy ? '' : '<button class="gdel" aria-label="Delete mission">✕</button>');
     const trackBtn=div.querySelector('.gtrack');
     if(trackBtn && !trackBtn.classList.contains('ghost')) trackBtn.onclick=(e)=>{ e.stopPropagation(); toggleFocusQuest(x.id); };
-    div.querySelector('.gchk').onclick=(e)=>{ e.stopPropagation(); toggleGoal(x.id,e); };
-    div.querySelector('.gbody').onclick=()=>openGoalDetail(x.id);
-    div.querySelector('.gdel').onclick=(e)=>{ e.stopPropagation(); delGoal(x.id); };
+    // pre-rebuild history rows are a record of that day, not live missions
+    if(!x.legacy){
+      div.querySelector('.gchk').onclick=(e)=>{ e.stopPropagation(); toggleGoal(x.id,e); };
+      div.querySelector('.gbody').onclick=()=>openGoalDetail(x.id);
+      div.querySelector('.gdel').onclick=(e)=>{ e.stopPropagation(); delGoal(x.id); };
+    }
     box.appendChild(div);
   });
   bindGoalsDrag();
   renderQFocusPane();
   let streak=0; const probe=new Date();
-  const full=k=>{ const gg=kget('goals:'+k,null); return gg && gg.length>0 && gg.every(x=>x.done); };
+  // a day counts if you finished something and left nothing open: the daily
+  // summary (mday:) from the rebuild on, each day's own old list before that
+  const full=k=>{ const md=kget('mday:'+k,null); if(md) return md.done>0 && md.open===0;
+    const gg=kget('goals:'+k,null); return gg && gg.length>0 && gg.every(x=>x.done); };
   if(!full(todayKey())) probe.setDate(probe.getDate()-1);
   while(full(todayKey(probe))){ streak++; probe.setDate(probe.getDate()-1); }
   $('#goalStreak').textContent = streak? '🔥 '+streak+' day streak of clearing every mission' : 'Clear all your missions today to start a streak.';
@@ -5231,7 +5541,7 @@ setInterval(()=>{ if(activeTab==='goals') pipQClockTick(); }, 15000);
 /* ---- quest detail: title, priority, notes, objectives (sub-tasks) ---- */
 let gdCurrentId=null;
 function openGoalDetail(id){
-  const g=viewGoals(), x=g.find(y=>y.id===id); if(!x) return;
+  const x=getMissionRec(id); if(!x || x.deleted) return;
   gdCurrentId=id;
   $('#gdTitle').value=x.text;
   $('#gdNotes').value=x.notes;
@@ -5243,11 +5553,8 @@ function openGoalDetail(id){
 }
 function closeGoalDetail(){ saveGoalDetail(); $('#goalScrim').classList.remove('show'); gdCurrentId=null;
   document.querySelectorAll('.goal.selected').forEach(el=>el.classList.remove('selected')); }
-function gdGoal(){ return viewGoals().find(y=>y.id===gdCurrentId); }
-function gdMutate(fn){
-  const g=viewGoals(), x=g.find(y=>y.id===gdCurrentId); if(!x) return;
-  fn(x); saveViewGoals(g);
-}
+function gdGoal(){ return getMissionRec(gdCurrentId); }
+function gdMutate(fn){ if(gdCurrentId) mutateMission(gdCurrentId, fn); }
 function saveGoalDetail(){
   if(!gdCurrentId) return;
   const title=$('#gdTitle').value.trim(), notes=$('#gdNotes').value;
@@ -5294,9 +5601,9 @@ function addSubtask(){
 }
 function deleteGoalFromDetail(){
   if(!gdCurrentId) return;
-  const g=viewGoals().filter(y=>y.id!==gdCurrentId); kset(goalKey(), g); doSync(false);
+  const id=gdCurrentId;
   $('#goalScrim').classList.remove('show'); gdCurrentId=null;
-  renderGoals(); renderToday();
+  delGoal(id);
 }
 
 /* ================= LIFE MODULES (customizable must-dos) =================
@@ -6083,11 +6390,73 @@ function moveTabGlow(navId){
   const firstRun = !glow.classList.contains('on');   // skip the slide-in from its
   if(firstRun) glow.style.transition='none';          // off-screen rest position
   const inner=tab.parentElement.getBoundingClientRect(), tr=tab.getBoundingClientRect();
-  const x = (tr.left - inner.left) + (tr.width - 24)/2;
-  glow.style.transform='translateX('+Math.round(x)+'px)';
+  if(isDesk()){   // sidebar: a vertical bar riding the left edge of the active row
+    glow.style.height=Math.round(tr.height-14)+'px';
+    glow.style.transform='translateY('+Math.round(tr.top-inner.top+7)+'px)';
+  } else {
+    glow.style.height='';
+    const x = (tr.left - inner.left) + (tr.width - 24)/2;
+    glow.style.transform='translateX('+Math.round(x)+'px)';
+  }
   glow.classList.add('on');
   if(firstRun) requestAnimationFrame(()=>{ glow.style.transition=''; });
 }
+/* ---- layout: phone vs desktop ----
+   At 1024px and up K-OS stops being a phone screen in the middle of a big
+   window: the bottom tab bar becomes a sidebar, the canvas uses the width, Work
+   splits into controls + missions, and Today gets a live dashboard column. */
+function isDesk(){ return document.body.classList.contains('desk'); }
+function applyLayout(){
+  const desk=innerWidth>=1024;
+  const changed = desk!==isDesk();
+  document.body.classList.toggle('desk', desk);
+  const nav=NAV_TABS.includes(activeTab) ? activeTab : (SUB_PARENT[activeTab]||'today');
+  const glow=$('#tabGlow'); if(glow && changed){ glow.classList.remove('on'); }   // re-place without sliding across
+  moveTabGlow(nav);
+  if(changed){ sizeWorkPanel(); scheduleRender(); }
+}
+let layoutRaf=0;
+addEventListener('resize', ()=>{ cancelAnimationFrame(layoutRaf); layoutRaf=requestAnimationFrame(()=>{ applyLayout(); if(activeTab==='work') sizeWorkPanel(); }); });
+
+/* ---- Today's desktop dashboard column ---- */
+function renderTodayAside(){
+  if(!isDesk()) return;
+  renderAsideSession();
+  const list=$('#daMissionList'); if(!list) return;
+  const g=getGoals(), open=g.filter(x=>!x.done), focusId=getFocusQuestId();
+  list.innerHTML = open.length ? '' : '<div class="empty" style="padding:18px 4px">All clear. Add the next one above.</div>';
+  open.forEach(x=>{
+    const row=document.createElement('div'); row.className='da-row'+(x.id===focusId?' tracked':'');
+    row.innerHTML='<button class="gchk" aria-label="Done">✓</button><span class="da-text"></span>'+
+      '<button class="gtrack" title="Track as active mission">'+(x.id===focusId?'●':'○')+'</button>';
+    row.querySelector('.da-text').textContent=x.text;
+    row.querySelector('.gchk').onclick=e=>{ e.stopPropagation(); toggleGoal(x.id,e); renderTodayAside(); };
+    row.querySelector('.gtrack').onclick=e=>{ e.stopPropagation(); toggleFocusQuest(x.id); renderTodayAside(); };
+    row.querySelector('.da-text').onclick=()=>{ showTab('goals'); setTimeout(()=>openGoalDetail(x.id),60); };
+    list.appendChild(row);
+  });
+  const done=g.filter(x=>x.done).length;
+  if(done) list.insertAdjacentHTML('beforeend','<div class="da-donecount">✓ '+done+' done today</div>');
+}
+function renderAsideSession(){
+  const box=$('#daSession'); if(!box) return;
+  const fq=getFocusQuest(), mode=ts.mode, act=sessionActiveMs();
+  const label = mode==='idle' ? 'Not clocked in' : mode==='paused' ? 'Paused' : mode==='resting' ? 'On a break' : 'Working';
+  const todayMin=todayWorkedMin();
+  const btn=(fn,txt,cls)=>'<button class="'+(cls||'')+'" onclick="'+fn+'">'+txt+'</button>';
+  const html='<div class="da-sess-top"><span class="da-dot '+mode+'"></span><span class="da-state">'+label+'</span>'+
+      '<span class="da-today">'+(todayMin>=60?(todayMin/60).toFixed(1)+'h':todayMin+'m')+' today</span></div>'+
+    '<div class="da-clock" id="daClock">'+(mode==='idle' ? '—' : hms(act/1000))+'</div>'+
+    (fq ? '<div class="da-focus">◉ '+esc(fq.text)+'</div>' : '<div class="da-focus dim">No mission tracked</div>')+
+    '<div class="da-btns">'+
+      (mode==='idle' ? btn("tsToggle(); renderTodayAside()",'▶ Clock in','primary')
+        : btn("tsToggle(); renderTodayAside()", mode==='working'?'⏸ Pause':'▶ Resume','primary')+
+          btn("tsOpenLog()",'✎ Log')+btn("tsClockOut(); renderTodayAside()",'⏹ End','danger'))+
+    '</div>';
+  if(box._html!==html){ box.innerHTML=html; box._html=html; }
+}
+// once a second while it's on screen: only the clock moves
+function renderAsideTick(){ const c=$('#daClock'); if(c && ts.mode!=='idle') c.textContent=hms(sessionActiveMs()/1000); }
 function backFromSub(){ const p=$('#backBar').dataset.parent||'today'; showTab(p); }
 
 /* ---- native edge-swipe-back (Android) ----
@@ -6128,16 +6497,27 @@ function renderTabs(){
     t.classList.toggle('done', done);
   });
 }
+/* Each panel's own renderer. renderAll() used to run ALL of these — every tab
+   switch, every sync from the other device, every time the app came back to
+   the foreground — even though only one panel is ever on screen. Now it draws
+   the visible one; the rest draw when you open them (showTab → renderAll). */
+const PANEL_RENDER={
+  today:()=>{ renderToday(); renderTodayAside(); }, work:()=>renderWork(), goals:()=>renderGoals(), rap:()=>renderRapPanel(),
+  gym:()=>renderGym(), diet:()=>renderDiet(), habits:()=>renderHabits(), modules:()=>renderModules(),
+  health:()=>{}, track:()=>{},
+};
+function visiblePanels(){ return [activeTab]; }
 function renderAll(){
   $('#hdrDate').textContent=new Date().toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'});
   loadSettingsCache();
   applyTheme();
-  ensureHabitsSeeded();
-  ensureHabitsMigrated();
-  autoCarryOverGoals();
-  autoFlow();
+  // derived-data writers wait for the first pull — writing from a stale copy is
+  // exactly how a just-woken device used to overwrite the other one's changes
+  if(syncedOnce){ ensureHabitsSeeded(); ensureHabitsMigrated(); migrateMissionsV2(); autoFlow(); }
   renderDayStreak();
-  renderToday(); renderWork(); renderGym(); renderRapPanel(); renderDiet(); renderHabits(); renderGoals(); renderModules(); renderAlarm(); renderTabs();
+  visiblePanels().forEach(p=>{ const fn=PANEL_RENDER[p]; if(fn) fn(); });
+  if($('#setScrim').classList.contains('show')) renderAlarm();
+  renderTabs();
   checkMissionGate();
 }
 
@@ -6260,16 +6640,31 @@ function bindWall(){
 /* ================= init ================= */
 if(!hasSrv){ $('#localnote').style.display='block'; setSyncUI(null); } else { setSyncUI('ok'); doSync(false); }
 applyTabOrder(); bindTabDrag();
+document.body.classList.toggle('desk', innerWidth>=1024);
 showTab(activeTab);
+applyLayout();
 let lastDay=todayKey();
-setInterval(()=>{ if(todayKey()!==lastDay){ lastDay=todayKey(); clearTimeout(logAutoSkipTimer); ts=jload('tsrun',{mode:'idle'}); ts.mode='idle'; tsSave(); renderAll(); } }, 30000);
+// a new day just redraws — a session that runs past midnight is still the same
+// session (it used to be force-ended at midnight, mid-work)
+setInterval(()=>{ if(todayKey()!==lastDay){ lastDay=todayKey(); goalDate=todayKey(); scheduleRender(); } }, 30000);
 setInterval(checkAlarm, 10000); checkAlarm();
 nativeAlarmInit();
-wtSync();
+wtSync(); tsScheduleNotifs(); tsAwayCheck();
+// no network at all: don't hold the derived-data writers back forever
+setTimeout(()=>{ if(!syncedOnce){ syncedOnce=true; onRemoteChange([], true); } }, 8000);
 if(NATIVE && window.Capacitor.Plugins.App){
-  // came back to K-OS (e.g. tapped the notification, or switched back from another
-  // app) — make sure the persistent notification still matches reality
-  window.Capacitor.Plugins.App.addListener('resume', ()=>{ wtSync(); hcRefreshSteps(); });
+  /* came back to K-OS (tapped a notification, switched back from another app).
+     The Android WebView doesn't reliably fire visibilitychange on resume, so
+     this is the real "you're back" signal: redraw from timestamps immediately
+     (no stale frozen numbers), pull what the Mac changed, check for a new
+     build, and re-arm the notification + reminders. */
+  window.Capacitor.Plugins.App.addListener('resume', ()=>{
+    resumedAt=Date.now();
+    renderWorkTick(); tsAwayCheck(); doSync(false); scheduleRender();
+    if(window.kosCheckUpdate) window.kosCheckUpdate();
+    wtSync(); tsScheduleNotifs(); hcRefreshSteps();
+  });
+  window.Capacitor.Plugins.App.addListener('pause', ()=>{ persistNow(); tsScheduleNotifs(); });
   // the system back gesture (edge swipe) / hardware back button
   window.Capacitor.Plugins.App.addListener('backButton', handleNativeBack);
 }

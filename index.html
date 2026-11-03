@@ -2108,7 +2108,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261104-092711';
+const KOS_BUILD='20261104-095242';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -2296,11 +2296,15 @@ function apiCall(action, payload){
       gsr.withSuccessHandler(resolve).withFailureHandler(reject)[action].apply(gsr, args);
     });
   }
+  // a request can't hang forever: abort after 45s so every call settles one way or the other
+  const ctl = typeof AbortController!=='undefined' ? new AbortController() : null;
+  const kill = ctl ? setTimeout(()=>ctl.abort(), 45000) : null;
   return fetch(API_URL, {
     method:'POST',
     headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body: JSON.stringify(Object.assign({action, token:API_TOKEN}, payload))
-  }).then(r=>r.json());
+    body: JSON.stringify(Object.assign({action, token:API_TOKEN}, payload)),
+    signal: ctl ? ctl.signal : undefined
+  }).then(r=>r.json()).finally(()=>{ if(kill) clearTimeout(kill); });
 }
 function jload(k,d){ try{ return JSON.parse(localStorage.getItem('kyos_'+k)) ?? d; }catch(e){ return d; } }
 function jsave(k,v){ localStorage.setItem('kyos_'+k, JSON.stringify(v)); }
@@ -2342,7 +2346,14 @@ function kset(k,val){
 }
 function kkeys(prefix){ return Object.keys(KVD).filter(k=>k.indexOf(prefix)===0); }
 
-let syncTimer=null, syncing=false, syncWatchdog=null, syncStartedAt=0;
+let syncTimer=null, syncing=false, syncStartedAt=0;
+/* After a failure, wait longer before trying again (5s → 10s → 20s … 60s).
+   The backend serialises every request behind one lock; a device that kept
+   firing every few seconds while it was slow just made the queue longer. */
+let syncFailures=0, syncRetryAt=0;
+// you came back / the network came back — that's worth an immediate try, back-off or not
+function syncNowFresh(){ syncFailures=0; syncRetryAt=0; doSync(false); }
+window.addEventListener('online', syncNowFresh);
 function queueSync(ms){ if(!hasSrv) return; clearTimeout(syncTimer); syncTimer=setTimeout(()=>doSync(false),ms); }
 function setSyncUI(state){ const d=$('#syncdot'); d.className='syncdot'+(state==='ok'?' on':state==='err'?' err':'');
   $('#syncStatusTxt').textContent = hasSrv
@@ -2350,12 +2361,13 @@ function setSyncUI(state){ const d=$('#syncdot'); d.className='syncdot'+(state==
     : 'Local mode — deploy to Apps Script for cross-device sync.'; }
 function doSync(manual){
   if(!hasSrv){ if(manual) toast('Local mode — no server'); return; }
-  // a request that never calls back (tab backgrounded/throttled mid-flight, dropped
-  // network) must not wedge every future sync — force-clear the flag after 12s.
-  if(syncing && Date.now()-syncStartedAt<12000) return;
+  /* exactly one request in flight, ever. This used to give up waiting after
+     12s and fire another while the first was still queued on the server —
+     under a slow moment that turned into a pile-up of requests all timing out
+     on the server's lock. Calls now always settle (45s abort in apiCall). */
+  if(syncing) return;
+  if(!manual && Date.now()<syncRetryAt) return;
   syncing=true; syncStartedAt=Date.now();
-  clearTimeout(syncWatchdog);
-  syncWatchdog=setTimeout(()=>{ syncing=false; setSyncUI('err'); }, 12000);
   const keys=Object.keys(dirty);
   const sentT={};
   const items=keys.filter(k=>KVD[k]).map(k=>{
@@ -2370,8 +2382,8 @@ function doSync(manual){
   const t0=Date.now();
   apiCall('sync', {items, since: serverProto2 ? lastRev : lastPull, proto:2})
     .then(res=>{
-      clearTimeout(syncWatchdog);
       if(!res || res.ok===false) throw new Error((res&&res.error)||'sync failed');
+      syncFailures=0; syncRetryAt=0;
       const t1=Date.now();
       // server time ≈ midpoint of the round trip; smoothed so one slow request can't jolt it
       if(res.now){ const est=res.now-(t0+t1)/2;
@@ -2389,7 +2401,10 @@ function doSync(manual){
       if(changedKeys.length || first) onRemoteChange(changedKeys, first);
       if(manual) toast('Synced ✓');
     })
-    .catch(()=>{ clearTimeout(syncWatchdog); syncing=false; setSyncUI('err'); });
+    .catch(()=>{ syncing=false; setSyncUI('err');
+      syncFailures++; syncRetryAt=Date.now()+Math.min(60000, 5000*Math.pow(2, syncFailures-1));
+      // anything still unsent gets retried once the back-off passes
+      if(Object.keys(dirty).length) queueSync(syncRetryAt-Date.now()+50); });
 }
 /* what to do when the other device changed something (or on the very first
    pull of this page): adopt a work session started/paused elsewhere, run the
@@ -2412,9 +2427,9 @@ setInterval(()=>{ if(document.visibilityState==='visible' && hasSrv) doSync(fals
    pull has landed */
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'){
   if(typeof renderWorkTick==='function') renderWorkTick();
-  tsAwayCheck(); doSync(false); scheduleRender(); } });
-window.addEventListener('focus',()=>{ if(hasSrv) doSync(false); });
-window.addEventListener('pageshow',()=>{ if(hasSrv) doSync(false); });
+  tsAwayCheck(); syncNowFresh(); scheduleRender(); } });
+window.addEventListener('focus',()=>{ if(hasSrv) syncNowFresh(); });
+window.addEventListener('pageshow',()=>{ if(hasSrv) syncNowFresh(); });
 
 /* ================= XP / leveling ================= */
 function levelForXP(xp){
@@ -6660,7 +6675,7 @@ if(NATIVE && window.Capacitor.Plugins.App){
      build, and re-arm the notification + reminders. */
   window.Capacitor.Plugins.App.addListener('resume', ()=>{
     resumedAt=Date.now();
-    renderWorkTick(); tsAwayCheck(); doSync(false); scheduleRender();
+    renderWorkTick(); tsAwayCheck(); syncNowFresh(); scheduleRender();
     if(window.kosCheckUpdate) window.kosCheckUpdate();
     wtSync(); tsScheduleNotifs(); hcRefreshSteps();
   });

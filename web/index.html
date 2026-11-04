@@ -1042,7 +1042,8 @@
     margin-top:7px; padding-top:7px; border-top:1px solid var(--hud-line);
   }
   #wrap .wq-add input{ flex:1; min-width:0; font-size:12.5px; padding:8px 11px; height:auto; }
-  #wrap .wq-add .addbtn-round{ width:30px; height:30px; font-size:16px; }
+  #wrap .wq-add .addbtn-round{ width:34px; height:34px; flex-basis:34px; }
+  #wrap .wq-add .addbtn-round .plus-ic{ width:17px; height:17px; }
   /* fixed-width marker gutter so every title starts on the SAME x — the ragged
      left edge was most of why the old list read as noise rather than a manifest */
   #wrap .wq-row{
@@ -1095,14 +1096,6 @@
   #wrap .wf-sub{ font-size:11px; color:var(--dim); margin-top:4px; }
   #wrap .wf-addobj{ display:flex; align-items:center; gap:7px; margin-top:9px; }
   #wrap .wf-addobj input{ flex:1; min-width:0; font-size:11.5px; padding:7px 10px; height:auto; }
-  #wrap .wf-addobj button{
-    flex:0 0 auto; width:28px; height:28px; border-radius:50%; border:1px solid rgba(255,255,255,.1);
-    background:linear-gradient(180deg, var(--accent), var(--accent2)); color:var(--bg);
-    box-shadow:0 4px 12px -4px var(--accent); font-size:15px; font-weight:800; cursor:pointer;
-    display:flex; align-items:center; justify-content:center; line-height:1;
-    transition:transform .15s var(--spring);
-  }
-  #wrap .wf-addobj button:active{ transform:scale(.88); }
 
   /* 2 · ACTION BAR — was a 40px circle floating in the middle of nothing, which
      read as an afterthought rather than the primary control. Now a full-width
@@ -1279,6 +1272,23 @@
   body.desk .sb-brand.klogo{ padding:0 10px 22px; }
   body.desk .sb-brand.klogo svg{ height:64px; }
   @media (prefers-reduced-motion:reduce){ .klogo svg{ animation:none } }
+
+  /* ---------- add buttons: one design everywhere, a drawn plus that's
+     geometrically centred (a text "+" sits wherever the font's metrics put it) */
+  #wrap .addbtn-round, .modal .addbtn-round{
+    width:42px; height:42px; flex:0 0 42px; padding:0; border-radius:50%; border:1px solid rgba(255,255,255,.18);
+    display:grid; place-items:center; color:#fff; cursor:pointer;
+    background:radial-gradient(120% 120% at 30% 20%, rgba(255,255,255,.35), transparent 45%),
+               linear-gradient(145deg, var(--accent), var(--accent2));
+    box-shadow:0 6px 18px -6px var(--accent), inset 0 1px 0 rgba(255,255,255,.35), inset 0 -2px 6px rgba(0,0,0,.18);
+    transition:transform .2s var(--spring), box-shadow .2s, filter .2s;
+  }
+  #wrap .addbtn-round:hover, .modal .addbtn-round:hover{ filter:brightness(1.08); box-shadow:0 8px 24px -6px var(--accent), inset 0 1px 0 rgba(255,255,255,.4); }
+  #wrap .addbtn-round:active, .modal .addbtn-round:active{ transform:scale(.88) rotate(90deg); }
+  .plus-ic{ width:20px; height:20px; display:block; fill:none; stroke:currentColor; stroke-width:2.6; stroke-linecap:round;
+    filter:drop-shadow(0 1px 1px rgba(0,0,0,.25)); }
+  #wrap .wf-addobj .addbtn-round{ width:32px; height:32px; flex-basis:32px; }
+  #wrap .wf-addobj .addbtn-round .plus-ic{ width:16px; height:16px; }
 </style>
 </head>
 <body>
@@ -1443,7 +1453,7 @@
       </div>
       <div class="wq-add">
         <input type="text" id="wqNewQuest" placeholder="New mission…" autocomplete="off" onkeydown="if(event.key==='Enter')addGoalFromWork()">
-        <button class="addbtn-round" onclick="addGoalFromWork()" title="Add mission">+</button>
+        <button class="addbtn-round" onclick="addGoalFromWork()" title="Add mission"><svg class="plus-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
       </div>
     </div>
 
@@ -1750,7 +1760,7 @@
       <div class="sub" id="goalStreak" style="margin-top:6px"></div>
       <div class="qhead" style="margin-top:14px">
         <input type="text" id="goalInput" class="grow" placeholder="New mission…" onkeydown="if(event.key==='Enter')addGoal()">
-        <button class="addbtn-round" onclick="addGoal()" title="Add mission">+</button>
+        <button class="addbtn-round" onclick="addGoal()" title="Add mission"><svg class="plus-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
       </div>
       <!-- qSplit is a single column outside Pip-Boy mode (see HUD-layer CSS) — the
            split into a quest-log page (list left, tracked quest right, with the
@@ -1853,7 +1863,7 @@
     <div id="gdSubs" style="margin-top:4px"></div>
     <div class="qhead" style="margin-top:8px">
       <input type="text" id="gdSubInput" class="grow" placeholder="New objective…" onkeydown="if(event.key==='Enter')addSubtask()">
-      <button class="addbtn-round" onclick="addSubtask()" title="Add objective">+</button>
+      <button class="addbtn-round" onclick="addSubtask()" title="Add objective"><svg class="plus-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
     </div>
     <div class="lbl" style="margin-top:16px">Notes</div>
     <textarea id="gdNotes" rows="3" placeholder="Small notes…" style="width:100%;margin-top:4px"></textarea>
@@ -2117,7 +2127,7 @@
       <div class="lbl">🔗 Connections</div>
       <div class="setgrid">
         <div><label>Morning routine (ASCEND) link</label>
-          <input type="url" id="setAscend" placeholder="https://elixara2.github.io/kyrylos/ascend/"></div>
+          <input type="url" id="setAscend" placeholder="Blank = the built-in ASCEND (recommended)"></div>
         <div><label>Life tracker sheet</label>
           <input type="url" id="setLife" placeholder="https://docs.google.com/spreadsheets/…"></div>
       </div>
@@ -2138,7 +2148,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261104-100725';
+const KOS_BUILD='20261104-120529';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -3996,7 +4006,7 @@ function renderWorkFocus(){
     // to swallow its own clicks or typing a letter would untrack the quest
     '<div class="wf-addobj" onclick="event.stopPropagation()">'+
       '<input type="text" id="wfNewObj" placeholder="Add objective…" autocomplete="off" onkeydown="if(event.key===\'Enter\')addSubtaskFromWork()">'+
-      '<button onclick="addSubtaskFromWork()" title="Add objective">+</button>'+
+      '<button class="addbtn-round" onclick="addSubtaskFromWork()" title="Add objective"><svg class="plus-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>'+
     '</div>';
   host.onclick=()=>toggleFocusQuest(fq.id);
 }
@@ -5826,7 +5836,24 @@ function closeModuleDetail(){ $('#modDetailScrim').classList.remove('show'); mod
 
 /* RISE (morning check-in) was cut in the big revamp — its markup is gone, this is
    the one survivor still wired to the "Morning routine" flow block's open handler. */
-function riseOpenAscend(){ if(SET.ascendUrl) window.open(SET.ascendUrl,'_blank'); else { toast('Set your ASCEND link in Settings'); openSettings(); } }
+/* ASCEND is hosted right alongside K-OS (deploy.sh copies it to ascend/), so
+   it works with no setup. A blank or stale local link (localhost from the old
+   dev setup) means the built-in one. It used to open Settings whenever the link
+   was blank — i.e. always — and on the phone window.open(_blank) silently does
+   nothing anyway (the Android WebView has no tabs), so there it opens in place
+   and your back gesture returns to K-OS. */
+const ASCEND_DEFAULT='ascend/';
+function ascendHref(){ const u=(SET.ascendUrl||'').trim(); return (!u || /localhost|127\.0\.0\.1|^file:/i.test(u)) ? ASCEND_DEFAULT : u; }
+function riseOpenAscend(){
+  const href=ascendHref();
+  if(NATIVE){
+    persistNow();
+    // release K-OS's back-gesture hook first, so Android's own "go back" brings you home from ASCEND
+    try{ window.Capacitor.Plugins.App.removeAllListeners(); }catch(e){}
+    location.href=href; return;
+  }
+  window.open(href,'_blank');
+}
 
 /* ================= HABITS (life tracker) =================
    Pared down deliberately (2026-08-16): meals, water, gym, ASCEND's morning-routine

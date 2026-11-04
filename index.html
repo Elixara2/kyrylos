@@ -1182,8 +1182,7 @@
     background:linear-gradient(180deg, rgba(17,21,29,.80), rgba(11,14,20,.88));
     backdrop-filter:blur(26px) saturate(150%); -webkit-backdrop-filter:blur(26px) saturate(150%);
   }
-  body.desk .sb-brand{ display:block !important; font-size:21px; font-weight:850; letter-spacing:.01em; padding:2px 14px 26px; }
-  body.desk .sb-brand span{ color:var(--accent); }
+  body.desk .sb-brand{ display:block !important; }
   body.desk #tabbar .inner{ flex-direction:column; gap:3px; max-width:none; width:100%; flex:0 0 auto; }
   body.desk .tab{
     flex:0 0 auto; flex-direction:row; justify-content:flex-start; gap:13px;
@@ -1210,7 +1209,6 @@
   body.desk #wrap{ margin-left:var(--sb-w); max-width:none; padding:24px clamp(24px,3.2vw,52px) 40px; }
   body.desk #wrap > *{ max-width:1320px; margin-left:auto; margin-right:auto; }
   body.desk #wrap > header{ margin-bottom:18px; }
-  body.desk #wrap > header h1{ display:none; }
   body.desk #wrap > header .date{ font-size:13px; color:var(--txt); font-weight:600; }
   body.desk #wrap.work-fit{ padding-bottom:24px !important; }
   body.desk #backBar{ left:calc(var(--sb-w) + 16px); }
@@ -1271,9 +1269,41 @@
   /* everything else: wide, but not absurd */
   body.desk #p-gym, body.desk #p-diet, body.desk #p-habits, body.desk #p-rap, body.desk #p-modules{ max-width:1080px; }
   body.desk #moduleGrid{ grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); }
+
+  /* ---------- the floating K ---------- */
+  .klogo{ display:flex; align-items:center; margin:0; line-height:0; }
+  .klogo svg{ height:34px; width:auto; overflow:visible; animation:kFloat 6s ease-in-out infinite;
+    filter:drop-shadow(0 0 6px rgba(167,139,250,.55)); }
+  @keyframes kFloat{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-3px) } }
+  body.desk #wrap > header .klogo{ display:none; }   /* the sidebar carries it on desktop */
+  body.desk .sb-brand.klogo{ padding:0 10px 22px; }
+  body.desk .sb-brand.klogo svg{ height:64px; }
+  @media (prefers-reduced-motion:reduce){ .klogo svg{ animation:none } }
 </style>
 </head>
 <body>
+<!-- the K-OS mark, drawn once (brand/make_k.py) and reused by the header + sidebar -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<linearGradient id="km-kfill" x1="380" y1="240" x2="740" y2="790" gradientUnits="userSpaceOnUse">
+  <stop offset="0" stop-color="#ffffff"/><stop offset=".38" stop-color="#e4dcff"/>
+  <stop offset=".72" stop-color="#b9a4ff"/><stop offset="1" stop-color="#7ee7ff"/></linearGradient>
+<linearGradient id="km-ring" x1="200" y1="0" x2="860" y2="0" gradientUnits="userSpaceOnUse">
+  <stop offset="0" stop-color="#22d3ee" stop-opacity="0"/><stop offset=".35" stop-color="#a78bfa"/>
+  <stop offset=".7" stop-color="#f0abfc"/><stop offset="1" stop-color="#22d3ee" stop-opacity="0"/></linearGradient>
+<linearGradient id="km-ring2" x1="860" y1="0" x2="200" y2="0" gradientUnits="userSpaceOnUse">
+  <stop offset="0" stop-color="#67e8f9" stop-opacity="0"/><stop offset=".5" stop-color="#c4b5fd"/>
+  <stop offset="1" stop-color="#67e8f9" stop-opacity="0"/></linearGradient>
+<radialGradient id="km-bg" cx="50%" cy="44%" r="70%">
+  <stop offset="0" stop-color="#1d1648"/><stop offset=".55" stop-color="#0c0a22"/><stop offset="1" stop-color="#040409"/></radialGradient>
+<radialGradient id="km-halo" cx="50%" cy="50%" r="50%">
+  <stop offset="0" stop-color="#8b5cf6" stop-opacity=".55"/><stop offset=".5" stop-color="#6d28d9" stop-opacity=".18"/>
+  <stop offset="1" stop-color="#6d28d9" stop-opacity="0"/></radialGradient>
+<filter id="km-glow" x="-40%" y="-40%" width="180%" height="180%">
+  <feGaussianBlur stdDeviation="10" result="b1"/><feGaussianBlur stdDeviation="34" result="b2"/>
+  <feMerge><feMergeNode in="b2"/><feMergeNode in="b1"/></feMerge></filter>
+<filter id="km-soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="60"/></filter>
+<filter id="km-shadow" x="-50%" y="-200%" width="200%" height="500%"><feGaussianBlur stdDeviation="22"/></filter>
+<symbol id="kmark" viewBox="210 170 640 740"><g transform="translate(530,510) scale(1.0) translate(-530,-510)"><ellipse cx="545" cy="858" rx="190" ry="26" fill="#8b5cf6" opacity=".45" filter="url(#km-shadow)"/><circle cx="530" cy="505" r="330" fill="url(#km-halo)"/><g fill="none" stroke-linecap="round"><ellipse cx="530" cy="512" rx="318" ry="92" transform="rotate(-24 530 512)" stroke="url(#km-ring)" stroke-width="2.2" opacity=".9"/><ellipse cx="530" cy="512" rx="300" ry="70" transform="rotate(31 530 512)" stroke="url(#km-ring2)" stroke-width="1.4" stroke-dasharray="2 9" opacity=".75"/><circle cx="530" cy="512" r="338" stroke="#c4b5fd" stroke-opacity=".10" stroke-width="1"/></g><circle cx="818.6" cy="413.3" r="2.4" fill="#e9d5ff" opacity="0.9"/><circle cx="768.3" cy="474.5" r="1.3" fill="#e9d5ff" opacity="0.55"/><circle cx="670.8" cy="543.1" r="1.3" fill="#e9d5ff" opacity="0.55"/><circle cx="545.4" cy="605.6" r="2.4" fill="#e9d5ff" opacity="0.9"/><circle cx="416.9" cy="649.5" r="1.3" fill="#e9d5ff" opacity="0.55"/><circle cx="310.9" cy="666.2" r="1.3" fill="#e9d5ff" opacity="0.55"/><circle cx="248.3" cy="652.4" r="2.4" fill="#e9d5ff" opacity="0.9"/><circle cx="241.4" cy="610.7" r="1.3" fill="#e9d5ff" opacity="0.55"/><circle cx="291.7" cy="549.5" r="1.3" fill="#e9d5ff" opacity="0.55"/><circle cx="389.2" cy="480.9" r="2.4" fill="#e9d5ff" opacity="0.9"/><circle cx="514.6" cy="418.4" r="1.3" fill="#e9d5ff" opacity="0.55"/><circle cx="643.1" cy="374.5" r="1.3" fill="#e9d5ff" opacity="0.55"/><circle cx="749.1" cy="357.8" r="2.4" fill="#e9d5ff" opacity="0.9"/><circle cx="811.7" cy="371.6" r="1.3" fill="#e9d5ff" opacity="0.55"/><g stroke="#e9d5ff" stroke-opacity=".28" stroke-width="1" stroke-dasharray="1 6" fill="none"><path d="M405,250 L514,442 L676,250"/><path d="M514,442 L703,770"/><path d="M405,770 L514,442"/><path d="M676,250 C760,300 820,420 808,726"/></g><g transform="translate(-16 -14)" fill="none" stroke="#c4b5fd" stroke-opacity=".32" stroke-width="1.3"><path d="M380,250 C394,390 394,630 380,770 L430,770 C416,630 416,390 430,250 Z"/><path d="M392,566 L654,250 L698,250 L410,596 Z"/><path d="M498,456 L530,432 L734,770 L676,770 Z"/></g><g fill="#a78bfa" filter="url(#km-glow)" opacity=".95"><path d="M380,250 C394,390 394,630 380,770 L430,770 C416,630 416,390 430,250 Z"/><path d="M392,566 L654,250 L698,250 L410,596 Z"/><path d="M498,456 L530,432 L734,770 L676,770 Z"/></g><g fill="#22d3ee" filter="url(#km-glow)" opacity=".35" transform="translate(6 8)"><path d="M380,250 C394,390 394,630 380,770 L430,770 C416,630 416,390 430,250 Z"/><path d="M392,566 L654,250 L698,250 L410,596 Z"/><path d="M498,456 L530,432 L734,770 L676,770 Z"/></g><g fill="url(#km-kfill)"><path d="M380,250 C394,390 394,630 380,770 L430,770 C416,630 416,390 430,250 Z"/><path d="M392,566 L654,250 L698,250 L410,596 Z"/><path d="M498,456 L530,432 L734,770 L676,770 Z"/></g><path d="M346,250 H464 M346,770 H464 M630,250 H720 M650,770 H758" stroke="url(#km-kfill)" stroke-width="3.2" stroke-linecap="round" fill="none"/><g stroke="url(#km-kfill)" stroke-width="2.2" fill="none" stroke-linecap="round" opacity=".9"><path d="M346,250 C328,250 320,238 326,228 C331,220 342,224 340,233"/><path d="M346,770 C328,770 320,782 326,792 C331,800 342,796 340,787"/><path d="M720,250 C738,250 746,238 740,228 C735,220 724,224 726,233"/><path d="M464,250 C480,252 488,266 482,276" stroke-opacity=".6"/><path d="M464,770 C480,768 488,754 482,744" stroke-opacity=".6"/></g><path d="M728,770 C772,778 806,758 808,726 C810,700 786,690 768,704 C756,714 764,732 780,728" stroke="url(#km-kfill)" stroke-width="3" fill="none" stroke-linecap="round"/><g stroke="#ffffff" stroke-opacity=".55" stroke-width="1.6" fill="none" stroke-linecap="round"><path d="M405,268 C411,400 411,620 405,752"/><path d="M424,560 L668,262"/><path d="M522,452 L702,756"/><path d="M392,300 C400,420 400,600 392,720" stroke-opacity=".22" stroke-width="1"/><path d="M418,300 C426,420 426,600 418,720" stroke-opacity=".22" stroke-width="1"/></g><path d="M405,228 Q408.96,246.04 427,250 Q408.96,253.96 405,272 Q401.04,253.96 383,250 Q401.04,246.04 405,228 Z" fill="#fff" opacity="1.0"/><path d="M676,234 Q678.88,247.12 692,250 Q678.88,252.88 676,266 Q673.12,252.88 660,250 Q673.12,247.12 676,234 Z" fill="#fff" opacity="0.9"/><path d="M703,752 Q706.24,766.76 721,770 Q706.24,773.24 703,788 Q699.76,773.24 685,770 Q699.76,766.76 703,752 Z" fill="#fff" opacity="0.9"/><path d="M405,756 Q407.52,767.48 419,770 Q407.52,772.52 405,784 Q402.48,772.52 391,770 Q402.48,767.48 405,756 Z" fill="#fff" opacity="0.8"/><path d="M514,416 Q518.68,437.32 540,442 Q518.68,446.68 514,468 Q509.32,446.68 488,442 Q509.32,437.32 514,416 Z" fill="#fff" opacity="1.0"/><path d="M808,716 Q809.8,724.2 818,726 Q809.8,727.8 808,736 Q806.2,727.8 798,726 Q806.2,724.2 808,716 Z" fill="#fff" opacity="0.8"/></g></symbol></defs></svg>
 <!-- AURORA — three huge, heavily-blurred colour blobs drifting behind everything.
      This is what actually makes the glass cards read as glass: backdrop-filter
      blur needs something with real colour and movement behind it to blur, and a
@@ -1287,7 +1317,7 @@
 <div id="wrap">
   <header>
     <div class="hleft">
-      <h1>K<span style="color:var(--accent)">-OS</span></h1>
+      <h1 class="klogo" aria-label="K-OS"><svg viewBox="210 170 640 740" aria-hidden="true"><use href="#kmark"/></svg></h1>
       <div class="date" id="hdrDate"></div>
       <div id="pfloat">
         <button id="pfpill" onclick="toggleProfitFloat()" aria-label="Today's profit">
@@ -1837,7 +1867,7 @@
 <!-- floating Prophit tab — live on every screen -->
 <!-- tab bar -->
 <nav id="tabbar">
-  <div class="sb-brand desk-only">K<span>-OS</span></div>
+  <div class="sb-brand desk-only klogo" aria-label="K-OS"><svg viewBox="210 170 640 740" aria-hidden="true"><use href="#kmark"/></svg></div>
   <div class="inner">
   <i id="tabGlow" aria-hidden="true"></i>
   <button class="tab" data-tab="today"><span class="ic">☀️</span><span class="lbl">Today</span><span class="dotdone"></span></button>
@@ -2108,7 +2138,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261104-095242';
+const KOS_BUILD='20261104-100725';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;

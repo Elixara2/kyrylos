@@ -1926,7 +1926,7 @@
     <div class="sub log-block" id="tsBlockLbl"></div>
     <input type="text" id="tsNote" class="log-input" placeholder="1–2 words…" autocomplete="off" autocapitalize="sentences">
     <button class="log-save" onclick="tsCloseLog(true)">Save &amp; continue ▶</button>
-    <button class="log-skip" onclick="tsCloseLog(false)">Skip this block</button>
+    <button class="log-skip" onclick="tsCloseLog(false)">Later — my next entry will cover it</button>
     <div class="sub" style="margin-top:2px;color:rgba(255,255,255,.6)">⏎ saves &amp; auto-closes · writes into your spreadsheet</div>
   </div>
 </div>
@@ -2148,7 +2148,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261104-120529';
+const KOS_BUILD='20261104-121758';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -2159,7 +2159,9 @@ const KOS_BUILD='20261104-120529';
       if(r.ok){
         const live=(await r.text()).trim();
         // never yank the page out from under a half-typed note — catch it next time
-        const el=document.activeElement, busy=el&&/^(INPUT|TEXTAREA)$/.test(el.tagName)&&el.value;
+        const el=document.activeElement;
+        // …or while a log question / dialog is up (here or in the floating timer) — next check catches it
+        const busy=(el&&/^(INPUT|TEXTAREA)$/.test(el.tagName)&&el.value) || (window.kosBusy && window.kosBusy());
         // a bare reload() can be satisfied from the browser's HTTP cache even though
         // version.txt (fetched no-store, above) just proved a newer build is live —
         // that gap is exactly how a phone can sit on a stale build indefinitely.
@@ -3494,7 +3496,7 @@ function tsDoc(){
 }
 // a real change you made (start, pause, log, break, end) — synced, and it's what
 // "last activity" means for the away check
-function tsSave(){ ts.touchedAt=nowTs(); jsave('tsrun',ts); kset('ts:live', tsDoc()); }
+function tsSave(touch){ if(touch!==false) ts.touchedAt=nowTs(); jsave('tsrun',ts); kset('ts:live', tsDoc()); }
 // a local-only overlay change (log prompt opened) — nothing for the other device
 function tsSaveLocal(){ jsave('tsrun',ts); }
 
@@ -3510,9 +3512,9 @@ function sessionActiveMs(at){
    block, or the session is over) */
 function tsAdoptRemote(){
   const doc=kget('ts:live', null); if(!doc) return;
-  const overlay = ts.mode==='logging' || ts.mode==='resting';
-  if(overlay && doc.mode==='working' && doc.sessionStart===ts.sessionStart && doc.blockStart===ts.blockStart) return;
-  if(ts.mode==='logging'){ clearTimeout(logAutoSkipTimer); $('#tsScrim').classList.remove('show'); hidePipLog(); }
+  // the other device wrote this block (or ended the session): my open prompt is moot
+  if(logOpen && (doc.blockStart!==ts.blockStart || doc.mode==='idle')){ logOpen=false; $('#tsScrim').classList.remove('show'); hidePipLog(); }
+  if(ts.mode==='resting' && doc.mode==='working' && doc.sessionStart===ts.sessionStart && doc.blockStart===ts.blockStart && doc.nextLogAt===ts.nextLogAt) return;
   if(ts.mode==='resting' && doc.mode!=='working'){ clearInterval(restTicker); $('#breakFloat').classList.remove('show'); }
   const keepRest = ts.mode==='resting' && doc.mode==='working' && doc.sessionStart===ts.sessionStart;
   const restBits = keepRest ? {mode:'resting', restKind:ts.restKind, restEndAt:ts.restEndAt, wasWorking:true} : {};
@@ -3640,8 +3642,7 @@ function tsToggle(){
     if(ts.miniPausedLeft) ts.miniNextAt=now+Math.max(1000,ts.miniPausedLeft);
     if(ts.bigPausedLeft) ts.bigNextAt=now+Math.max(1000,ts.bigPausedLeft);
   } else { // stuck in a transient state (logging/resting) — recover so the button always works
-    clearTimeout(logAutoSkipTimer);   // manual recovery — the 2-min self-heal must not also fire later
-    $('#tsScrim').classList.remove('show'); $('#breakFloat').classList.remove('show'); hidePipLog();
+    logOpen=false; $('#tsScrim').classList.remove('show'); $('#breakFloat').classList.remove('show'); hidePipLog();
     ts.mode='working'; ts.blockStart=ts.blockStart||now; ts.nextLogAt=now+SET.tsInt*60000;
   }
   tsSave(); wtSync(); tsScheduleNotifs(); renderWork();
@@ -3650,7 +3651,7 @@ function tsToggle(){
    moment of your last activity when ending from the away check */
 function tsClockOut(endAt){
   if(ts.mode==='idle') return;
-  clearTimeout(logAutoSkipTimer);   // session is OVER — a late self-heal firing must not resurrect it
+  logOpen=false;
   const end = typeof endAt==='number' ? endAt : nowTs();
   const activeMin=Math.floor(sessionActiveMs(end)/60000), loggedMin=sessionLoggedMin();
   const dayKey='ts:sessions:'+todayKey(new Date(ts.sessionStart||end));   // the day it STARTED — can cross midnight
@@ -3674,7 +3675,7 @@ function tsClockOut(endAt){
 function tsResetSession(){
   if(ts.mode==='idle') return;
   if(!confirm('Reset this session? The clock restarts from zero — anything already logged stays saved.')) return;
-  clearTimeout(logAutoSkipTimer);   // same reason as tsClockOut — nothing pending should outlive the reset
+  logOpen=false;
   clearInterval(restTicker);
   $('#breakFloat').classList.remove('show'); $('#tsScrim').classList.remove('show'); hidePipLog();
   ts=Object.assign({}, TS_IDLE);
@@ -3748,47 +3749,54 @@ function setBigEvery(min){ SET.bigEvery=parseFloat(min)||120; kset('settings',SE
   renderWork(); }
 function setBigLen(min){ SET.bigLen=parseFloat(min)||15; kset('settings',SET); renderWork(); }
 
-/* ---- log a block: a quick in-app note, always — writes straight into our own
-   sheet (no external site to open, wait on, or lose focus to) ---- */
-let logAutoSkipTimer=null;
+/* ---- logging a block ----
+   A log prompt never stops anything. The session stays 'working' the whole
+   time it's open: the countdown to the next block keeps running, breaks still
+   come, and nothing auto-skips. If you skip it or just ignore it, no time is
+   thrown away — blockStart only moves when you actually write something, so
+   your next entry covers everything since the last one you wrote (the sheet
+   fills every 15-min block in that span). If the next reminder comes due while
+   the prompt is still up, it just widens the same prompt rather than stacking.
+   This replaced a 'logging' mode that froze the countdown until answered and
+   auto-skipped after 2 minutes, discarding the block — "the whole app breaks". */
+let logOpen=false;
+function tsLogLabel(){
+  const span=nowTs()-ts.blockStart, multi=span > SET.tsInt*60000*1.5;
+  return (multi?'Since your last entry · ':'This block · ')+clock(ts.blockStart)+' – '+clock(nowTs());
+}
 function tsOpenLog(){
-  if(ts.mode==='idle') return;
-  ts.mode='logging'; tsSaveLocal();
+  if(ts.mode!=='working') return;
+  const now=nowTs();
+  // the next reminder is one interval from now, whether or not this gets answered
+  ts.nextLogAt=now+SET.tsInt*60000; tsSave(false); tsScheduleNotifs();
   chimeLog(); buzz([40,80,40]);
   try{ if('Notification' in window && Notification.permission==='granted' && !document.hasFocus())
-    new Notification('K-OS · Time to log',{body:'What did you do this block?'}); }catch(e){}
-  // came back after missing one or more reminders: ONE prompt for the whole
-  // stretch you were away, not a backlog of them firing one after another
-  const span=nowTs()-ts.blockStart, missed=span > SET.tsInt*60000*1.8;
-  const blockLbl=(missed?'While you were away · ':'Block ')+clock(ts.blockStart)+' – '+clock(nowTs());
-  /* Self-heal: if this sits unanswered for 2 minutes — the popped-out timer
-     window didn't actually grab OS focus (unreliable for a tiny window.open
-     popup), the phone was locked, whatever — skip it automatically. Without
-     this, ts.mode gets permanently stuck at 'logging': updatePip() refuses to
-     advance the displayed countdown the whole time (frozen number, looks like
-     the app died), and since the 1s ticker only fires the next log/break check
-     when ts.mode==='working', the entire 15-min cycle stops forever, not just
-     once. This is what "stuck on 28, work tab completely broken" actually was. */
-  clearTimeout(logAutoSkipTimer);
-  logAutoSkipTimer=setTimeout(()=>{ if(ts.mode==='logging') commitLog(''); }, 120000);
-  // seamless: if the floating timer is popped out, ask right inside it — no separate popup
-  if(pipWin && !pipWin.closed){ showPipLog(blockLbl); return; }
-  $('#tsBlockLbl').textContent=blockLbl;
-  $('#tsNote').value='';   // was pre-filled with the tracked quest's title — asked to remove it
+    new Notification('K-OS · Time to log',{body:'What did you do since '+clock(ts.blockStart)+'?'}); }catch(e){}
+  const lbl=tsLogLabel();
+  if(logOpen){   // still up from last time: widen it, don't stack another
+    $('#tsBlockLbl').textContent=lbl; if(pipLogShown()) pipSetLogLabel(lbl);
+    return;
+  }
+  logOpen=true;
+  if(pipWin && !pipWin.closed){ showPipLog(lbl); return; }   // ask right inside the floating timer
+  $('#tsBlockLbl').textContent=lbl;
+  $('#tsNote').value='';
   $('#tsScrim').classList.add('show');
   setTimeout(()=>{ const inp=$('#tsNote'); inp.focus(); },60);
 }
-/* the one place a block actually gets saved + the session resumes (shared by the
-   full-screen popup and the in-widget input) */
+/* the one place a block gets saved (full-screen prompt and floating timer both).
+   An empty note = "later": the prompt closes, the span stays open for next time. */
 function commitLog(note){
-  clearTimeout(logAutoSkipTimer);   // resolved for real — the 2-minute self-heal doesn't need to fire
+  logOpen=false;
+  $('#tsScrim').classList.remove('show'); hidePipLog();
+  if(ts.mode==='idle'){ updatePip(); return; }
+  const now=nowTs();
   if(note){
-    const e=getTsEntries(); e.push({s:ts.blockStart, e:nowTs(), text:note});
+    const e=getTsEntries(); e.push({s:ts.blockStart, e:now, text:note});
     kset('ts:entries:'+todayKey(), e);
     addXP(6,'block logged');
+    ts.blockStart=now;
   }
-  const now=nowTs();
-  ts.mode='working'; ts.blockStart=now; ts.nextLogAt=now+SET.tsInt*60000;
   // breaks that came due while you were away aren't owed now — reset their clocks
   // instead of hitting you with one the second you finish this log
   if(ts.miniNextAt && ts.miniNextAt < now-120000) ts.miniNextAt=now+SET.miniEvery*60000;
@@ -3798,10 +3806,12 @@ function commitLog(note){
 }
 function tsCloseLog(saveIt){
   const note=$('#tsNote').value.trim();
-  $('#tsScrim').classList.remove('show');
   commitLog(saveIt ? note : '');
 }
-$('#tsNote').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); tsCloseLog(true); } });
+$('#tsNote').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){ e.preventDefault(); tsCloseLog(true); }
+  else if(e.key==='Escape'){ e.preventDefault(); tsCloseLog(false); }
+});
 document.addEventListener('keydown',e=>{ if(e.key==='Escape' && ts.mode==='resting') endRest(true); });
 
 /* Measures the header/tab-bar chrome that's actually on screen right now and
@@ -4152,8 +4162,8 @@ setInterval(()=>{
   const now=nowTs();
   tsCheckMilestones(); // fires regardless of which tab is open — a marathon session shouldn't need the Work tab up to celebrate
   if(SET.logOn && now>=ts.nextLogAt){ tsOpenLog(); }
-  else if(SET.restOn && ts.bigNextAt && now>=ts.bigNextAt){ startRest('big',false); }
-  else if(SET.restOn && ts.miniNextAt && now>=ts.miniNextAt){ startRest('mini',false); }
+  else if(!logOpen && SET.restOn && ts.bigNextAt && now>=ts.bigNextAt){ startRest('big',false); }
+  else if(!logOpen && SET.restOn && ts.miniNextAt && now>=ts.miniNextAt){ startRest('mini',false); }
   else if(document.visibilityState==='visible' && activeTab==='work') renderWorkTick();
   else if(document.visibilityState==='visible' && activeTab==='today' && isDesk()) renderAsideTick();
 },1000);
@@ -4252,78 +4262,70 @@ function popOutTimer(){
     '<div id="pw-log"><div id="pw-logq">What did you do?</div><div id="pw-block"></div>'+
     '<input id="pw-input" placeholder="what did you do? ⏎" autocomplete="off"><div class="pw-loghint">⏎ save · esc skip</div></div>';
   const pd=pipWin.document;
-  pd.getElementById('pw-time').addEventListener('click',()=>{ try{ window.focus(); }catch(e){} showTab('work'); });
-  pd.getElementById('pw-quest').addEventListener('click',()=>{ try{ window.focus(); }catch(e){} showTab('work'); });
-  pd.getElementById('pw-toggle').addEventListener('click',ev=>{ ev.stopPropagation(); tsToggle(); updatePip(); });
-  pd.getElementById('pw-out').addEventListener('click',ev=>{ ev.stopPropagation(); if(ts.mode!=='idle'){ tsClockOut(); updatePip(); } });
-  pd.getElementById('pw-close').addEventListener('click',ev=>{ ev.stopPropagation(); try{ pipWin.close(); }catch(e){} });
-  // custom drag: 1:1 with the mouse, moved natively via setPosition. The native side
-  // uses enableLargerThanScreen so it CAN sit flush to the edge / hang off it, but it
-  // also keeps a grabbable sliver on screen so the pill can never be lost. (There's no
-  // edge auto-slide: it ran away off-screen. Grabbing the pill near its top edge is
-  // enough to push nearly all of it past the bottom.)
-  (function(){
-    const drag=pd.getElementById('pw'); if(!drag) return;
-    let dragging=false;
-    // kosNative lives on THIS window (the main K-OS window's own preload) — the timer
-    // popup can't carry its own preload, see main.js's note on setWindowOpenHandler.
-    const nudge=(dx,dy)=>{ if(dx||dy){ try{ window.kosNative&&window.kosNative.dragBy(dx,dy); }catch(_){} } };
-    drag.addEventListener('pointerdown',e=>{
+  /* Everything the pill does is wired by a script that lives INSIDE the pill and
+     calls back into whatever K-OS page is currently loaded in the main window
+     (window.opener.kosPip, looked up fresh on every click/tick). It used to be
+     wired by closures from the main page — so the moment the main window
+     reloaded (every new build, every auto-update), the pill's buttons and its
+     Enter key belonged to a page that no longer existed: dead input, frozen
+     clock. The tick also re-introduces the pill to a freshly loaded page. */
+  const pipScript=pd.createElement('script');
+  pipScript.textContent = '(' + function(){
+    function K(){ try{ return (window.opener && !window.opener.closed) ? window.opener.kosPip : null; }catch(e){ return null; } }
+    function call(fn,a,b){ var k=K(); if(k && k[fn]){ try{ k[fn](a,b); }catch(e){} } }
+    function g(id){ return document.getElementById(id); }
+    g('pw-time').addEventListener('click',function(){ call('openWork'); });
+    g('pw-quest').addEventListener('click',function(){ call('openWork'); });
+    g('pw-toggle').addEventListener('click',function(ev){ ev.stopPropagation(); call('toggle'); });
+    g('pw-out').addEventListener('click',function(ev){ ev.stopPropagation(); call('out'); });
+    g('pw-close').addEventListener('click',function(ev){ ev.stopPropagation(); window.close(); });
+    g('pw-lock').addEventListener('click',function(ev){ ev.stopPropagation(); call('lock'); });
+    g('pw-input').addEventListener('keydown',function(ev){
+      if(ev.key==='Enter'){ ev.preventDefault(); call('submit', true, g('pw-input').value); }
+      else if(ev.key==='Escape'){ ev.preventDefault(); call('submit', false, ''); }
+    });
+    // drag: 1:1 with the mouse, moved natively (the shell keeps a grabbable sliver on screen)
+    var drag=g('pw'), dragging=false;
+    drag.addEventListener('pointerdown',function(e){
       if(e.button!==0) return;
-      if(e.target.closest('#pw-ctl')||e.target.id==='pw-time'||e.target.id==='pw-quest'||e.target.id==='pw-input') return;
+      if(e.target.closest('#pw-ctl')||e.target.id==='pw-time'||e.target.id==='pw-quest') return;
       dragging=true; try{ drag.setPointerCapture(e.pointerId); }catch(_){}
     });
-    drag.addEventListener('pointermove',e=>{ if(!dragging) return;
-      nudge(e.movementX||0, e.movementY||0);
-    });
-    const end=()=>{ dragging=false; };
-    drag.addEventListener('pointerup',end); drag.addEventListener('pointercancel',end);
-  })();
-  const lockBtn=pd.getElementById('pw-lock');
-  const paintLock=()=>{ lockBtn.textContent = pipLocked?'🔒':'🔓'; lockBtn.title = pipLocked?'Locked in place — tap to unlock':'Lock in place'; lockBtn.classList.toggle('on',pipLocked); };
-  lockBtn.addEventListener('click',ev=>{ ev.stopPropagation();
-    pipLocked=!pipLocked;
-    jsave('pipLocked',pipLocked);
-    pipSetTitle();   // the native shell freezes / frees the OS window from this
-    paintLock();
-    toast(pipLocked?'📌 Timer locked in place':'Timer unlocked — drag it anywhere');
-  });
-  paintLock();
-  const pinp=pd.getElementById('pw-input');
-  pinp.addEventListener('keydown',ev=>{
-    if(ev.key==='Enter'){ ev.preventDefault(); pipSubmitLog(true); }
-    else if(ev.key==='Escape'){ ev.preventDefault(); pipSubmitLog(false); }
-  });
-  const onClosed=()=>{
-    const wasLogging = ts.mode==='logging'; pipWin=null; clearInterval(pipPoll);
-    if(wasLogging){ // widget closed mid-log — fall back to the in-app popup so nothing's lost
-      $('#tsBlockLbl').textContent='Block '+clock(ts.blockStart)+' – '+clock(nowTs());
-      $('#tsNote').value=''; $('#tsScrim').classList.add('show'); setTimeout(()=>$('#tsNote').focus(),60);
-    }
-  };
-  pipWin.addEventListener('pagehide',onClosed);
-  // just watch for the window being closed — position/locking is handled natively now.
-  const pipPoll=setInterval(()=>{
-    if(!pipWin || pipWin.closed){ onClosed(); return; }
-  }, 500);
-  updatePip();
-  /* The countdown used to depend ENTIRELY on the main window's 1-second loop
-     pushing updates into this popup — so backgrounding/minimizing the main
-     K-OS window (leaving only this floating widget on screen) silently froze
-     the display, even though this popup itself was perfectly visible and
-     never throttled. That's the "stops ticking because it doesn't have focus"
-     bug. Giving the popup its OWN interval fixes it: Chromium throttles
-     setInterval/setTimeout per-document based on THAT document's own
-     visibility, not the opener's, so this keeps firing on schedule regardless
-     of what the main window is doing. It just calls back into the opener's
-     existing updatePip() (a plain synchronous function call, not itself
-     subject to timer throttling) to do the actual rendering — no logic
-     duplicated, just who's driving the clock. */
-  const pipTick=pd.createElement('script');
-  pipTick.textContent='(function(){function t(){try{if(window.opener&&!window.opener.closed)window.opener.updatePip();}catch(e){}}t();setInterval(t,1000);})();';
-  pd.body.appendChild(pipTick);
+    drag.addEventListener('pointermove',function(e){ if(dragging && (e.movementX||e.movementY)) call('drag', e.movementX||0, e.movementY||0); });
+    drag.addEventListener('pointerup',function(){ dragging=false; });
+    drag.addEventListener('pointercancel',function(){ dragging=false; });
+    window.addEventListener('pagehide',function(){ call('closed'); });
+    /* its own 1s clock: Chromium throttles timers per document by THAT document's
+       visibility, so this keeps ticking even with the main window minimised */
+    function t(){ call('tick', window); }
+    t(); setInterval(t, 1000);
+  } + ')();';
+  pd.body.appendChild(pipScript);
   toast('Floating timer opened — drag it, tap 🔓 to lock it in place.');
 }
+/* the pill's way back into K-OS — see the script inside popOutTimer() */
+window.kosPip = {
+  tick(w){ if(!pipWin || pipWin.closed || pipWin!==w){ pipWin=w; } updatePip(); },
+  openWork(){ try{ window.focus(); }catch(e){} showTab('work'); },
+  toggle(){ tsToggle(); updatePip(); },
+  out(){ if(ts.mode!=='idle'){ tsClockOut(); updatePip(); } },
+  lock(){ pipLocked=!pipLocked; jsave('pipLocked',pipLocked); pipSetTitle(); updatePip();
+    toast(pipLocked?'📌 Timer locked in place':'Timer unlocked — drag it anywhere'); },
+  submit(saveIt, text){ pipSubmitLog(saveIt, text); },
+  drag(dx,dy){ try{ window.kosNative && window.kosNative.dragBy(dx,dy); }catch(_){} },
+  closed(){
+    pipWin=null;
+    // closed mid-question: ask in the app instead, so the answer isn't lost
+    if(logOpen){ $('#tsBlockLbl').textContent=tsLogLabel(); $('#tsNote').value='';
+      $('#tsScrim').classList.add('show'); setTimeout(()=>$('#tsNote').focus(),60); }
+  },
+};
+window.kosBusy=()=>logOpen || pipLogShown() || !!document.querySelector('.scrim.show, .logov.show') || awayOpen;
+function pipLogShown(){
+  if(!pipWin || pipWin.closed) return false;
+  try{ return pipWin.document.getElementById('pw-log').style.display==='flex'; }catch(e){ return false; }
+}
+function pipSetLogLabel(lbl){ try{ pipWin.document.getElementById('pw-input').placeholder=lbl.replace(/^.*·\s*/,'')+' — what did you do? ⏎'; }catch(e){} }
 /* swap the widget into "what did you do?" input mode, then back to the timer */
 function showPipLog(blockLbl){
   if(!pipWin || pipWin.closed) return;
@@ -4331,7 +4333,8 @@ function showPipLog(blockLbl){
   d.getElementById('pw').style.display='none';
   d.getElementById('pw-log').style.display='flex';
   d.getElementById('pw-block').textContent=blockLbl;
-  const inp=d.getElementById('pw-input'); inp.value='';   // was pre-filled with the tracked quest — removed
+  const inp=d.getElementById('pw-input'); inp.value='';
+  pipSetLogLabel(blockLbl);
   d.body.style.background='radial-gradient(130% 130% at 50% 34%,#1e40af,#0a1330 80%)';
   setTimeout(()=>{ try{ pipWin.focus(); inp.focus(); }catch(e){} },40);
 }
@@ -4341,10 +4344,10 @@ function hidePipLog(){
   try{ const d=pipWin.document; d.getElementById('pw-log').style.display='none';
     d.getElementById('pw').style.display='flex'; d.body.style.background='#0e1116'; }catch(e){}
 }
-function pipSubmitLog(saveIt){
-  if(!pipWin || pipWin.closed){ commitLog(''); return; }
+function pipSubmitLog(saveIt, text){
+  if(!pipWin || pipWin.closed){ commitLog(saveIt ? (text||'').trim() : ''); return; }
   const d=pipWin.document, inp=d.getElementById('pw-input');
-  const note=(inp.value||'').trim();
+  const note=((text!=null ? text : inp.value)||'').trim();
   d.getElementById('pw-log').style.display='none';
   d.getElementById('pw').style.display='flex';
   d.body.style.background='#0e1116';
@@ -4352,7 +4355,9 @@ function pipSubmitLog(saveIt){
 }
 function updatePip(){
   if(!pipWin || pipWin.closed) return;
-  if(ts.mode==='logging') return; // widget is showing the "what did you do?" input — don't clobber it
+  if(pipLogShown()) return; // the pill is showing the "what did you do?" input — don't clobber it
+  try{ const lb=pipWin.document.getElementById('pw-lock'); if(lb){ lb.textContent=pipLocked?'🔒':'🔓';
+    lb.title=pipLocked?'Locked in place — tap to unlock':'Lock in place'; lb.classList.toggle('on',pipLocked); } }catch(e){}
   const d=pipWin.document, g=id=>d.getElementById(id);
   const time=g('pw-time'), lbl=g('pw-lbl'), brk=g('pw-brk'), state=g('pw-state'), bfill=g('pw-brkfill'), body=d.body;
   const toggle=g('pw-toggle'), out=g('pw-out'), questEl=g('pw-quest');

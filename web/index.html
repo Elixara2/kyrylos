@@ -1535,6 +1535,52 @@
   body:not(.desk) #tabbar .tab{min-width:0;padding-left:0;padding-right:0}
   body.desk #p-plan .pl-top{margin-bottom:16px}
   body.desk #p-plan .pl-quick{max-width:720px}
+
+  /* ================= REFLECT ================= */
+  .rf-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .rf-head h2{margin:4px 0 0;font-size:24px;letter-spacing:-.02em}
+  .rf-moods{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:18px}
+  .rf-mood{display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 0 10px;border-radius:18px;
+    background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);color:var(--dim);font-size:12px;font-weight:600}
+  .rf-mood i{width:30px;height:30px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,hsl(var(--h) 90% 78%),hsl(var(--h) 70% 50%) 60%,hsl(var(--h) 70% 32%));
+    opacity:.55;transition:transform .3s var(--ease),opacity .2s,box-shadow .3s}
+  .rf-mood.on{color:#fff;border-color:hsl(var(--h) 70% 60% / .6);background:hsl(var(--h) 60% 50% / .14)}
+  .rf-mood.on i{opacity:1;transform:scale(1.14);box-shadow:0 0 22px hsl(var(--h) 80% 60% / .7)}
+  .rf-energy{display:flex;align-items:center;gap:6px}
+  .rf-en{width:34px;height:12px;border-radius:6px;padding:0;border:none;background:rgba(255,255,255,.08);transition:background .2s}
+  .rf-en.on{background:linear-gradient(90deg,var(--accent2),var(--accent))}
+  .rf-enl{margin-left:8px;font-size:13px;color:var(--dim)}
+  .rf-field{display:flex;flex-direction:column;gap:6px;margin-top:14px;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);font-weight:650}
+  .modal .rf-field input[type=text]{background:rgba(255,255,255,.045);border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:15px;
+    text-transform:none;letter-spacing:0;color:var(--txt)}
+  .rf-check{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:var(--dim)}
+  .rf-check input{accent-color:var(--accent);width:16px;height:16px}
+  .hp-reflect .hp-big{color:#c4a1ff}
+  .hp-act{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;padding:8px 12px;border-radius:12px;font-size:13px;font-weight:650;
+    background:color-mix(in srgb,var(--accent) 26%,transparent);border:1px solid color-mix(in srgb,var(--accent) 55%,transparent);color:#fff}
+  .hp-act .ico{width:15px;height:15px}
+
+  /* ================= INSIGHTS ================= */
+  #insights{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px}
+  body.desk #insights{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .in-card{padding:14px 14px 10px;border-radius:20px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07)}
+  .in-k{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);font-weight:700}
+  .in-v{font-size:24px;font-weight:700;letter-spacing:-.02em;margin-top:4px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .in-v em{font-style:normal;font-size:12px;font-weight:500;color:var(--dim);margin-left:6px;letter-spacing:0}
+  .in-bars{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:12px}
+  .in-col{display:flex;flex-direction:column;align-items:center;gap:5px}
+  .in-col span{font-size:10px;color:var(--dim);font-weight:600}
+  .in-col.today span{color:var(--txt)}
+  .in-track{position:relative;width:100%;height:58px;border-radius:6px;background:rgba(255,255,255,.04);display:flex;align-items:flex-end;overflow:hidden}
+  .in-track i{display:block;width:100%;border-radius:6px 6px 4px 4px;transition:height .8s var(--ease)}
+  .in-work i{background:linear-gradient(180deg,#7aa8ff,#3b6fe0)}
+  .in-hab i{background:linear-gradient(180deg,#5fe3a0,#1fa463)}
+  .in-plan i{background:linear-gradient(180deg,var(--accent),var(--accent2))}
+  .in-mood .in-track{overflow:visible;background:linear-gradient(to top,rgba(255,255,255,.04),rgba(255,255,255,.02))}
+  .in-mood b{position:absolute;left:50%;width:12px;height:12px;margin-left:-6px;border-radius:50%;
+    background:hsl(var(--h) 80% 62%);box-shadow:0 0 10px hsl(var(--h) 80% 60% / .7)}
+  .in-col.today .in-track{box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
 </style>
 </head>
 <body>
@@ -2006,6 +2052,7 @@
         <div class="sub" id="plSummary"></div>
       </div>
       <div class="pl-nav">
+        <button class="pl-navbtn" onclick="plCopyDayToNext()" title="Copy this day's blocks to the next day" aria-label="Copy to next day"><svg class="ico"><use href="#i-copy"/></svg></button>
         <button class="pl-navbtn" onclick="plShift(-1)" aria-label="Previous"><svg class="ico"><use href="#i-chevL"/></svg></button>
         <button class="pl-todaybtn" id="plTodayBtn" onclick="plGoToday()">Today</button>
         <button class="pl-navbtn" onclick="plShift(1)" aria-label="Next"><svg class="ico"><use href="#i-chevR"/></svg></button>
@@ -2079,8 +2126,9 @@
   <section class="panel" id="p-track">
     <div class="card">
       <h2 style="margin:0">Metrics</h2>
-      <div class="sub" style="margin-top:2px">Your numbers and journal — habits and profit.</div>
+      <div class="sub" style="margin-top:2px">This week at a glance · reflect each evening to see your mood line.</div>
     </div>
+    <div id="insights"></div>
     <div class="hublist">
       <div class="hubcard cardlink" onclick="showTab('modules')"><span class="ftile" style="--h:268"><svg class="ico"><use href="#i-sliders"/></svg></span><div class="ft"><b>Modules</b><span id="trackModulesSub">Custom trackers</span></div><span class="cardlink-go">›</span></div>
       <div class="hubcard cardlink" onclick="openProphit()"><span class="ftile" style="--h:152"><svg class="ico"><use href="#i-chart"/></svg></span><div class="ft"><b>Profit</b><span id="trackProfitSub">Today's numbers · Prophit</span></div><span class="cardlink-go">›</span></div>
@@ -2334,6 +2382,27 @@
       <button class="ghost" onclick="plScope('one')">Only this day</button>
       <button class="primary" onclick="plScope('all')">All days</button>
       <button class="ghost pl-cancel" onclick="plScope(null)">Cancel</button>
+    </div>
+  </div>
+</div>
+<!-- Reflect · evening check-in -->
+<div class="scrim pl-scrim" id="rfScrim" onclick="if(event.target===this)closeReflect()">
+  <div class="modal pl-sheet rf-sheet" role="dialog" aria-label="Reflect">
+    <div class="pl-grab"></div>
+    <div class="rf-head">
+      <div><div class="lbl">Evening reflection</div><h2>How was today?</h2></div>
+      <button class="pl-x" onclick="closeReflect()" aria-label="Close"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="rf-moods" id="rfMoods"></div>
+    <div class="pl-sect"><div class="lbl">Energy</div><div class="rf-energy" id="rfEnergy"></div></div>
+    <label class="rf-field"><span>One win today</span><input type="text" id="rfWin" placeholder="Shipped the lander, hit the gym…" autocomplete="off"></label>
+    <label class="rf-field"><span>Grateful for</span><input type="text" id="rfGrat" placeholder="Something small counts" autocomplete="off"></label>
+    <label class="rf-field"><span>Tomorrow is for</span><input type="text" id="rfTom" placeholder="The one thing that matters most" autocomplete="off"></label>
+    <label class="rf-check"><input type="checkbox" id="rfAddMission" checked> Add it to Missions</label>
+    <div class="pl-edfoot">
+      <button class="ghost" onclick="closeReflect();showTab('plan');plSel=plAddDays(todayKey(),1);renderPlan()"><svg class="ico"><use href="#i-calendar"/></svg>Plan tomorrow</button>
+      <div class="grow"></div>
+      <button class="primary" onclick="saveReflect()">Save</button>
     </div>
   </div>
 </div>
@@ -2850,7 +2919,7 @@ const ico=(name, cls)=>'<svg class="ico'+(cls?' '+cls:'')+'" aria-hidden="true">
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261107-202958';
+const KOS_BUILD='20261107-203404';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -3330,6 +3399,8 @@ function cmdkCommands(){
   return [
     {ic:'☀️', label:'Go to Today', run:()=>showTab('today')},
     {ic:'📅', label:'Go to Plan', run:()=>showTab('plan')},
+    {ic:'🌙', label:'Reflect on today', run:()=>openReflect()},
+    {ic:'📊', label:'This week · insights', run:()=>showTab('track')},
     {ic:'➕', label:'Add a block to the plan', run:()=>{ showTab('plan'); setTimeout(()=>{ const i=$('#plQuick'); if(i) i.focus(); }, 350); }},
     {ic:'✅', label:'Go to Missions', run:()=>showTab('goals')},
     {ic:'⏱', label:'Go to Work', run:()=>showTab('work')},
@@ -7702,6 +7773,7 @@ function renderTodayHero(){
       '<div class="grow"><div class="hp-k">Now</div><b>'+esc(now.title)+'</b>'+
       '<div class="hp-bar"><i style="width:'+p.toFixed(1)+'%"></i></div>'+
       '<div class="hp-m">'+plRange(now.start,now.dur)+' · '+fmtMinShort(left)+' left</div></div>'+
+      (()=>{ const a=heroAction(now); return a ? '<button class="hp-act" onclick="event.stopPropagation();'+a.run+'">'+ico(a.ic)+a.lbl+'</button>' : ''; })()+
       '<button class="hp-done" onclick="event.stopPropagation();plToggleDone(\''+now.id+'\',\''+todayKey()+'\')" aria-label="Done">'+ico('check')+'</button></div>';
   }
   if(next){
@@ -7715,9 +7787,14 @@ function renderTodayHero(){
       ? '<div class="hp-row hp-clear" onclick="showTab(\'plan\')">'+ico(open?'calendar':'checkCircle','hp-big')+'<div class="grow"><b>'+(open?'Nothing left on today’s plan':'Day plan complete')+'</b><div class="hp-m">'+(open?open+' block'+(open>1?'s':'')+' not ticked off · review or plan tomorrow':'Every block done · plan tomorrow')+'</div></div>'+ico('chevR','hp-go')+'</div>'
       : '<div class="hp-row hp-cta" onclick="showTab(\'plan\')">'+ico('calendar','hp-big')+'<div class="grow"><b>Plan your day</b><div class="hp-m">Block out your time — it takes 30 seconds</div></div>'+ico('arrowR','hp-go')+'</div>';
   }
+  if(new Date().getHours()>=17){
+    const r=getReflect(), m=r && MOODS.find(z=>z.v===r.mood);
+    html+= r ? '<div class="hp-row hp-reflect" onclick="openReflect()">'+ico('moon','hp-big')+'<div class="grow"><b>Reflected'+(m?' · '+m.n:'')+'</b><div class="hp-m">'+(r.tomorrow?'Tomorrow is for “'+esc(r.tomorrow)+'”':'Tap to edit tonight’s reflection')+'</div></div>'+ico('chevR','hp-go')+'</div>'
+      : '<div class="hp-row hp-reflect hp-cta" onclick="openReflect()">'+ico('moon','hp-big')+'<div class="grow"><b>Reflect on today</b><div class="hp-m">Two minutes · mood, one win, tomorrow’s one thing</div></div>'+ico('arrowR','hp-go')+'</div>';
+  }
   box.innerHTML=html;
   const g=getGoals(), gd=g.filter(x=>x.done).length;
-  const hp=habitCompletion(getHabitDay(todayKey()));
+  const hp=habitPctFor(todayKey());
   $('#heroStats').innerHTML=
     '<div class="hs" onclick="showTab(\'work\')"><b>'+fmtMinShort(todayWorkedMin())+'</b><span>worked</span></div>'+
     '<div class="hs" onclick="showTab(\'goals\')"><b>'+gd+'<em>/'+g.length+'</em></b><span>missions</span></div>'+
@@ -7731,6 +7808,100 @@ function flowSub(s, done){
   if(s.id==='gym'){ const n=gymTodayEntries().length; return n ? n+' set'+(n>1?'s':'')+' logged today' : 'Today’s split, weights, PRs'; }
   if(s.id==='rap'){ const r=rapMinsToday(); return r ? r+' / '+SET.rapGoal+' min in the studio' : 'Beat on, mumble, write bars'; }
   return s.d||'';
+}
+
+/* ================= REFLECT · the evening check-in =================
+   Two minutes at the end of the day: how it felt, one win, one thing you're
+   grateful for, and the one thing tomorrow is for (which can drop straight into
+   Missions). One synced record per day: reflect:<date>. Today offers it from
+   5pm; Insights charts the mood line. */
+const MOODS=[{v:1,n:'Rough',h:350},{v:2,n:'Low',h:22},{v:3,n:'Okay',h:45},{v:4,n:'Good',h:150},{v:5,n:'Great',h:268}];
+let rfDraft=null;
+function getReflect(key){ return kget('reflect:'+(key||todayKey()), null); }
+function openReflect(){
+  const r=getReflect()||{};
+  rfDraft={mood:r.mood||0, energy:r.energy||0};
+  $('#rfWin').value=r.win||''; $('#rfGrat').value=r.grateful||''; $('#rfTom').value=r.tomorrow||'';
+  $('#rfAddMission').checked = r.tomorrow ? false : true;
+  rfPaint(); $('#rfScrim').classList.add('show'); sfx('phase');
+}
+function closeReflect(){ $('#rfScrim').classList.remove('show'); }
+function rfPaint(){
+  const d=rfDraft;
+  $('#rfMoods').innerHTML=MOODS.map(m=>'<button class="rf-mood'+(d.mood===m.v?' on':'')+'" style="--h:'+m.h+'" onclick="rfSet(\'mood\','+m.v+')"><i></i><span>'+m.n+'</span></button>').join('');
+  $('#rfEnergy').innerHTML=[1,2,3,4,5].map(v=>'<button class="rf-en'+(d.energy>=v?' on':'')+'" onclick="rfSet(\'energy\','+v+')" aria-label="Energy '+v+'"></button>').join('')+
+    '<span class="rf-enl">'+(['','Drained','Tired','Steady','Charged','Electric'][d.energy]||'Tap to rate')+'</span>';
+}
+function rfSet(k,v){ rfDraft[k]=v; sfx('tap'); buzz(10); rfPaint(); }
+function saveReflect(){
+  const prev=getReflect();
+  const r={mood:rfDraft.mood, energy:rfDraft.energy, win:$('#rfWin').value.trim(), grateful:$('#rfGrat').value.trim(),
+    tomorrow:$('#rfTom').value.trim(), at:Date.now()};
+  kset('reflect:'+todayKey(), r);
+  if(r.tomorrow && $('#rfAddMission').checked && !(prev && prev.tomorrow===r.tomorrow)) addMission(r.tomorrow);
+  closeReflect();
+  if(!prev){ addXP(10,'reflection'); sfx('success'); confettiBurst(innerWidth/2, innerHeight*.4, 40); }
+  else sfx('complete');
+  toast(r.tomorrow ? 'Saved · tomorrow is for “'+r.tomorrow+'”' : 'Reflection saved');
+  renderAll();
+}
+
+/* ================= INSIGHTS · this week at a glance =================
+   Seven days of the numbers that matter, side by side: hours worked, habits,
+   how much of the plan got done, and mood. Small multiples, one scale each —
+   never two measures fighting over one axis. */
+/* share of today's ACTIVE habits that are ticked — habitCompletion() only counts
+   habits that were explicitly ticked or crossed, so an untouched day read as "no data" */
+function habitPctFor(key){
+  const acts=activeHabits(); if(!acts.length) return null;
+  const c=getHabitDay(key).checks;
+  return acts.filter(h=>c[h.id]===true || (h.kind==='tri' && c[h.id]==='R')).length/acts.length;
+}
+function weekKeys(){ const out=[]; for(let i=6;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); out.push(todayKey(d)); } return out; }
+function insightSeries(){
+  return weekKeys().map(k=>{
+    const L=plDayBlocks(k), done=L.filter(o=>o.done).length, r=getReflect(k);
+    return { k, d:plDate(k), work:tsMinutesForDay(k)/60, habits:habitPctFor(k),
+      plan: L.length ? done/L.length : null, mood: r && r.mood ? r.mood : null };
+  });
+}
+function renderInsights(){
+  const box=$('#insights'); if(!box) return;
+  const S=insightSeries(), today=todayKey();
+  const sum=S.reduce((a,x)=>a+x.work,0), hv=S.filter(x=>x.habits!=null), pv=S.filter(x=>x.plan!=null), mv=S.filter(x=>x.mood);
+  const avg=(a,f)=>a.length ? a.reduce((s,x)=>s+f(x),0)/a.length : null;
+  const dayLbl=x=>x.d.toLocaleDateString(undefined,{weekday:'narrow'});
+  const bars=(f,max,fmt,cls)=>'<div class="in-bars '+cls+'">'+S.map(x=>{ const v=f(x), h=!v?0:Math.max(5,v/max*100);
+    return '<div class="in-col'+(x.k===today?' today':'')+'" title="'+x.d.toLocaleDateString(undefined,{weekday:'long'})+' · '+(v==null?'—':fmt(v))+'">'+
+      '<div class="in-track"><i style="height:'+(v==null?0:h)+'%"></i></div><span>'+dayLbl(x)+'</span></div>'; }).join('')+'</div>';
+  const moodDots='<div class="in-bars in-mood">'+S.map(x=>{ const m=MOODS.find(z=>z.v===x.mood);
+    return '<div class="in-col'+(x.k===today?' today':'')+'"><div class="in-track">'+(m?'<b style="bottom:'+((x.mood-1)/4*84)+'%;--h:'+m.h+'" title="'+m.n+'"></b>':'')+'</div><span>'+dayLbl(x)+'</span></div>'; }).join('')+'</div>';
+  const pct=v=>v==null?'—':Math.round(v*100)+'%';
+  const maxW=Math.max(4, ...S.map(x=>x.work));
+  box.innerHTML=
+    '<div class="in-card"><div class="in-k">Worked</div><div class="in-v">'+(Math.round(sum*10)/10)+'<em>h this week</em></div>'+bars(x=>x.work||0, maxW, v=>(Math.round(v*10)/10)+'h','in-work')+'</div>'+
+    '<div class="in-card"><div class="in-k">Habits</div><div class="in-v">'+pct(avg(hv,x=>x.habits))+'<em>avg</em></div>'+bars(x=>x.habits, 1, v=>pct(v),'in-hab')+'</div>'+
+    '<div class="in-card"><div class="in-k">Plan done</div><div class="in-v">'+pct(avg(pv,x=>x.plan))+'<em>of blocks</em></div>'+bars(x=>x.plan, 1, v=>pct(v),'in-plan')+'</div>'+
+    '<div class="in-card"><div class="in-k">Mood</div><div class="in-v">'+(mv.length ? (MOODS.find(z=>z.v===Math.round(avg(mv,x=>x.mood)))||{}).n : '—')+'<em>'+(mv.length?'on average':'reflect tonight')+'</em></div>'+moodDots+'</div>';
+}
+
+/* the Now card can start the thing it's about */
+function heroAction(o){
+  const t=(o.title||'')+' '+o.icon;
+  if(/sunrise|morning|ascend|routine/i.test(t)) return {lbl:'Open ASCEND', ic:'sunrise', run:"riseOpenAscend()"};
+  if(/briefcase|code|work|deep|focus/i.test(t) && ts.mode==='idle') return {lbl:'Clock in', ic:'play', run:"showTab('work');tsToggle()"};
+  if(/dumbbell|gym|workout/i.test(t)) return {lbl:'Log sets', ic:'dumbbell', run:"showTab('gym')"};
+  if(/\bmic\b|studio|rap|bars/i.test(t)) return {lbl:'Studio', ic:'mic', run:"showTab('rap')"};
+  return null;
+}
+/* Plan · copy a whole day's one-off blocks onto tomorrow (repeating ones are already there) */
+function plCopyDayToNext(){
+  const from=plSel, to=plAddDays(plSel,1);
+  const list=plDayBlocks(from).filter(o=>o.b.repeat==='none');
+  if(!list.length){ toast('Nothing to copy — repeating blocks are already on '+plDate(to).toLocaleDateString(undefined,{weekday:'long'})); return; }
+  list.forEach(o=>putBlock(Object.assign(JSON.parse(JSON.stringify(o.b)), {id:newId(), date:to, start:o.start, dur:o.dur, done:{}, skip:{}, ex:{}, created:Date.now()})));
+  sfx('success'); toast('Copied '+list.length+' block'+(list.length>1?'s':'')+' to '+plDate(to).toLocaleDateString(undefined,{weekday:'long'}));
+  plSel=to; renderPlan();
 }
 
 const NAV_TABS=['today','plan','goals','work','rap','health','track'];
@@ -7891,7 +8062,7 @@ function renderTabs(){
 const PANEL_RENDER={
   today:()=>{ renderToday(); renderTodayAside(); }, plan:()=>renderPlan(), work:()=>renderWork(), goals:()=>renderGoals(), rap:()=>renderRapPanel(),
   gym:()=>renderGym(), diet:()=>renderDiet(), habits:()=>renderHabits(), modules:()=>renderModules(),
-  health:()=>{}, track:()=>{},
+  health:()=>{}, track:()=>renderInsights(),
 };
 function visiblePanels(){ return [activeTab]; }
 function renderAll(){

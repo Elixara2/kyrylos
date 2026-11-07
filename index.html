@@ -12,6 +12,9 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icon-192.png">
 <title>K-OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..800&display=swap">
 <style>
   :root{
     --bg:#0e1116; --panel:#161b22; --panel2:#1c232d; --line:#2a323d;
@@ -27,7 +30,8 @@
   body{
     background:var(--bg);
     color:var(--txt);
-    font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font:15px/1.45 "Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-feature-settings:"cv11","ss01","ss03"; font-optical-sizing:auto;
     -webkit-font-smoothing:antialiased;overscroll-behavior:none}
   #wrap{max-width:760px;margin:0 auto;padding:calc(var(--safe-t) + 14px) 16px calc(var(--safe-b) + 84px);
     position:relative; z-index:1; }
@@ -61,6 +65,14 @@
   @keyframes auroraB{ from{transform:translate(0,0) scale(1.15)} to{transform:translate(-10vw,14vh) scale(.9)} }
   @keyframes auroraC{ from{transform:translate(0,0) scale(1)} to{transform:translate(8vw,-12vh) scale(1.2)} }
   @media (prefers-reduced-motion:reduce){ #aurora i{ animation:none; } }
+  .da-clock.idle{ opacity:.28; }
+  .da-btns button{ display:inline-flex; align-items:center; justify-content:center; gap:7px; }
+  .da-btns .ico{ width:15px; height:15px; }
+  .da-btns .primary .ico{ fill:currentColor; stroke-width:1.2; }
+  .da-focus{ display:flex; align-items:center; gap:7px; }
+  .da-focus .ico{ width:14px; height:14px; }
+  #silk{ position:fixed; inset:0; width:100vw; height:100vh; display:block; }
+  body.silk-on{ background:#0a0c10; }
 
   /* slim header: one single-line slither — logo · date · $ on the left, status on the
      right. Everything is nowrap so it can never grow to a second row. */
@@ -295,6 +307,15 @@
   #backBar{position:fixed;left:12px;top:calc(var(--safe-t) + 10px);z-index:35;background:var(--panel2);border:1px solid var(--line);
     color:var(--txt);font:inherit;font-weight:600;font-size:13px;padding:8px 14px;border-radius:99px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.4)}
   #backBar:active{transform:scale(.96)}
+  #backBar{display:inline-flex;align-items:center;gap:4px;padding:7px 14px 7px 9px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);background:rgba(28,35,45,.72)}
+  #backBar .ico{width:17px;height:17px}
+  body.in-sub header .hleft{visibility:hidden}
+  #wrap button:not(.pl-chk):not(.hp-done) > .ico{width:16px;height:16px;vertical-align:-3px}
+  .habsub{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .habsub::-webkit-scrollbar{display:none}
+  .habsub button{white-space:nowrap;flex:0 0 auto}
+  #macroTiles{grid-template-columns:repeat(4,1fr);gap:8px}
+  #macroTiles .tile{padding:12px 6px}
   /* rise · morning check-in */
   .rise-hero{text-align:center;padding:24px 8px 8px}
   .rise-greet{font-size:26px;font-weight:800;letter-spacing:-.02em}
@@ -867,8 +888,8 @@
   #wrap .flowlist .fitem.hubbubble{ cursor:pointer; }
   #wrap .flowlist .fitem.hubbubble:active{ transform:scale(.985); }
   /* action bubbles: just the title, centred between handle and chevron */
-  #wrap #todayStack .fitem .ft{ text-align:center; }
-  #wrap #todayStack .fitem .ft b{ font-size:16.5px; letter-spacing:-.01em; font-weight:700; }
+  #wrap :is(#todayStack,#healthHub) .fitem .ft{ text-align:center; }
+  #wrap :is(#todayStack,#healthHub) .fitem .ft b{ font-size:16.5px; letter-spacing:-.01em; font-weight:700; }
   #wrap .flowlist .fitem .ft b{ font-size:15.5px; letter-spacing:-.01em; }
   #wrap .flowlist .fitem .ft span{ font-size:11.5px; }
   #wrap .flowlist .fitem .fgo{ font-size:20px; }
@@ -1482,17 +1503,21 @@
   .hs span{font-size:11px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;font-weight:600}
 
   /* flow blocks: icon tile · title + live status · chevron */
-  #wrap #todayStack .fitem .ft{text-align:left;display:flex;align-items:center;gap:13px;flex:1;min-width:0;text-align:left}
-  #wrap #todayStack .fitem .ftile{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;flex:0 0 auto;color:#fff;font-size:20px;
+  #wrap :is(#todayStack,#healthHub) .fitem .ft{text-align:left;display:flex;align-items:center;gap:13px;flex:1;min-width:0;text-align:left}
+  #wrap .flowlist .fitem .fgo .ico{width:18px;height:18px}
+  .hubcard .ftile{margin-right:2px}
+  #wrap .flowlist .fitem .ft .ftile{color:#fff;font-size:20px;margin:0}
+  #wrap .flowlist .fitem .ft .ftx > span{font-size:12.5px}
+  .ftile{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;flex:0 0 auto;color:#fff;font-size:20px;
     background:linear-gradient(145deg,hsl(var(--h,268) 62% 58%),hsl(var(--h,268) 62% 38%));
     box-shadow:0 10px 22px -12px hsl(var(--h,268) 62% 45%),inset 0 1px 0 rgba(255,255,255,.22)}
-  #wrap #todayStack .fitem .ftile .ico{width:21px;height:21px}
-  #wrap #todayStack .fitem .ftx{min-width:0;flex:1}
-  #wrap #todayStack .fitem .ftx b{display:block;font-size:15.5px;font-weight:650;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  #wrap #todayStack .fitem .ftx span{display:block;font-size:12.5px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  #wrap #todayStack .fitem.done .ftile{background:linear-gradient(145deg,#2fd27a,#169a55);box-shadow:0 10px 22px -12px #1aa35c}
-  #wrap #todayStack .fitem.done .ftx span{color:#5fe39a}
-  #wrap #todayStack .fitem.done .ftx b{color:var(--txt)}
+  .ftile .ico{width:21px;height:21px}
+  #wrap :is(#todayStack,#healthHub) .fitem .ftx{min-width:0;flex:1}
+  #wrap :is(#todayStack,#healthHub) .fitem .ftx b{display:block;font-size:15.5px;font-weight:650;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #wrap :is(#todayStack,#healthHub) .fitem .ftx span{display:block;font-size:12.5px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #wrap :is(#todayStack,#healthHub) .fitem.done .ftile{background:linear-gradient(145deg,#2fd27a,#169a55);box-shadow:0 10px 22px -12px #1aa35c}
+  #wrap :is(#todayStack,#healthHub) .fitem.done .ftx span{color:#5fe39a}
+  #wrap :is(#todayStack,#healthHub) .fitem.done .ftx b{color:var(--txt)}
 
   /* tab bar + header icons */
   .tab .ic .ico{width:23px;height:23px;stroke-width:1.7}
@@ -1505,7 +1530,7 @@
   #p-plan .pl-empty{margin-bottom:6px}
   .pl-board.multi .pl-blk.tiny .pl-bm{display:none}
   .pl-blk.tiny .pl-bt{flex:1 1 auto}
-  #wrap #todayStack .fitem .ftx b{color:var(--txt)}
+  #wrap :is(#todayStack,#healthHub) .fitem .ftx b{color:var(--txt)}
   body:not(.desk) #tabbar .tab .lbl{font-size:10px;letter-spacing:.01em;text-transform:none;font-weight:600;margin-top:3px;white-space:nowrap}
   body:not(.desk) #tabbar .tab{min-width:0;padding-left:0;padding-right:0}
   body.desk #p-plan .pl-top{margin-bottom:16px}
@@ -1624,7 +1649,7 @@
           <textarea id="wallInput" rows="2" placeholder="Type or paste anything… ⌘V an image works too"></textarea>
           <div class="row" style="margin-top:8px;gap:8px">
             <button class="sm primary" onclick="wallAddFromInput()">Add</button>
-            <button class="sm ghost" onclick="$('#wallFile').click()"><span class="em">📎</span> File</button>
+            <button class="sm ghost" onclick="$('#wallFile').click()"><svg class="ico"><use href="#i-copy"/></svg> File</button>
             <input type="file" id="wallFile" accept="image/*" multiple style="display:none" onchange="wallFilesPicked(event)">
           </div>
         </div>
@@ -1790,11 +1815,11 @@
     <div class="blockhead"><span class="lbl">Health</span></div>
     <div class="flowlist" id="healthHub">
       <div class="fitem hubbubble" onclick="showTab('gym')">
-        <div class="ft"><b><span class="em">🏋️</span> Gym</b><span>Split, sets, weights, progress</span></div><div class="fgo">›</div></div>
+        <div class="ft"><span class="ftile" style="--h:338"><svg class="ico"><use href="#i-dumbbell"/></svg></span><span class="ftx"><b>Gym</b><span>Split, sets, weights, progress</span></span></div><div class="fgo"><svg class="ico"><use href="#i-chevR"/></svg></div></div>
       <div class="fitem hubbubble" onclick="showTab('diet')">
-        <div class="ft"><b><span class="em">🍗</span> Diet</b><span>Meals, macros, water, steps</span></div><div class="fgo">›</div></div>
+        <div class="ft"><span class="ftile" style="--h:40"><svg class="ico"><use href="#i-utensils"/></svg></span><span class="ftx"><b>Diet</b><span>Meals, macros, water, steps</span></span></div><div class="fgo"><svg class="ico"><use href="#i-chevR"/></svg></div></div>
       <div class="fitem hubbubble" onclick="showTab('habits')">
-        <div class="ft"><b><span class="em">📈</span> Habits</b><span>Daily tracker &amp; analytics</span></div><div class="fgo">›</div></div>
+        <div class="ft"><span class="ftile" style="--h:152"><svg class="ico"><use href="#i-checkCircle"/></svg></span><span class="ftx"><b>Habits</b><span>Daily tracker &amp; analytics</span></span></div><div class="fgo"><svg class="ico"><use href="#i-chevR"/></svg></div></div>
     </div>
   </section>
 
@@ -1803,7 +1828,7 @@
     <div class="card">
       <div class="row" style="justify-content:space-between">
         <h2 style="margin:0">Today's workout <span class="sub" id="gymDateLbl"></span></h2>
-        <button class="sm ghost" onclick="openSplit()">⚙ Split</button>
+        <button class="sm ghost" onclick="openSplit()"><svg class="ico"><use href="#i-sliders"/></svg> Split</button>
       </div>
       <div class="chips" id="gymDaySwitch" style="margin:10px 0"></div>
       <div id="gymToday"></div>
@@ -1909,7 +1934,7 @@
         <button class="sm on" id="habTabList" onclick="habShowView('list')">Today</button>
         <button class="sm" id="habTabGrid" onclick="habShowView('grid')">Month grid</button>
         <button class="sm" id="habTabStats" onclick="habShowView('stats')">Analytics</button>
-        <button class="sm ghost" style="margin-left:auto" onclick="openHabitManage()">✎ Manage habits</button>
+        <button class="sm ghost" style="margin-left:auto" onclick="openHabitManage()"><svg class="ico"><use href="#i-edit"/></svg> Manage</button>
       </div>
 
       <div id="habViewList">
@@ -2057,8 +2082,8 @@
       <div class="sub" style="margin-top:2px">Your numbers and journal — habits and profit.</div>
     </div>
     <div class="hublist">
-      <div class="hubcard cardlink" onclick="showTab('modules')"><span class="hub-em">🧩</span><div class="ft"><b>Modules</b><span id="trackModulesSub">Custom trackers</span></div><span class="cardlink-go">›</span></div>
-      <div class="hubcard cardlink" onclick="openProphit()"><span class="hub-em">💰</span><div class="ft"><b>Profit</b><span id="trackProfitSub">Today's numbers · Prophit</span></div><span class="cardlink-go">›</span></div>
+      <div class="hubcard cardlink" onclick="showTab('modules')"><span class="ftile" style="--h:268"><svg class="ico"><use href="#i-sliders"/></svg></span><div class="ft"><b>Modules</b><span id="trackModulesSub">Custom trackers</span></div><span class="cardlink-go">›</span></div>
+      <div class="hubcard cardlink" onclick="openProphit()"><span class="ftile" style="--h:152"><svg class="ico"><use href="#i-chart"/></svg></span><div class="ft"><b>Profit</b><span id="trackProfitSub">Today's numbers · Prophit</span></div><span class="cardlink-go">›</span></div>
     </div>
   </section>
 </div>
@@ -2669,6 +2694,95 @@
 })();
 </script>
 <script>
+/* ================= SILK · the living background =================
+   One WebGL fragment shader: domain-warped noise in your theme colours,
+   drifting so slowly you feel it more than see it. Rendered at ~1/3
+   resolution (a soft gradient loses nothing) and capped at 30fps, so it costs
+   a fraction of what the old three CSS-blurred discs did. Pauses whenever the
+   app is hidden; reduced-motion gets a single still frame; no WebGL → the CSS
+   discs stay. Colours follow --accent / --accent2 live, including Live theme. */
+(function(){
+  const host=document.getElementById('aurora'); if(!host) return;
+  const cv=document.createElement('canvas'); cv.id='silk';
+  const gl=cv.getContext('webgl',{alpha:false, antialias:false, depth:false, stencil:false, powerPreference:'low-power', preserveDrawingBuffer:false});
+  if(!gl) return;
+  const VS='attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
+  const FS=`precision mediump float;
+uniform vec2 r;uniform float t;uniform vec3 c1,c2,c3;
+float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float n(vec2 p){vec2 i=floor(p),f=fract(p);vec2 u=f*f*(3.-2.*f);
+  return mix(mix(h(i),h(i+vec2(1.,0.)),u.x),mix(h(i+vec2(0.,1.)),h(i+vec2(1.,1.)),u.x),u.y);}
+float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*n(p);p=p*2.03+vec2(1.7,9.2);a*=.5;}return v;}
+void main(){
+  vec2 uv=gl_FragCoord.xy/r;
+  vec2 p=uv*vec2(r.x/r.y,1.)*1.35;
+  float s=t*.022;
+  vec2 q=vec2(fbm(p+vec2(0.,s)),fbm(p+vec2(5.2,1.3)-s));
+  vec2 w=vec2(fbm(p+2.6*q+vec2(1.7,9.2)+s*.8),fbm(p+2.6*q+vec2(8.3,2.8)-s*.6));
+  float f=fbm(p+2.2*w);
+  vec3 col=mix(c3,c1,smoothstep(.25,.95,f));
+  col=mix(col,c2,smoothstep(.35,1.05,length(w)*.85));
+  float lift=pow(smoothstep(.15,1.,f),1.6);
+  float vig=smoothstep(1.45,.15,length((uv-vec2(.5,.62))*vec2(1.,1.25)));
+  vec3 bg=vec3(.040,.047,.064);
+  vec3 o=bg+col*(.07+.58*lift)*vig;
+  o+=(h(gl_FragCoord.xy+fract(t))-.5)/255.;
+  gl_FragColor=vec4(o,1.);
+}`;
+  const sh=(type,src)=>{ const s=gl.createShader(type); gl.shaderSource(s,src); gl.compileShader(s); return gl.getShaderParameter(s,gl.COMPILE_STATUS)?s:null; };
+  const vs=sh(gl.VERTEX_SHADER,VS), fs=sh(gl.FRAGMENT_SHADER,FS); if(!vs||!fs) return;
+  const pr=gl.createProgram(); gl.attachShader(pr,vs); gl.attachShader(pr,fs); gl.linkProgram(pr);
+  if(!gl.getProgramParameter(pr,gl.LINK_STATUS)) return;
+  gl.useProgram(pr);
+  const buf=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+  const loc=gl.getAttribLocation(pr,'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+  const U={r:gl.getUniformLocation(pr,'r'),t:gl.getUniformLocation(pr,'t'),c1:gl.getUniformLocation(pr,'c1'),c2:gl.getUniformLocation(pr,'c2'),c3:gl.getUniformLocation(pr,'c3')};
+  host.innerHTML=''; host.appendChild(cv); document.body.classList.add('silk-on');
+
+  // theme colours → linear-ish rgb triples
+  const probe=document.createElement('canvas').getContext('2d');
+  const rgb=c=>{ probe.fillStyle='#000'; probe.fillStyle=(c||'').trim()||'#000'; const v=probe.fillStyle;
+    if(v[0]==='#') return [1,3,5].map(i=>parseInt(v.slice(i,i+2),16)/255);
+    const m=v.match(/[\d.]+/g)||[0,0,0]; return m.slice(0,3).map(x=>+x/255); };
+  let cols=null, lastKey='';
+  function readColors(){
+    const cs=getComputedStyle(document.documentElement), a=cs.getPropertyValue('--accent'), b=cs.getPropertyValue('--accent2');
+    const key=a+'|'+b; if(key===lastKey && cols) return; lastKey=key;
+    const c1=rgb(a), c2=rgb(b);
+    // a third, cooler partner: the accent rotated toward blue and darkened
+    const c3=[c1[2]*.35+.04, c1[0]*.25+.10, c1[1]*.30+.30];
+    cols={c1,c2:c2.map((x,i)=>Math.min(1,x*1.6+c1[i]*.25)),c3};
+  }
+  let W=0,H=0;
+  function size(){
+    const scale=Math.min(.42, 520/Math.max(innerWidth,innerHeight)) ;   // ~a third of CSS px, never huge
+    const w=Math.max(64,Math.round(innerWidth*scale)), h=Math.max(64,Math.round(innerHeight*scale));
+    if(w===W && h===H) return; W=w; H=h; cv.width=w; cv.height=h; gl.viewport(0,0,w,h);
+  }
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)');
+  const t0=performance.now()-Math.random()*60000;
+  let raf=0, last=0, frames=0;
+  function draw(now){
+    size(); if(frames++%45===0) readColors();
+    gl.uniform2f(U.r,W,H); gl.uniform1f(U.t,(now-t0)/1000);
+    gl.uniform3fv(U.c1,cols.c1); gl.uniform3fv(U.c2,cols.c2); gl.uniform3fv(U.c3,cols.c3);
+    gl.drawArrays(gl.TRIANGLES,0,3);
+  }
+  function loop(now){
+    raf=requestAnimationFrame(loop);
+    if(now-last<33) return; last=now; draw(now);
+  }
+  function start(){ cancelAnimationFrame(raf); readColors(); if(reduce.matches){ draw(performance.now()); return; } raf=requestAnimationFrame(loop); }
+  function stop(){ cancelAnimationFrame(raf); raf=0; }
+  document.addEventListener('visibilitychange',()=>document.hidden?stop():start());
+  addEventListener('resize',()=>{ size(); if(!raf) draw(performance.now()); });
+  cv.addEventListener('webglcontextlost',e=>{ e.preventDefault(); stop(); });
+  cv.addEventListener('webglcontextrestored',()=>location.reload());
+  reduce.addEventListener && reduce.addEventListener('change',start);
+  start();
+})();
+
 /* ================= icons =================
    One line-icon set for the whole app (24px grid, 1.75 stroke, round caps).
    Colour emoji were the single cheapest-looking thing on screen — they come
@@ -2736,7 +2850,7 @@ const ico=(name, cls)=>'<svg class="ico'+(cls?' '+cls:'')+'" aria-hidden="true">
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261107-202358';
+const KOS_BUILD='20261107-202958';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -5443,10 +5557,10 @@ let mediaRec=null, mediaChunks=[], mediaStream=null, recStartTs=0, recTicker=nul
 // either one always reflects the true recording state.
 function setRecUI(recording, elapsedSec){
   const headerBtn=$('#recBtn');
-  if(headerBtn){ headerBtn.textContent = recording ? '⏹ Stop · '+hms(elapsedSec||0) : '🎙 Record';
+  if(headerBtn){ headerBtn.innerHTML = recording ? ico('x')+' Stop · '+hms(elapsedSec||0) : ico('mic')+' Record';
     headerBtn.classList.toggle('recording', recording); }
   const padBtn=$('#padMicBtn');
-  if(padBtn){ padBtn.textContent = recording ? '⏹' : '🎙';
+  if(padBtn){ padBtn.innerHTML = recording ? ico('x') : ico('mic');
     padBtn.classList.toggle('recording', recording);
     padBtn.title = recording ? 'Recording · '+hms(elapsedSec||0)+' — tap to stop' : 'Record a voice note'; }
 }
@@ -5704,7 +5818,7 @@ function renderRapPanel(){
     : proj.beatVideo
       ? beatEmbedHtml(proj.beatVideo,true)+beatLabelHtml(proj.beatVideo)
       : '<div class="row">'+
-        '<button onclick="document.getElementById(\'beatVideoFile\').click()">🎬 Trim &amp; add video</button>'+
+        '<button onclick="document.getElementById(\'beatVideoFile\').click()">'+ico('play')+' Trim &amp; add video</button>'+
         '<button class="ghost sm" onclick="document.getElementById(\'beatFile\').click()">or select MP3</button></div>';
 
   const notesExpanded=isBlockExpanded('scribble'), barsExpanded=isBlockExpanded('bars');
@@ -5727,7 +5841,7 @@ function renderRapPanel(){
         '<h2>Scribble &amp; freewrite</h2>'+
         '<div class="pad-wrap">'+
           '<textarea id="rapNotes" class="'+(notesExpanded?'expanded':'')+'" placeholder="Mumble it out here first… flow ideas, half-thoughts, doodles in words.">'+esc(proj.notes)+'</textarea>'+
-          '<button class="pad-mic" id="padMicBtn" onclick="toggleRecording()" title="Record a voice note">🎙</button>'+
+          '<button class="pad-mic" id="padMicBtn" onclick="toggleRecording()" title="Record a voice note">'+ico('mic')+'</button>'+
         '</div>'+
       '</div>',
     bars:
@@ -5742,7 +5856,7 @@ function renderRapPanel(){
     studioBlockOrder().map(k=>blocksHtml[k]||'').join('') +
     // ---- everything else, below the fold ----
     '<div class="card">'+
-      '<h2>Voice memos <button class="sm" id="recBtn" onclick="toggleRecording()">🎙 Record</button></h2>'+
+      '<h2>Voice memos <button class="sm" id="recBtn" onclick="toggleRecording()">'+ico('mic')+' Record</button></h2>'+
       '<div id="recList"></div>'+
     '</div>'+
     '<div class="card">'+
@@ -6687,7 +6801,7 @@ function renderHabits(){
   autoDeriveHabits();
   const acts=activeHabits(), key=todayKey(), day=getHabitDay(key);
   const pct=habitCompletion(day);
-  $('#habPct').textContent = pct==null? '—' : Math.round(pct*100)+'%';
+  $('#habPct').textContent = Math.round((pct||0)*100)+'%';
   $('#habRing').style.strokeDashoffset = RC*(1-(pct||0));
   $('#habCount').textContent = '· '+acts.filter(h=>day.checks[h.id]===true).length+'/'+acts.length+' done today';
   const streak=habitStreak();
@@ -7644,9 +7758,10 @@ function showTab(name){
   $('#wrap').classList.toggle('work-fit', name==='work' || name==='plan');
   const navHi = NAV_TABS.includes(name) ? name : (SUB_PARENT[name]||'today');
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on', t.dataset.tab===navHi));
+  document.body.classList.toggle('in-sub', !!SUB_PARENT[name]);
   const bb=$('#backBar');
   if(bb){ const parent=SUB_PARENT[name];
-    if(parent){ bb.textContent='‹ '+(parent==='health'?'Health':'Metrics'); bb.style.display=''; bb.dataset.parent=parent; }
+    if(parent){ bb.innerHTML=ico('chevL')+(parent==='health'?'Health':'Metrics'); bb.style.display=''; bb.dataset.parent=parent; }
     else bb.style.display='none'; }
   renderAll();
   window.scrollTo({top:0});
@@ -7718,12 +7833,12 @@ function renderAsideSession(){
   const btn=(fn,txt,cls)=>'<button class="'+(cls||'')+'" onclick="'+fn+'">'+txt+'</button>';
   const html='<div class="da-sess-top"><span class="da-dot '+mode+'"></span><span class="da-state">'+label+'</span>'+
       '<span class="da-today">'+(todayMin>=60?(todayMin/60).toFixed(1)+'h':todayMin+'m')+' today</span></div>'+
-    '<div class="da-clock" id="daClock">'+(mode==='idle' ? '—' : hms(act/1000))+'</div>'+
-    (fq ? '<div class="da-focus">◉ '+esc(fq.text)+'</div>' : '<div class="da-focus dim">No mission tracked</div>')+
+    '<div class="da-clock'+(mode==='idle'?' idle':'')+'" id="daClock">'+hms(mode==='idle'?0:act/1000)+'</div>'+
+    (fq ? '<div class="da-focus">'+ico('target')+esc(fq.text)+'</div>' : '<div class="da-focus dim">No mission tracked</div>')+
     '<div class="da-btns">'+
-      (mode==='idle' ? btn("tsToggle(); renderTodayAside()",'▶ Clock in','primary')
-        : btn("tsToggle(); renderTodayAside()", mode==='working'?'⏸ Pause':'▶ Resume','primary')+
-          btn("tsOpenLog()",'✎ Log')+btn("tsClockOut(); renderTodayAside()",'⏹ End','danger'))+
+      (mode==='idle' ? btn("tsToggle(); renderTodayAside()",ico('play')+'Clock in','primary')
+        : btn("tsToggle(); renderTodayAside()", mode==='working'?ico('pause')+'Pause':ico('play')+'Resume','primary')+
+          btn("tsOpenLog()",ico('edit')+'Log')+btn("tsClockOut(); renderTodayAside()",ico('x')+'End','danger'))+
     '</div>';
   if(box._html!==html){ box.innerHTML=html; box._html=html; }
 }

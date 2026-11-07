@@ -2148,7 +2148,7 @@
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261104-121758';
+const KOS_BUILD='20261107-195456';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -2458,6 +2458,8 @@ function onRemoteChange(keys, first){
   // first run on the shared-session build: hand this device's running session to the other one
   if(first && !kget('ts:live',null) && ts.mode!=='idle') kset('ts:live', tsDoc());
   if(first) migrateMissionsV2();
+  // a finished ASCEND session lands here — tick Today's Morning block straight away
+  if(first || keys.some(k=>k.startsWith('ascend:day:'))) autoFlow();
   scheduleRender();
 }
 let renderQueued=false;
@@ -2737,6 +2739,8 @@ function autoFlow(){
   setFlowPartQuiet('diet', allMealsDone && d.water>=SET.tankMl*2);
   setFlowPartQuiet('work', getTsEntries().length>=1);
   setFlowPartQuiet('gym', gymTodayEntries().length>=1);
+  // only ever sets it — a Morning block you ticked by hand stays ticked
+  if(ascendPathsDone(todayKey()).length) setFlowPartQuiet('morning', true);
   setFlowPartQuiet('rap', rapMinsToday()>=SET.rapGoal);
   const g=getGoals(); setFlowPartQuiet('goals', g.length>0 && g.every(x=>x.done));
   const acts=activeHabits(), hd=getHabitDay(todayKey());
@@ -5871,8 +5875,8 @@ const HABITS_SEED = [
   {id:'breathe',label:'Breathe',cat:'Morning routine',mult:10,unit:'min',kind:'check',active:true},
   {id:'meditate',label:'Meditate',cat:'Morning routine',mult:10,unit:'min',kind:'check',active:true},
   {id:'stretch',label:'Stretch',cat:'Morning routine',mult:10,unit:'min',kind:'check',active:true},
-  {id:'pushups50',label:'50 Push Ups',cat:'Morning routine',mult:50,unit:'reps',kind:'check',active:true},
-  {id:'squats50',label:'50 Squats',cat:'Morning routine',mult:50,unit:'reps',kind:'check',active:true},
+  {id:'pushups50',label:'40 Push Ups',cat:'Morning routine',mult:40,unit:'reps',kind:'check',active:true},
+  {id:'squats50',label:'40 Squats',cat:'Morning routine',mult:40,unit:'reps',kind:'check',active:true},
   {id:'pullups10',label:'10 Pull Ups',cat:'Morning routine',mult:10,unit:'reps',kind:'check',active:true},
   {id:'chinups10',label:'10 Chin Ups',cat:'Morning routine',mult:10,unit:'reps',kind:'check',active:true},
   {id:'gym',label:'Gym',cat:'Health',mult:1,unit:'',kind:'tri',active:true},
@@ -5974,6 +5978,17 @@ const HABITS_MIGRATIONS = [
       });
       if(changed) saveHabits(list);
   } },
+  { id:'v4-ascend-40', run(){
+      // ASCEND's push-up/squat targets dropped 50 → 40 (2026-11-07). Ids stay
+      // pushups50/squats50 so every past day still lines up.
+      const list=getHabits(); if(!list) return;
+      let changed=false;
+      ['pushups50','squats50'].forEach(id=>{
+        const h=list.find(x=>x.id===id), seed=HABITS_SEED.find(x=>x.id===id);
+        if(h && seed && (h.label!==seed.label || h.mult!==seed.mult)){ h.label=seed.label; h.mult=seed.mult; changed=true; }
+      });
+      if(changed) saveHabits(list);
+  } },
 ];
 function ensureHabitsMigrated(){
   const done=kget('habits:migrations',{});
@@ -6013,17 +6028,28 @@ function habitStreak(){
  * signal is applied at most ONCE per day (tracked in day.auto) so a manual
  * un-tick afterward sticks — it never fights you back on the next render.
  */
+const ASCEND_HABITS = {mind:['breathe','meditate'], body:['stretch','pushups50','squats50','pullups10','chinups10']};
+/* which ASCEND paths were finished on a day — reports from before paths existed
+   (July/Aug) count as the full routine */
+function ascendPathsDone(key){
+  const r=kget('ascend:day:'+key, null); if(!r) return [];
+  const p=r.paths || (r.path ? [r.path] : ['mind','body']);
+  return p.filter(x=>ASCEND_HABITS[x]);
+}
 function autoDeriveHabits(){
   const key=todayKey(), day=getHabitDay(key);
   day.auto = day.auto || {};
   let changed=false;
 
-  const ascendDay = kget('ascend:day:'+key, null);
-  if(ascendDay && !day.auto.ascend){
-    ['breathe','meditate','stretch','pushups50','squats50','pullups10','chinups10'].forEach(id=>{ day.checks[id]=true; });
-    day.auto.ascend=true; changed=true;
-    setTimeout(()=>{ addXP(6,'morning routine'); toast('🌅 Morning routine synced from ASCEND'); },50);
-  }
+  // ASCEND has two paths, so only tick what was actually done: Mind = breathe +
+  // meditate, Body = stretch + the strength set. Each path applies once per day.
+  ascendPathsDone(key).forEach(p=>{
+    const flag='ascend_'+p;
+    if(day.auto.ascend || day.auto[flag]) return;
+    ASCEND_HABITS[p].forEach(id=>{ day.checks[id]=true; });
+    day.auto[flag]=true; changed=true;
+    setTimeout(()=>{ addXP(6,'morning routine'); toast(p==='body' ? '💪 Strength synced from ASCEND' : '🌅 Mind session synced from ASCEND'); },50);
+  });
   if(gymTodayEntries().length>=1 && !day.auto.gym){
     day.checks.gym=true; day.auto.gym=true; changed=true;
     setTimeout(()=>{ addXP(6,'gym'); toast('🏋️ Gym auto-marked done'); },50);
@@ -6078,7 +6104,7 @@ function renderHabits(){
   $('#habWorkHoursLbl').textContent = whAuto ? 'Work hours this month · auto from Work tab' : 'Work hours this month';
 
   const autoIds=new Set();
-  if(day.auto.ascend) ['breathe','meditate','stretch','pushups50','squats50','pullups10','chinups10'].forEach(id=>autoIds.add(id));
+  Object.keys(ASCEND_HABITS).forEach(p=>{ if(day.auto.ascend || day.auto['ascend_'+p]) ASCEND_HABITS[p].forEach(id=>autoIds.add(id)); });
   if(day.auto.gym) autoIds.add('gym');
 
   // Studio + work hours today — live figures, not checkboxes (real durations vary

@@ -450,12 +450,12 @@
     <div class="blocks">
       <div class="block" data-ex="push" style="--c1:rgba(255,107,107,.18);--c1b:#ff6b6b;--c2b:#d13f5b" onclick="complete('push',event)">
         <div class="fill"></div>
-        <div class="binner"><div class="bnum">50</div><div class="blabel">Push-ups</div><div class="bhint">Tap when done</div></div>
+        <div class="binner"><div class="bnum">40</div><div class="blabel">Push-ups</div><div class="bhint">Tap when done</div></div>
         <div class="bchk">✓</div>
       </div>
       <div class="block" data-ex="squat" style="--c1:rgba(255,178,84,.18);--c1b:#ffb254;--c2b:#e07b2b" onclick="complete('squat',event)">
         <div class="fill"></div>
-        <div class="binner"><div class="bnum">50</div><div class="blabel">Squats</div><div class="bhint">Tap when done</div></div>
+        <div class="binner"><div class="bnum">40</div><div class="blabel">Squats</div><div class="bhint">Tap when done</div></div>
         <div class="bchk">✓</div>
       </div>
       <div class="block" data-ex="pullup" style="--c1:rgba(154,123,255,.18);--c1b:#9a7bff;--c2b:#5b3fd1" onclick="complete('pullup',event)">
@@ -609,24 +609,43 @@
 /* ======================= CONFIG ======================= */
 const DEFAULT_VIDEO = "tybOi4hjZFQ"; // Guided Wim Hof Method breathing (11 min)
 
-/* ---- report session completion to KyrylOS (fire-and-forget) ----
+/* ---- report session completion to KyrylOS ----
    Same Apps Script backend + token as KyrylOS/App.html, so a finished
-   session shows up as an 'ascend:day:<date>' key the Habits tab can
-   read. The response is unreadable here (cross-origin, no CORS
-   header on the Apps Script side) — that's expected and harmless,
-   the POST still reaches the server and gets written. */
+   session shows up as an 'ascend:day:<date>' key K-OS reads (Today's
+   Morning block + the Habits ticks). Reports wait in an outbox until the
+   server answers — a bare fire-and-forget fetch died whenever you went
+   straight back to K-OS (or were offline) the moment you finished.
+   keepalive lets the request outlive the page; `since` in the future
+   means the server sends nothing back instead of the whole store. */
 const KOS_API_URL = 'https://script.google.com/macros/s/AKfycbwBo36jDTZcJWKMB0KxizVX5XyJIK_dLZ4Wlxzeetj9L9lDzKCUkFyUzd4TU7gqit4ACA/exec';
 const KOS_API_TOKEN = 'nSMjCIzxQSrHCeuB02zzvY44oIoid26h';
+const KOS_OUTBOX = 'ascend_kos_outbox';
+function kosOutbox(){try{return JSON.parse(localStorage.getItem(KOS_OUTBOX)||'{}');}catch(e){return{};}}
 function kosReportSession(dayKey, payload){
+  const box=kosOutbox(); box[dayKey]={v:JSON.stringify(payload), t:Date.now()};
+  try{localStorage.setItem(KOS_OUTBOX,JSON.stringify(box));}catch(e){}
+  kosFlush();
+}
+let kosFlushing=false;
+function kosFlush(){
+  const box=kosOutbox(), days=Object.keys(box);
+  if(!days.length || kosFlushing) return;
+  kosFlushing=true;
   try{
     fetch(KOS_API_URL, {
-      method:'POST',
+      method:'POST', keepalive:true,
       headers:{'Content-Type':'text/plain;charset=utf-8'},
       body: JSON.stringify({action:'sync', token:KOS_API_TOKEN,
-        items:[{k:'ascend:day:'+dayKey, v:JSON.stringify(payload), t:Date.now()}], since:0})
-    }).catch(()=>{});
-  }catch(e){}
+        items:days.map(d=>({k:'ascend:day:'+d, v:box[d].v, t:box[d].t})), since:Date.now()+864e5})
+    }).then(r=>r.json()).then(res=>{
+      if(!res || !Array.isArray(res.items)) return;
+      const now=kosOutbox(); days.forEach(d=>{ if(now[d] && now[d].t===box[d].t) delete now[d]; });
+      localStorage.setItem(KOS_OUTBOX,JSON.stringify(now));
+    }).catch(()=>{}).finally(()=>{kosFlushing=false;});
+  }catch(e){kosFlushing=false;}
 }
+addEventListener('online', kosFlush);
+addEventListener('load', ()=>setTimeout(kosFlush,800));
 const STRETCHES = [
   {name:"Sitting toe touch",     phases:[["Fold from the hips, reach the toes",60]]},
   {name:"Butterfly stretch",     phases:[["Soles together, press knees down",60]]},
@@ -642,7 +661,7 @@ const STRETCHES = [
 let MED_SECONDS = 10*60; // default every session — bump to 20 via the on-screen chip when a class runs long
 /* Body · Part 2 — each exercise has its own rep target now (was one TARGET=40
    shared by all three). Order here also drives the strength-stage tap order. */
-const TARGETS = {push:50, squat:50, pullup:10, chinup:10};
+const TARGETS = {push:40, squat:40, pullup:10, chinup:10};
 const EXERCISES = {push:"Push-ups", squat:"Squats", pullup:"Pull-ups", chinup:"Chin-ups"};
 const TINTS = {
   welcome:["#6ea8ff","#3f6fd1"], progress:["#54e0a0","#2bd47f"], breath:["#54c6ff","#2b7fd4"],
@@ -724,7 +743,7 @@ const BUFFER_SECONDS=30;
 const STAGE_INFO={
   meditation:{t:"Sam Harris Meditation", d:"10 minutes of stillness"},
   stretch:{t:"Mobility Flow", d:"10 stretches · get to the floor"},
-  strength:{t:"Strength", d:"50 push-ups · 50 squats · 10 pull-ups · 10 chin-ups"},
+  strength:{t:"Strength", d:"40 push-ups · 40 squats · 10 pull-ups · 10 chin-ups"},
 };
 let bufEnd=0, bufTimer=null;
 /* ---- Mind path: Breathe → Meditate ---- */
@@ -1015,7 +1034,14 @@ function recordSession(){
     seconds:Math.round((Date.now()-sessionStart)/1000)};
   h.push(rec);
   localStorage.setItem('ascend_history',JSON.stringify(h));
-  kosReportSession(rec.day, rec);}
+  // one key per day, so report the whole day — a Mind session after a Body one
+  // used to overwrite it and K-OS lost the reps
+  const today=h.filter(s=>s.day===rec.day);
+  const sum=f=>today.reduce((a,s)=>a+(s[f]||0),0);
+  kosReportSession(rec.day, Object.assign({}, rec, {
+    paths:[...new Set(today.map(s=>s.path).filter(Boolean))],
+    push:sum('push'), squat:sum('squat'), pullup:sum('pullup'), chinup:sum('chinup'),
+    minutes:sum('minutes'), seconds:sum('seconds')}));}
 function loadHist(){try{return JSON.parse(localStorage.getItem('ascend_history')||'[]');}catch(e){return[];}}
 function dayKey(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 

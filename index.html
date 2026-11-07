@@ -71,6 +71,18 @@
   .da-btns .primary .ico{ fill:currentColor; stroke-width:1.2; }
   .da-focus{ display:flex; align-items:center; gap:7px; }
   .da-focus .ico{ width:14px; height:14px; }
+  .cmdk-row-ic .ico{ width:17px; height:17px; color:var(--dim); }
+  .cmdk-row.sel .cmdk-row-ic .ico{ color:var(--accent); }
+  /* settings switches: the checkboxes themselves, drawn as iOS-style switches */
+  .toggle-inline{display:flex !important;align-items:center;justify-content:space-between;gap:14px;width:100%;font-size:14px;font-weight:600;color:var(--txt);cursor:pointer}
+  .toggle-inline input[type=checkbox]{order:2;appearance:none;-webkit-appearance:none;width:48px;height:28px;border-radius:99px;margin:0;flex:0 0 auto;
+    background:rgba(255,255,255,.08);border:1px solid var(--line);position:relative;cursor:pointer;transition:background .25s,border-color .25s}
+  .toggle-inline input[type=checkbox]::before{content:'';position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:50%;background:#fff;
+    box-shadow:0 2px 6px rgba(0,0,0,.35);transition:transform .3s var(--ease)}
+  .toggle-inline input[type=checkbox]:checked{background:var(--accent2);border-color:var(--accent2)}
+  .toggle-inline input[type=checkbox]:checked::before{transform:translateX(20px)}
+  .modal input[type=time],.modal input[type=date]{color-scheme:dark;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:12px;color:var(--txt);padding:10px 12px;font:600 16px/1.2 inherit}
+  .modal button.sm .ico{width:15px;height:15px;vertical-align:-3px}
   #silk{ position:fixed; inset:0; width:100vw; height:100vh; display:block; }
   body.silk-on{ background:#0a0c10; }
 
@@ -2424,11 +2436,12 @@
     </div>
 
     <div class="sect">
-      <div class="lbl">⏱ Work · logging &amp; breaks <span class="sub" id="restStateLbl"></span></div>
+      <div class="lbl">Work · logging &amp; breaks</div>
+      <div class="sub" id="restStateLbl" style="margin:-4px 0 8px"></div>
       <div id="schedBody">
       <div class="sub" style="margin-top:10px">Runs quietly while you work — a log popup takes over the screen when it's time to note what you did, breaks nudge you automatically.</div>
 
-      <label class="toggle-inline" style="margin-top:14px"><input type="checkbox" id="logToggle" onchange="toggleLogEnabled(this.checked)"> log reminders on</label>
+      <label class="toggle-inline" style="margin-top:14px"><input type="checkbox" id="logToggle" onchange="toggleLogEnabled(this.checked)"> Log reminders</label>
       <div class="sub" style="margin-top:2px">Off = work straight through for long focus stretches — no popups. Session &amp; committed hours still track.</div>
       <div id="logSchedRow">
         <div class="sched-row" style="margin-top:12px">
@@ -2460,14 +2473,14 @@
       </div>
 
       <div class="row" style="margin-top:18px">
-        <button class="sm" onclick="startRest('mini',true)">☕ Mini break now</button>
-        <button class="sm" onclick="startRest('big',true)">🛋 Big break now</button>
-        <label class="toggle-inline"><input type="checkbox" id="restToggle" onchange="toggleRestEnabled(this.checked)"> auto-breaks on</label>
+        <button class="sm" onclick="startRest('mini',true)"><svg class="ico"><use href="#i-coffee"/></svg> Mini break now</button>
+        <button class="sm" onclick="startRest('big',true)"><svg class="ico"><use href="#i-moon"/></svg> Big break now</button>
+        <label class="toggle-inline"><input type="checkbox" id="restToggle" onchange="toggleRestEnabled(this.checked)"> Automatic breaks</label>
       </div>
       </div><!-- /#schedBody -->
     </div>
     <div class="sect">
-      <div class="lbl">⏰ Alarm</div>
+      <div class="lbl">Alarm</div>
       <div class="alarm-clock" style="margin-top:8px">
         <input type="time" id="alarmTimeInput" onchange="setAlarmTime(this.value)">
         <button class="sm ghost" onclick="clearAlarmTime()">Clear</button>
@@ -2963,7 +2976,7 @@ const ico=(name, cls)=>'<svg class="ico'+(cls?' '+cls:'')+'" aria-hidden="true">
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261107-203708';
+const KOS_BUILD='20261107-204005';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -3440,22 +3453,27 @@ function closeSettings(){ $('#setScrim').classList.remove('show'); }
    it's never stale after a clock-in/out that happened elsewhere. */
 function cmdkCommands(){
   const working = typeof ts!=='undefined' && ts.mode!=='idle';
+  const focus=(sel,tab)=>{ showTab(tab); setTimeout(()=>{ const i=$(sel); if(i) i.focus(); }, 350); };
   return [
-    {ic:'☀️', label:'Go to Today', run:()=>showTab('today')},
-    {ic:'📅', label:'Go to Plan', run:()=>showTab('plan')},
-    {ic:'🌙', label:'Reflect on today', run:()=>openReflect()},
-    {ic:'📊', label:'This week · insights', run:()=>showTab('track')},
-    {ic:'➕', label:'Add a block to the plan', run:()=>{ showTab('plan'); setTimeout(()=>{ const i=$('#plQuick'); if(i) i.focus(); }, 350); }},
-    {ic:'✅', label:'Go to Missions', run:()=>showTab('goals')},
-    {ic:'⏱', label:'Go to Work', run:()=>showTab('work')},
-    {ic:'🎤', label:'Go to Studio', run:()=>showTab('rap')},
-    {ic:'🏋️', label:'Go to Health', run:()=>showTab('health')},
-    {ic:'📈', label:'Go to Metrics', run:()=>showTab('track')},
-    {ic: working?'⏸':'▶', label: working?'Pause / resume work':'Clock in', run:()=>{ showTab('work'); tsToggle(); }},
-    ...(working ? [{ic:'⏹', label:'Clock out', run:()=>{ showTab('work'); tsClockOut(); }}] : []),
-    {ic:'☕', label:(typeof SET!=='undefined' && SET.restOn)?'Turn breaks off':'Turn breaks on', run:()=>toggleRestEnabled(!SET.restOn)},
-    {ic:'➕', label:'Add a new mission', run:()=>{ showTab('goals'); setTimeout(()=>{ const i=$('#goalInput'); if(i){ i.focus(); } }, 350); }},
-    {ic:'⚙', label:'Open settings', run:()=>openSettings()},
+    {ic:'sun', label:'Go to Today', run:()=>showTab('today')},
+    {ic:'calendar', label:'Go to Plan', run:()=>showTab('plan')},
+    {ic:'plus', label:'Add a block to the plan', run:()=>focus('#plQuick','plan')},
+    {ic:'calendar', label:'Plan tomorrow', run:()=>{ plSel=plAddDays(todayKey(),1); showTab('plan'); }},
+    {ic:'moon', label:'Reflect on today', run:()=>openReflect()},
+    {ic:'sunrise', label:'Start morning routine · ASCEND', run:()=>riseOpenAscend()},
+    {ic: working?'pause':'play', label: working?'Pause / resume work':'Clock in', run:()=>{ showTab('work'); tsToggle(); }},
+    ...(working ? [{ic:'x', label:'Clock out', run:()=>{ showTab('work'); tsClockOut(); }}, {ic:'edit', label:'Log what I just did', run:()=>tsOpenLog()}] : []),
+    {ic:'target', label:'Go to Missions', run:()=>showTab('goals')},
+    {ic:'plus', label:'Add a new mission', run:()=>focus('#goalInput','goals')},
+    {ic:'timer', label:'Go to Work', run:()=>showTab('work')},
+    {ic:'mic', label:'Go to Studio', run:()=>showTab('rap')},
+    {ic:'dumbbell', label:'Go to Gym', run:()=>showTab('gym')},
+    {ic:'utensils', label:'Go to Diet', run:()=>showTab('diet')},
+    {ic:'droplet', label:'Drink a glass of water · +250ml', run:()=>addWater(250)},
+    {ic:'checkCircle', label:'Go to Habits', run:()=>showTab('habits')},
+    {ic:'chart', label:'This week · insights', run:()=>showTab('track')},
+    {ic:'coffee', label:(typeof SET!=='undefined' && SET.restOn)?'Turn breaks off':'Turn breaks on', run:()=>toggleRestEnabled(!SET.restOn)},
+    {ic:'sliders', label:'Open settings', run:()=>openSettings()},
   ];
 }
 let cmdkSel=0, cmdkFiltered=[];
@@ -3474,7 +3492,7 @@ function renderCmdkList(q){
   const list=$('#cmdkList');
   list.innerHTML = cmdkFiltered.length ? cmdkFiltered.map((c,i)=>
     '<div class="cmdk-row'+(i===cmdkSel?' sel':'')+'" data-i="'+i+'">'+
-      '<span class="cmdk-row-ic">'+c.ic+'</span><b>'+esc(c.label)+'</b>'+
+      '<span class="cmdk-row-ic">'+(ICONS[c.ic]?ico(c.ic):c.ic)+'</span><b>'+esc(c.label)+'</b>'+
       (i===cmdkSel?'<span class="cmdk-hint">↵</span>':'')+
     '</div>').join('')
     : '<div class="cmdk-empty">No matches</div>';
@@ -4759,7 +4777,7 @@ function renderWork(){
   $('#logSchedRow').style.opacity = SET.logOn ? '1' : '.4';
   $('#logSchedRow').style.pointerEvents = SET.logOn ? '' : 'none';
   $('#restToggle').checked = SET.restOn;
-  $('#restStateLbl').textContent = (SET.logOn?'log on':'straight-through') + (SET.restOn ? ' · breaks on' : ' · breaks off');
+  $('#restStateLbl').textContent = (SET.logOn?'Logging every '+SET.tsInt+' min':'Straight through, no log prompts') + (SET.restOn ? ' · breaks on' : ' · breaks off');
   const breaksBtn=$('#tsBreaksBtn'); if(breaksBtn){ breaksBtn.classList.toggle('on', SET.restOn); breaksBtn.title = SET.restOn ? 'Breaks on — tap to work straight through' : 'Breaks off — tap to turn auto-breaks back on'; }
   const tsIntS=$('#tsIntSlider'); if(document.activeElement!==tsIntS) tsIntS.value=SET.tsInt; styleSlider(tsIntS);
   $('#tsIntVal').textContent=fmtEvery(SET.tsInt);

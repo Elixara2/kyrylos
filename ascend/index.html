@@ -606,6 +606,214 @@
 </div>
 
 <script>
+/* Aura — the one sound engine for K-OS and ASCEND.
+ *
+ * Every sound is a small instrument (singing bowl, glass bell, felt tap, warm
+ * pad, harp run, breath) played into one shared hall reverb + gentle
+ * compressor, and every pitch comes from one key (D major pentatonic) — so
+ * nothing ever clashes and every cue sounds like it belongs to the same place.
+ * The old sounds were bare oscillators straight to the speaker: no space, hard
+ * square edges, random pitches — that's what read as an 80s console.
+ *
+ *   Aura.play('complete')        named cue (see CUES below)
+ *   Aura.rep(i, n)               one step of a rising harp run (ASCEND rep counter)
+ *   Aura.breath('in'|'out', s)   a breath swell s seconds long
+ *   Aura.setVolume(0..1), Aura.volume()
+ *
+ * deploy.sh inlines this file into both pages; App.html and ASCEND load it with
+ * a plain <script src> while developing.
+ */
+(function(){
+  if (window.Aura) return;
+  const VKEY = 'aura:vol';
+  let vol = 0.7;
+  try { const v = localStorage.getItem(VKEY); if (v != null && !isNaN(+v)) vol = Math.min(1, Math.max(0, +v)); } catch (e) {}
+
+  // squared = even perceived steps; ×2.5 puts the main cues near -9 dB at the default 70%
+  const gainFor = v => v * v * 2.5;
+  let ctx = null, bus = null, dryBus = null, master = null, noiseBuf = null;
+
+  // D major pentatonic from D3 — note(0)=D3, note(5)=D4, note(10)=D5, note(15)=D6
+  const ROOT = 146.83, PENTA = [0, 2, 4, 7, 9];
+  const note = n => ROOT * Math.pow(2, (Math.floor(n / 5) * 12 + PENTA[((n % 5) + 5) % 5]) / 12);
+
+  function init(){
+    if (ctx) return ctx;
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null;
+    try { ctx = new AC({ latencyHint: 'interactive' }); } catch (e) { ctx = new AC(); }
+    master = ctx.createGain(); master.gain.value = gainFor(vol);
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -20; comp.knee.value = 14; comp.ratio.value = 3; comp.attack.value = .004; comp.release.value = .3;
+    const air = ctx.createBiquadFilter(); air.type = 'highshelf'; air.frequency.value = 7000; air.gain.value = -5;   // no harsh top
+    const warm = ctx.createBiquadFilter(); warm.type = 'lowshelf'; warm.frequency.value = 180; warm.gain.value = 2;
+    const rev = ctx.createConvolver(); rev.buffer = hall(3.4, 2.6);
+    const revIn = ctx.createBiquadFilter(); revIn.type = 'highpass'; revIn.frequency.value = 240;   // keep the low end out of the tail
+    const wet = ctx.createGain(); wet.gain.value = .34;
+    bus = ctx.createGain(); dryBus = ctx.createGain();
+    bus.connect(warm); bus.connect(revIn); revIn.connect(rev); rev.connect(wet); wet.connect(warm);
+    dryBus.connect(warm);
+    // dryBus still gets a whisper of room so taps don't sound like they're in a box
+    const dryRoom = ctx.createGain(); dryRoom.gain.value = .12; dryBus.connect(dryRoom); dryRoom.connect(revIn);
+    warm.connect(air); air.connect(comp); comp.connect(master); master.connect(ctx.destination);
+    return ctx;
+  }
+  // algorithmic hall: stereo noise that darkens as it decays, soft 14ms onset
+  function hall(sec, decay){
+    const rate = ctx.sampleRate, len = Math.floor(rate * sec), buf = ctx.createBuffer(2, len, rate), on = rate * .014;
+    for (let c = 0; c < 2; c++){
+      const d = buf.getChannelData(c); let lp = 0;
+      for (let i = 0; i < len; i++){
+        const t = i / len, k = .08 + .55 * Math.pow(1 - t, 2);
+        lp += ((Math.random() * 2 - 1) - lp) * k;
+        d[i] = lp * Math.pow(1 - t, decay) * (i < on ? i / on : 1) * 1.6;
+      }
+    }
+    return buf;
+  }
+  function noise(){
+    if (noiseBuf) return noiseBuf;
+    const len = ctx.sampleRate * 2; noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = noiseBuf.getChannelData(0); let b0 = 0, b1 = 0, b2 = 0;
+    for (let i = 0; i < len; i++){ const w = Math.random() * 2 - 1;   // pink-ish: softer than white
+      b0 = .99765 * b0 + w * .099; b1 = .963 * b1 + w * .2965; b2 = .57 * b2 + w * 1.0526;
+      d[i] = (b0 + b1 + b2 + w * .1848) * .2; }
+    return noiseBuf;
+  }
+  function out(pan, dry){
+    const p = ctx.createStereoPanner ? ctx.createStereoPanner() : ctx.createGain();
+    if (p.pan) p.pan.value = pan || 0;
+    p.connect(dry ? dryBus : bus); return p;
+  }
+  function partial(dest, f, t, amp, attack, decay, type, detune){
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type || 'sine'; o.frequency.value = f; if (detune) o.detune.value = detune;
+    g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(amp, t + attack);
+    g.gain.exponentialRampToValueAtTime(.0001, t + attack + decay);
+    o.connect(g); g.connect(dest); o.start(t); o.stop(t + attack + decay + .05);
+  }
+
+  /* ---------- instruments ---------- */
+  // soft glass bell: a pure body with a few fast-dying overtones
+  function glass(f, t, amp, len, pan){
+    const o = out(pan == null ? (Math.random() - .5) * .35 : pan);
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 5200; lp.connect(o);
+    partial(lp, f, t, amp, .006, len);
+    partial(lp, f * 2, t, amp * .26, .004, len * .42);
+    partial(lp, f * 3.01, t, amp * .11, .003, len * .2);
+    partial(lp, f * 4.16, t, amp * .045, .002, len * .1);
+  }
+  // Tibetan singing bowl: inharmonic partials, each doubled a few cents apart so it slowly shimmers
+  function bowl(f, t, amp, len){
+    const o = out((Math.random() - .5) * .25);
+    [[1, 1], [2.71, .42], [5.15, .18], [8.43, .07]].forEach(([r, a], i) => {
+      const d = len / (1 + i * .85);
+      partial(o, f * r, t, amp * a, .018 + i * .004, d);
+      partial(o, f * r, t, amp * a * .55, .03, d * .92, 'sine', 4 + i * 2);
+    });
+    // the mallet: a short, dark thud under the strike
+    const s = ctx.createBufferSource(); s.buffer = noise();
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900;
+    const g = ctx.createGain(); g.gain.setValueAtTime(amp * .5, t); g.gain.exponentialRampToValueAtTime(.0001, t + .07);
+    s.connect(lp); lp.connect(g); g.connect(o); s.start(t, Math.random()); s.stop(t + .1);
+  }
+  // felt tap — a muted, woody touch for UI (almost no reverb)
+  function felt(t, pitch, amp){
+    const o = out(0, true);
+    const s = ctx.createBufferSource(); s.buffer = noise();
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1900 * pitch; bp.Q.value = 1.1;
+    const g = ctx.createGain(); g.gain.setValueAtTime(amp * .55, t); g.gain.exponentialRampToValueAtTime(.0001, t + .03);
+    s.connect(bp); bp.connect(g); g.connect(o); s.start(t, Math.random()); s.stop(t + .05);
+    partial(o, 420 * pitch, t, amp * .7, .002, .07);
+    partial(o, 840 * pitch, t, amp * .18, .001, .03);
+  }
+  // warm pad: detuned triangles under a filter that opens then closes — a swell, not a beep
+  function pad(freqs, t, amp, att, len){
+    const o = out(0);
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = .4;
+    lp.frequency.setValueAtTime(380, t); lp.frequency.linearRampToValueAtTime(2200, t + att);
+    lp.frequency.exponentialRampToValueAtTime(420, t + att + len); lp.connect(o);
+    freqs.forEach(f => [-7, 7].forEach(dt => {
+      const v = ctx.createOscillator(), g = ctx.createGain();
+      v.type = 'triangle'; v.frequency.value = f; v.detune.value = dt;
+      g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(amp / freqs.length, t + att);
+      g.gain.exponentialRampToValueAtTime(.0001, t + att + len);
+      v.connect(g); g.connect(lp); v.start(t); v.stop(t + att + len + .1);
+    }));
+  }
+  // a water droplet — real drops sweep UP in pitch
+  function drop(t, f, amp){
+    const o = out((Math.random() - .5) * .4);
+    const v = ctx.createOscillator(), g = ctx.createGain();
+    v.frequency.setValueAtTime(f, t); v.frequency.exponentialRampToValueAtTime(f * 2.3, t + .07);
+    g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(amp, t + .004); g.gain.exponentialRampToValueAtTime(.0001, t + .11);
+    v.connect(g); g.connect(o); v.start(t); v.stop(t + .14);
+  }
+  // breath: filtered noise rising (in) or falling (out)
+  function breath(dir, sec, amp, t){
+    const o = out(0);
+    const s = ctx.createBufferSource(); s.buffer = noise(); s.loop = true;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = .7;
+    const g = ctx.createGain();
+    const lo = 300, hi = 1500, inb = dir !== 'out';
+    bp.frequency.setValueAtTime(inb ? lo : hi, t); bp.frequency.exponentialRampToValueAtTime(inb ? hi : lo, t + sec);
+    g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(amp, t + sec * (inb ? .7 : .25));
+    g.gain.exponentialRampToValueAtTime(.0001, t + sec);
+    s.connect(bp); bp.connect(g); g.connect(o); s.start(t); s.stop(t + sec + .05);
+  }
+  const arp = (ns, t, step, amp, len) => ns.forEach((n, i) => glass(note(n), t + i * step, amp * (1 - i * .06), len));
+
+  /* ---------- named cues ---------- */
+  const CUES = {
+    tap:       t => felt(t, 1, .13),
+    lift:      t => { felt(t, .8, .11); glass(note(12), t + .01, .035, .5); },
+    drop:      t => felt(t, .65, .15),
+    toggleOn:  t => { felt(t, 1.1, .06); glass(note(12), t, .08, .8); glass(note(14), t + .07, .07, 1.1); },
+    toggleOff: t => { felt(t, .9, .06); glass(note(11), t, .06, .6); },
+    start:     t => { bowl(note(5), t, .13, 4); glass(note(15), t + .06, .045, 1.6); },
+    pause:     t => { glass(note(10), t, .08, .9); glass(note(7), t + .1, .07, 1.2); },
+    log:       t => { glass(note(10), t, .12, 1.8); glass(note(13), t + .17, .11, 2.4); },
+    complete:  t => { bowl(note(5), t, .06, 2.4); arp([10, 12, 13], t, .075, .1, 1.6); },
+    success:   t => { pad([note(5), note(7), note(8), note(10)], t, .07, .3, 2.2); arp([10, 12, 13, 15], t + .05, .08, .09, 1.8); },
+    fanfare:   t => { bowl(note(0), t, .1, 6); pad([note(5), note(7), note(8), note(9), note(10)], t, .09, .5, 3);
+                      arp([8, 9, 10, 11, 12, 13, 14, 15, 17], t + .1, .07, .085, 2.2); },
+    notify:    t => { bowl(note(8), t, .1, 3.2); glass(note(13), t + .12, .07, 1.8); },
+    breakBig:  t => { bowl(note(3), t, .14, 6); bowl(note(8), t + .35, .07, 5); },
+    countdown: t => { felt(t, 1.2, .05); glass(note(10), t, .05, .35); },
+    stage:     t => { bowl(note(5), t, .15, 6.5); },
+    phase:     t => glass(note(12), t, .1, 1.5),
+    skip:      t => { felt(t, .9, .07); glass(note(9), t + .01, .05, .5); },
+    water:     t => { drop(t, 520, .14); drop(t + .09, 760, .09); },
+    error:     t => { glass(note(7), t, .07, .5); glass(note(6), t + .09, .06, .7); },
+    // alarm ring n (0-based): starts as a whisper, rises a little each ring
+    alarm:     (t, n) => { const a = Math.min(1.8, .7 + (n || 0) * .15); bowl(note(5), t, .16 * a, 4.5); arp([10, 12, 13, 15], t + .25, .14, .1 * a, 2); },
+  };
+
+  function now(){ const c = init(); if (!c) return null; if (c.state === 'suspended') c.resume().catch(() => {}); return c.currentTime + .015; }
+  function guard(fn){ if (vol <= 0) return; try { const t = now(); if (t != null) fn(t); } catch (e) {} }
+
+  let lastRepNote = -1;
+  window.Aura = {
+    play(name, arg){ const c = CUES[name]; if (c) guard(t => c(t, arg)); },
+    // ASCEND rep counter: a harp run up two octaves — a note only when the step lands on a new one
+    rep(i, n){ guard(t => {
+      const k = 5 + Math.round((i / Math.max(1, n)) * 12);
+      if (i <= 1) lastRepNote = -1;
+      if (k === lastRepNote) return; lastRepNote = k;
+      glass(note(k), t, .05 + .03 * (i / n), .9, (i / n - .5) * .6);
+    }); },
+    breath(dir, sec){ guard(t => breath(dir, sec || 4, .05, t)); },
+    setVolume(v){ vol = Math.min(1, Math.max(0, +v || 0)); try { localStorage.setItem(VKEY, String(vol)); } catch (e) {}
+      if (master) master.gain.setTargetAtTime(gainFor(vol), ctx.currentTime, .05); },
+    volume(){ return vol; },
+    unlock(){ const c = init(); if (c && c.state === 'suspended') c.resume().catch(() => {}); },
+    note,
+  };
+  // browsers only allow audio after a touch — warm up on the first one so the first cue isn't swallowed
+  const warm = () => { window.Aura.unlock(); removeEventListener('pointerdown', warm, true); removeEventListener('keydown', warm, true); };
+  addEventListener('pointerdown', warm, true); addEventListener('keydown', warm, true);
+})();
+</script>
+<script>
 /* ======================= CONFIG ======================= */
 const DEFAULT_VIDEO = "tybOi4hjZFQ"; // Guided Wim Hof Method breathing (11 min)
 
@@ -717,9 +925,12 @@ function chime(freq=660,dur=.5,type='sine'){try{
   o.type=type;o.frequency.value=freq;o.connect(g);g.connect(audioCtx.destination);
   const t=audioCtx.currentTime;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.25,t+.03);
   g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.start(t);o.stop(t+dur+.05);}catch(e){}}
-function bell(){chime(392,.7);setTimeout(()=>chime(523.25,.85),150);}   // warm low chime, not a bright ding
+/* Aura (../aura.js, inlined on deploy) plays every cue: singing bowls, glass,
+   a harp run for the reps. The raw-oscillator versions here are only a fallback. */
+const A=window.Aura;
+function bell(){ if(A){A.play('stage');return;} chime(392,.7);setTimeout(()=>chime(523.25,.85),150);}
 /* soft countdown tick — gentle descending "boop", used for the 3-2-1 before a stage change */
-function softTick(){try{
+function softTick(){ if(A){A.play('countdown');return;} try{
   audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
   const o=audioCtx.createOscillator(),g=audioCtx.createGain();
   o.type='sine';
@@ -749,13 +960,13 @@ let bufEnd=0, bufTimer=null;
 /* ---- Mind path: Breathe → Meditate ---- */
 function startMind(){
   path='mind'; stagesOrder=PATH_STAGES.mind; buildRail(stagesOrder);
-  sessionStart=Date.now();MED_SECONDS=10*60;keepAwake();chime(520,.4);
+  sessionStart=Date.now();MED_SECONDS=10*60;keepAwake();A?A.play('start'):chime(520,.4);
   showScreen('breath');loadVideo();startBreathBackup();
 }
 /* ---- Body path: Stretch (Part 1) → Strength (Part 2) ---- */
 function startBody(){
   path='body'; stagesOrder=PATH_STAGES.body; buildRail(stagesOrder);
-  sessionStart=Date.now();keepAwake();chime(520,.4);
+  sessionStart=Date.now();keepAwake();A?A.play('start'):chime(520,.4);
   /* Every other stage transition goes through toBuffer(); this one jumped
      straight in, so the body path started cold with no chance to get ready.
      Same 30s countdown, same "Skip rest →" button. */
@@ -780,7 +991,7 @@ function tickBuf(){clearTimeout(bufTimer);
   if(left<=3 && left!==bufBeepAtLeft){ softTick(); bufBeepAtLeft=left; }
   bufTimer=setTimeout(tickBuf,250);}
 function skipBuffer(){startPending();}
-function startPending(){clearTimeout(bufTimer);const s=pending;pending=null;chime(640,.3);
+function startPending(){clearTimeout(bufTimer);const s=pending;pending=null;A?A.play('phase'):chime(640,.3);
   if(s==='meditation'){showScreen('meditation');startMed();}
   else if(s==='stretch'){showScreen('stretch');startStretch();}
   else if(s==='strength'){showScreen('strength');startStrength();}}
@@ -962,7 +1173,7 @@ function runStretch(){clearInterval(sTimer);sTimer=setInterval(()=>{
   if(sLeft<=3&&sLeft>0)softTick();
   if(sLeft<=0)advancePhase();},1000);}
 function advancePhase(){const st=STRETCHES[sIdx];
-  if(sPhase+1<st.phases.length){sPhase++;sLeft=st.phases[sPhase][1];chime(760,.35);renderStretch();return;}
+  if(sPhase+1<st.phases.length){sPhase++;sLeft=st.phases[sPhase][1];A?A.play('phase'):chime(760,.35);renderStretch();return;}
   sIdx++;sPhase=0;
   if(sIdx>=STRETCHES.length){bell();stopStretch();next();return;}
   sLeft=STRETCHES[sIdx].phases[0][1];bell();renderStretch();}
@@ -975,7 +1186,7 @@ function renderStretch(){const st=STRETCHES[sIdx],ph=st.phases[sPhase];
   setRing('strRing',sLeft/ph[1]);
   document.querySelectorAll('#stretchDots .dot').forEach((d,i)=>{d.classList.toggle('on',i<sIdx);d.classList.toggle('cur',i===sIdx);});}
 function toggleStretch(){sRunning=!sRunning;$("strToggle").textContent=sRunning?'Pause':'Resume';if(sRunning)runStretch();else clearInterval(sTimer);}
-function skipStretch(){chime(600,.2);sIdx++;sPhase=0;
+function skipStretch(){A?A.play('skip'):chime(600,.2);sIdx++;sPhase=0;
   if(sIdx>=STRETCHES.length){bell();stopStretch();next();return;}
   sLeft=STRETCHES[sIdx].phases[0][1];renderStretch();if(sRunning)runStretch();}
 function stopStretch(){clearInterval(sTimer);sRunning=false;}
@@ -996,7 +1207,7 @@ function complete(k,ev){const card=document.querySelector('.block[data-ex="'+k+'
     i++;
     numEl.textContent=i;
     numEl.style.transform='scale('+(1+i/target*0.26)+')';
-    chime((300+i*17)/2,.05,'triangle');        // original rising-pitch arpeggio, one octave lower
+    A?A.rep(i,target):chime((300+i*17)/2,.05,'triangle');   // a harp run up two octaves
     if(i%4===0)buzz(6);
     if(i>=target){finishRep(k,card,px,py);return;}
     setTimeout(tick, 13 + i*0.75);              // slows near the end → anticipation
@@ -1007,7 +1218,7 @@ function finishRep(k,card,px,py){
   const rect=card.getBoundingClientRect(),fill=card.querySelector('.fill');
   fill.style.left=(px-rect.left)+'px';fill.style.top=(py-rect.top)+'px';
   card.classList.add('done');
-  chime(720,.12);setTimeout(()=>chime(1080,.16),80);setTimeout(()=>chime(1620,.55),180);
+  if(A)A.play('complete'); else {chime(720,.12);setTimeout(()=>chime(1080,.16),80);setTimeout(()=>chime(1620,.55),180);}
   buzz([18,50,25]);
   dust(px,py,EXCOLOR[k]);
   const doneCount=Object.keys(TARGETS).filter(ex=>reps[ex]>=TARGETS[ex]).length;
@@ -1016,6 +1227,7 @@ function finishRep(k,card,px,py){
 /* ---------- finish + record ---------- */
 function finish(){
   recordSession();
+  if(A) setTimeout(()=>A.play('fanfare'),350);   // the ascent: bowl, pad, harp up two octaves
   buzz([20,60,20,60,30]);
   stopStrengthTimer();
   const secs=Math.round((Date.now()-sessionStart)/1000);

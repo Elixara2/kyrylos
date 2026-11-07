@@ -2740,8 +2740,52 @@
   function now(){ const c = init(); if (!c) return null; if (c.state === 'suspended') c.resume().catch(() => {}); return c.currentTime + .015; }
   function guard(fn){ if (vol <= 0) return; try { const t = now(); if (t != null) fn(t); } catch (e) {} }
 
+  /* ---------- ambience ----------
+     A slow, evolving bed for stretching/meditation: a warm open-fifth pad whose
+     voices breathe on their own long, unsynced LFOs, a soft wind of filtered
+     noise, and now and then a distant chime from the same pentatonic key. It
+     never repeats exactly and never draws attention to itself. */
+  let amb = null;
+  function ambientStart(){
+    if (amb || vol <= 0) return; const c = init(); if (!c) return;
+    if (c.state === 'suspended') c.resume().catch(() => {});
+    const t = c.currentTime, g = c.createGain(); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.11, t + 4);
+    const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; lp.Q.value = .3;
+    const lfoF = c.createOscillator(), lfoFG = c.createGain(); lfoF.frequency.value = .031; lfoFG.gain.value = 380;
+    lfoF.connect(lfoFG); lfoFG.connect(lp.frequency); lfoF.start(t);
+    lp.connect(g); g.connect(bus);
+    const nodes = [lfoF];
+    [note(0), note(3), note(6), note(7), note(10)].forEach((f, i) => {
+      [-5, 5].forEach(dt => {
+        const o = c.createOscillator(), vg = c.createGain(), lfo = c.createOscillator(), lg = c.createGain();
+        o.type = i < 2 ? 'sine' : 'triangle'; o.frequency.value = f; o.detune.value = dt;
+        vg.gain.value = .035 / (1 + i * .35);
+        lfo.frequency.value = .045 + Math.random() * .07; lg.gain.value = vg.gain.value * .85;
+        lfo.connect(lg); lg.connect(vg.gain); o.connect(vg); vg.connect(lp);
+        o.start(t); lfo.start(t + Math.random() * 3); nodes.push(o, lfo);
+      });
+    });
+    const s = c.createBufferSource(); s.buffer = noise(); s.loop = true;
+    const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 520; bp.Q.value = .5;
+    const wg = c.createGain(); wg.gain.value = .022;
+    const wl = c.createOscillator(), wlg = c.createGain(); wl.frequency.value = .019; wlg.gain.value = 260;
+    wl.connect(wlg); wlg.connect(bp.frequency); s.connect(bp); bp.connect(wg); wg.connect(g); s.start(t); wl.start(t); nodes.push(s, wl);
+    const chime = () => { if (!amb) return; const k = 12 + Math.floor(Math.random() * 6);
+      try { glass(note(k), c.currentTime + .05, .022 + Math.random() * .02, 3.5, (Math.random() - .5) * .8); } catch (e) {}
+      amb.timer = setTimeout(chime, 7000 + Math.random() * 9000); };
+    amb = { g, nodes, timer: setTimeout(chime, 5000) };
+  }
+  function ambientStop(){
+    if (!amb) return; const a = amb; amb = null; clearTimeout(a.timer);
+    const t = ctx.currentTime; a.g.gain.cancelScheduledValues(t); a.g.gain.setValueAtTime(Math.max(.0001, a.g.gain.value), t);
+    a.g.gain.exponentialRampToValueAtTime(.0001, t + 3);
+    a.nodes.forEach(n => { try { n.stop(t + 3.1); } catch (e) {} });
+    setTimeout(() => { try { a.g.disconnect(); } catch (e) {} }, 3400);
+  }
+
   let lastRepNote = -1;
   window.Aura = {
+    ambient(on){ try { on ? ambientStart() : ambientStop(); } catch (e) {} },
     play(name, arg){ const c = CUES[name]; if (c) guard(t => c(t, arg)); },
     // ASCEND rep counter: a harp run up two octaves — a note only when the step lands on a new one
     rep(i, n){ guard(t => {
@@ -2919,7 +2963,7 @@ const ico=(name, cls)=>'<svg class="ico'+(cls?' '+cls:'')+'" aria-hidden="true">
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261107-203404';
+const KOS_BUILD='20261107-203708';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;

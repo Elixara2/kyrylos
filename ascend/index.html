@@ -355,6 +355,7 @@
       </div>
     </div>
     <div class="foot">
+      <button class="link" onclick="backToKOS()">‹ K-OS</button>
       <button class="link" onclick="openProgress()">◔ Progress</button>
       <button class="link" onclick="openMenu()">⚙ Settings</button>
     </div>
@@ -480,7 +481,7 @@
     <div class="time-lbl fadeup" style="animation-delay:.15s">total session</div>
     <div class="stack fadeup" style="animation-delay:.25s;margin-top:26px">
       <button class="btn tint" onclick="openProgress()">View progress</button>
-      <button class="btn ghost" onclick="location.reload()">Again tomorrow</button>
+      <button class="btn ghost" onclick="backToKOS()">Back to K-OS</button>
     </div>
   </section>
 
@@ -576,6 +577,14 @@
 
     <div class="sect">
       <button class="setbtn" onclick="openColours()"><span>🎨 Colours — timer wheels</span><span class="st">›</span></button>
+    </div>
+
+    <div class="sect">
+      <div class="lbl">Sound</div>
+      <div class="toggle-row" onclick="toggleAmbient()">
+        <div><b>Ambient soundscape</b><span>A soft evolving bed while you stretch</span></div>
+        <div class="switch" id="ambToggle"><i></i></div>
+      </div>
     </div>
 
     <div class="sect">
@@ -791,8 +800,52 @@
   function now(){ const c = init(); if (!c) return null; if (c.state === 'suspended') c.resume().catch(() => {}); return c.currentTime + .015; }
   function guard(fn){ if (vol <= 0) return; try { const t = now(); if (t != null) fn(t); } catch (e) {} }
 
+  /* ---------- ambience ----------
+     A slow, evolving bed for stretching/meditation: a warm open-fifth pad whose
+     voices breathe on their own long, unsynced LFOs, a soft wind of filtered
+     noise, and now and then a distant chime from the same pentatonic key. It
+     never repeats exactly and never draws attention to itself. */
+  let amb = null;
+  function ambientStart(){
+    if (amb || vol <= 0) return; const c = init(); if (!c) return;
+    if (c.state === 'suspended') c.resume().catch(() => {});
+    const t = c.currentTime, g = c.createGain(); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.11, t + 4);
+    const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; lp.Q.value = .3;
+    const lfoF = c.createOscillator(), lfoFG = c.createGain(); lfoF.frequency.value = .031; lfoFG.gain.value = 380;
+    lfoF.connect(lfoFG); lfoFG.connect(lp.frequency); lfoF.start(t);
+    lp.connect(g); g.connect(bus);
+    const nodes = [lfoF];
+    [note(0), note(3), note(6), note(7), note(10)].forEach((f, i) => {
+      [-5, 5].forEach(dt => {
+        const o = c.createOscillator(), vg = c.createGain(), lfo = c.createOscillator(), lg = c.createGain();
+        o.type = i < 2 ? 'sine' : 'triangle'; o.frequency.value = f; o.detune.value = dt;
+        vg.gain.value = .035 / (1 + i * .35);
+        lfo.frequency.value = .045 + Math.random() * .07; lg.gain.value = vg.gain.value * .85;
+        lfo.connect(lg); lg.connect(vg.gain); o.connect(vg); vg.connect(lp);
+        o.start(t); lfo.start(t + Math.random() * 3); nodes.push(o, lfo);
+      });
+    });
+    const s = c.createBufferSource(); s.buffer = noise(); s.loop = true;
+    const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 520; bp.Q.value = .5;
+    const wg = c.createGain(); wg.gain.value = .022;
+    const wl = c.createOscillator(), wlg = c.createGain(); wl.frequency.value = .019; wlg.gain.value = 260;
+    wl.connect(wlg); wlg.connect(bp.frequency); s.connect(bp); bp.connect(wg); wg.connect(g); s.start(t); wl.start(t); nodes.push(s, wl);
+    const chime = () => { if (!amb) return; const k = 12 + Math.floor(Math.random() * 6);
+      try { glass(note(k), c.currentTime + .05, .022 + Math.random() * .02, 3.5, (Math.random() - .5) * .8); } catch (e) {}
+      amb.timer = setTimeout(chime, 7000 + Math.random() * 9000); };
+    amb = { g, nodes, timer: setTimeout(chime, 5000) };
+  }
+  function ambientStop(){
+    if (!amb) return; const a = amb; amb = null; clearTimeout(a.timer);
+    const t = ctx.currentTime; a.g.gain.cancelScheduledValues(t); a.g.gain.setValueAtTime(Math.max(.0001, a.g.gain.value), t);
+    a.g.gain.exponentialRampToValueAtTime(.0001, t + 3);
+    a.nodes.forEach(n => { try { n.stop(t + 3.1); } catch (e) {} });
+    setTimeout(() => { try { a.g.disconnect(); } catch (e) {} }, 3400);
+  }
+
   let lastRepNote = -1;
   window.Aura = {
+    ambient(on){ try { on ? ambientStart() : ambientStop(); } catch (e) {} },
     play(name, arg){ const c = CUES[name]; if (c) guard(t => c(t, arg)); },
     // ASCEND rep counter: a harp run up two octaves — a note only when the step lands on a new one
     rep(i, n){ guard(t => {
@@ -1167,7 +1220,7 @@ function stopMedVideo(){try{if(medYtPlayer&&medYtPlayer.stopVideo)medYtPlayer.st
 let sIdx=0,sPhase=0,sLeft=0,sTimer=null,sRunning=false;
 const dotsEl=$("stretchDots");
 STRETCHES.forEach(()=>{const d=document.createElement('div');d.className='dot';dotsEl.appendChild(d);});
-function startStretch(){sIdx=0;sPhase=0;sLeft=STRETCHES[0].phases[0][1];sRunning=true;bell();renderStretch();runStretch();}
+function startStretch(){sIdx=0;sPhase=0;sLeft=STRETCHES[0].phases[0][1];sRunning=true;bell();renderStretch();runStretch();if(A&&ambientOn())A.ambient(true);}
 function runStretch(){clearInterval(sTimer);sTimer=setInterval(()=>{
   sLeft--;renderStretch();
   if(sLeft<=3&&sLeft>0)softTick();
@@ -1189,7 +1242,7 @@ function toggleStretch(){sRunning=!sRunning;$("strToggle").textContent=sRunning?
 function skipStretch(){A?A.play('skip'):chime(600,.2);sIdx++;sPhase=0;
   if(sIdx>=STRETCHES.length){bell();stopStretch();next();return;}
   sLeft=STRETCHES[sIdx].phases[0][1];renderStretch();if(sRunning)runStretch();}
-function stopStretch(){clearInterval(sTimer);sRunning=false;}
+function stopStretch(){clearInterval(sTimer);sRunning=false;if(A)A.ambient(false);}
 
 /* ---------- Stage 4: strength (one-tap) ---------- */
 let reps={push:0,squat:0,pullup:0,chinup:0}, counting={};
@@ -1226,6 +1279,7 @@ function finishRep(k,card,px,py){
 
 /* ---------- finish + record ---------- */
 function finish(){
+  if(A)A.ambient(false);
   recordSession();
   if(A) setTimeout(()=>A.play('fanfare'),350);   // the ascent: bowl, pad, harp up two octaves
   buzz([20,60,20,60,30]);
@@ -1532,11 +1586,21 @@ function stopDemoRing(){if(demoRAF)cancelAnimationFrame(demoRAF);demoRAF=null;}
 /* ---------- settings menu ---------- */
 function openMenu(){$("menu").classList.add('open');syncMenu();}
 function closeMenu(){$("menu").classList.remove('open');}
+/* ASCEND lives at /kyrylos/ascend/ — K-OS is one level up. Opened as its own tab
+   on the Mac there's a K-OS window behind it, so just close; on the phone it
+   replaced K-OS in the same view, so go back to it. */
+function backToKOS(){ if(A)A.ambient(false);
+  if(window.opener && !window.opener.closed){ try{ window.close(); return; }catch(e){} }
+  location.href = /\/ascend\/?$/.test(location.pathname) ? '../' : 'https://elixara2.github.io/kyrylos/'; }
+function ambientOn(){ return localStorage.getItem('ascend_ambient')!=='0'; }
+function toggleAmbient(){ localStorage.setItem('ascend_ambient', ambientOn()?'0':'1'); syncMenu();
+  if(A){ if(ambientOn() && current==='stretch') A.ambient(true); else A.ambient(false); } }
 function syncMenu(){const t=loadTheme();
   document.querySelectorAll('#modeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.mode===t.mode));
   renderSwatches();
   const hs=$("hueSlider");if(hs)hs.value=t.hue||220;
   const lt=$("liveToggle");if(lt)lt.classList.toggle('on',!!t.live);
+  const at=$("ambToggle");if(at)at.classList.toggle('on',ambientOn());
   const ss=$("strSlider");if(ss)ss.value=getStrSecs();
   const sl=$("strSecsLbl");if(sl)sl.textContent=fmt(getStrSecs());
   const vs=$("vidStatus");if(vs)vs.textContent=(localStorage.getItem('ascend_vidmode')==='file')?'Your video ✓':'YouTube';

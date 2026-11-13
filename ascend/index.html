@@ -6,6 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0a0e1a">
+<link rel="icon" type="image/png" href="../icon-192.png">
 <title>ASCEND</title>
 <style>
   :root{
@@ -571,7 +572,7 @@
       <div style="width:44px"></div>
     </div>
 
-    <div class="seg-ctrl" id="colourStageSeg" style="max-width:320px;margin:10px 0 4px">
+    <div class="seg-ctrl" id="colourStageSeg" style="max-width:320px;margin:10px 0 4px;display:none">
       <button data-cstage="meditation" onclick="selectColourStage('meditation')">Meditation</button>
       <button data-cstage="stretch" onclick="selectColourStage('stretch')">Mobility</button>
     </div>
@@ -1546,6 +1547,13 @@ function advancePhase(){const st=STRETCHES[sIdx];
   sIdx++;sPhase=0;
   if(sIdx>=STRETCHES.length){bell();stopStretch();next();return;}
   sLeft=STRETCHES[sIdx].phases[0][1];bell();renderStretch();}
+function fitFlexStage(){ const st=$("flexStage"), h=document.querySelector('.flexscreen .thead'), f=document.querySelector('.flexscreen .tfoot');
+  if(!st||!h||!f) return;
+  // measured against the screen itself, so the slide-in animation's transform doesn't skew it
+  const sc=st.parentElement.getBoundingClientRect(), k=sc.height/st.parentElement.offsetHeight||1;
+  const top=(h.getBoundingClientRect().bottom-sc.top)/k+4, bot=(sc.bottom-f.getBoundingClientRect().top)/k+4;
+  st.style.top=top+'px'; st.style.bottom=Math.max(0,bot)+'px'; }
+addEventListener('resize', fitFlexStage);
 function renderStretch(){const st=STRETCHES[sIdx],ph=st.phases[sPhase],mode=ph[2],el=ph[1]-sLeft;
   setTime('strTime',fmt(sLeft));
   // whole-routine time left: this phase + every phase still to come
@@ -1564,7 +1572,8 @@ function renderStretch(){const st=STRETCHES[sIdx],ph=st.phases[sPhase],mode=ph[2
   const tot=st.phases.reduce((a,p)=>a+p[1],0);
   $("strSeg").innerHTML=st.phases.map((p,i)=>'<i class="'+(p[2]==='push'||p[2]==='pull'?p[2]:'')+'" style="flex:'+(p[1]/tot)+' 1 0"><b style="width:'+(i<sPhase?100:i>sPhase?0:Math.min(100,el/p[1]*100))+'%"></b></i>').join('');
   $("strNext").textContent=sIdx+1<STRETCHES.length?'Next: '+STRETCHES[sIdx+1].name:'Last one — then strength';
-  document.querySelectorAll('#stretchDots .dot').forEach((d,i)=>{d.classList.toggle('on',i<sIdx);d.classList.toggle('cur',i===sIdx);});}
+  document.querySelectorAll('#stretchDots .dot').forEach((d,i)=>{d.classList.toggle('on',i<sIdx);d.classList.toggle('cur',i===sIdx);});
+  fitFlexStage();}
 function toggleStretch(){sRunning=!sRunning;$("strToggle").textContent=sRunning?'Pause':'Resume';if(sRunning)runStretch();else clearInterval(sTimer);}
 function skipStretch(){A?A.play('skip'):chime(600,.2);sIdx++;sPhase=0;
   if(sIdx>=STRETCHES.length){bell();stopStretch();next();return;}

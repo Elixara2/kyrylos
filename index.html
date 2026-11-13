@@ -1584,6 +1584,7 @@
   .in-card{padding:14px 14px 10px;border-radius:20px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07)}
   .in-k{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);font-weight:700}
   .in-v{font-size:24px;font-weight:700;letter-spacing:-.02em;margin-top:4px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .in-none{font-size:15px;font-weight:600;color:var(--dim);letter-spacing:0}
   .in-v em{font-style:normal;font-size:12px;font-weight:500;color:var(--dim);margin-left:6px;letter-spacing:0}
   .in-bars{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:12px}
   .in-col{display:flex;flex-direction:column;align-items:center;gap:5px}
@@ -2993,7 +2994,7 @@ const ico=(name, cls)=>'<svg class="ico'+(cls?' '+cls:'')+'" aria-hidden="true">
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261113-155354';
+const KOS_BUILD='20261114-085231';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -6706,7 +6707,7 @@ function renderModules(){
     const pct=Math.round(list.reduce((a,m)=>a+Math.min(1, modWeekCount(m)/(m.goalPerWeek||1)),0)/list.length*100);
     $('#modMomentum').textContent='🔥 '+pct+'% weekly momentum';
   } else $('#modMomentum').textContent='';
-  box.innerHTML = list.length ? '' : '<div class="card"><div class="empty">No modules yet — tap ＋ New module to add Jiu Jitsu, a language, anything.</div></div>';
+  box.innerHTML = list.length ? '' : '<div class="card" style="grid-column:1/-1"><div class="empty">No modules yet — tap ＋ New module to add Jiu Jitsu, a language, anything.</div></div>';
   list.forEach(m=>{
     const v=modValToday(m.id), done=modIsDoneToday(m), streak=modStreak(m), wk=modWeekCount(m);
     const div=document.createElement('div'); div.className='modcard'+(done?' done':''); div.dataset.mid=m.id;
@@ -8039,13 +8040,14 @@ function renderInsights(){
       '<div class="in-track"><i style="height:'+(v==null?0:h)+'%"></i></div><span>'+dayLbl(x)+'</span></div>'; }).join('')+'</div>';
   const moodDots='<div class="in-bars in-mood">'+S.map(x=>{ const m=MOODS.find(z=>z.v===x.mood);
     return '<div class="in-col'+(x.k===today?' today':'')+'"><div class="in-track">'+(m?'<b style="bottom:'+((x.mood-1)/4*84)+'%;--h:'+m.h+'" title="'+m.n+'"></b>':'')+'</div><span>'+dayLbl(x)+'</span></div>'; }).join('')+'</div>';
-  const pct=v=>v==null?'—':Math.round(v*100)+'%';
+  const NONE='<span class="in-none">no data yet</span>';
+  const pct=v=>v==null?NONE:Math.round(v*100)+'%';
   const maxW=Math.max(4, ...S.map(x=>x.work));
   box.innerHTML=
     '<div class="in-card"><div class="in-k">Worked</div><div class="in-v">'+(Math.round(sum*10)/10)+'<em>h this week</em></div>'+bars(x=>x.work||0, maxW, v=>(Math.round(v*10)/10)+'h','in-work')+'</div>'+
     '<div class="in-card"><div class="in-k">Habits</div><div class="in-v">'+pct(avg(hv,x=>x.habits))+'<em>avg</em></div>'+bars(x=>x.habits, 1, v=>pct(v),'in-hab')+'</div>'+
     '<div class="in-card"><div class="in-k">Plan done</div><div class="in-v">'+pct(avg(pv,x=>x.plan))+'<em>of blocks</em></div>'+bars(x=>x.plan, 1, v=>pct(v),'in-plan')+'</div>'+
-    '<div class="in-card"><div class="in-k">Mood</div><div class="in-v">'+(mv.length ? (MOODS.find(z=>z.v===Math.round(avg(mv,x=>x.mood)))||{}).n : '—')+'<em>'+(mv.length?'on average':'reflect tonight')+'</em></div>'+moodDots+'</div>';
+    '<div class="in-card"><div class="in-k">Mood</div><div class="in-v">'+(mv.length ? (MOODS.find(z=>z.v===Math.round(avg(mv,x=>x.mood)))||{}).n : NONE)+'<em>'+(mv.length?'on average':'reflect tonight')+'</em></div>'+moodDots+'</div>';
 }
 
 /* the Now card can start the thing it's about */
@@ -8367,7 +8369,10 @@ applyLayout();
 let lastDay=todayKey();
 // a new day just redraws — a session that runs past midnight is still the same
 // session (it used to be force-ended at midnight, mid-work)
-setInterval(()=>{ if(todayKey()!==lastDay){ lastDay=todayKey(); goalDate=todayKey(); scheduleRender(); } }, 30000);
+setInterval(()=>{ if(todayKey()!==lastDay){ const was=lastDay; lastDay=todayKey(); goalDate=todayKey();
+  if(plSel===was) plSel=lastDay;        // the Plan was showing "today" — keep it on today, not yesterday
+  plScheduleNotifs();                    // reminders are booked 36h ahead; top them up for the new day
+  scheduleRender(); } }, 30000);
 setInterval(checkAlarm, 10000); checkAlarm();
 nativeAlarmInit();
 wtSync(); tsScheduleNotifs(); tsAwayCheck();

@@ -83,6 +83,11 @@
   .toggle-inline input[type=checkbox]:checked::before{transform:translateX(20px)}
   .modal input[type=time],.modal input[type=date]{color-scheme:dark;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:12px;color:var(--txt);padding:10px 12px;font:600 16px/1.2 inherit}
   .modal button.sm .ico{width:15px;height:15px;vertical-align:-3px}
+  .ts-done{text-align:center;max-width:420px}
+  .ts-done h2{font-size:30px;letter-spacing:-.02em;margin:6px 0 8px}
+  .ts-done-ic{width:64px;height:64px;margin:4px auto 14px;border-radius:22px;display:grid;place-items:center;color:#fff;
+    background:linear-gradient(145deg,#38d98a,#14955a);box-shadow:0 16px 36px -14px #1aa35c}
+  .ts-done-ic .ico{width:32px;height:32px}
   #silk{ position:fixed; inset:0; width:100vw; height:100vh; display:block; }
   body.silk-on{ background:#0a0c10; }
 
@@ -2247,6 +2252,18 @@
 
 <!-- away check: a session with no activity for 3h asks once, instead of
      silently ending (or silently carrying on) -->
+<div class="scrim" id="tsDoneScrim" onclick="if(event.target===this)tsDoneClose()">
+  <div class="modal away-card ts-done">
+    <div class="ts-done-ic"><svg class="ico"><use href="#i-checkCircle"/></svg></div>
+    <div class="lbl">Session complete</div>
+    <h2 id="tsDoneTitle"></h2>
+    <div class="sub" id="tsDoneBody"></div>
+    <div class="pl-scopecol">
+      <button class="primary" onclick="tsDoneClose()">Done</button>
+      <button class="ghost" onclick="tsKeepGoing()">Keep going · +1 hour</button>
+    </div>
+  </div>
+</div>
 <div class="scrim" id="awayScrim">
   <div class="modal away-card">
     <div class="away-ic">⏱</div>
@@ -2976,7 +2993,7 @@ const ico=(name, cls)=>'<svg class="ico'+(cls?' '+cls:'')+'" aria-hidden="true">
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261107-204005';
+const KOS_BUILD='20261113-105400';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -4047,7 +4064,7 @@ async function cancelNativeAlarm(){
 if(NATIVE && LN()){
   LN().addListener('localNotificationActionPerformed', (ev)=>{
     const nid = ev && ev.notification && ev.notification.id;
-    if(nid===TS_NOTIF_LOG || nid===TS_NOTIF_BREAK){ showTab('work'); return; }   // work reminders → straight to Work
+    if(nid===TS_NOTIF_LOG || nid===TS_NOTIF_BREAK || nid===TS_NOTIF_END){ showTab('work'); return; }   // work reminders → straight to Work
     if(nid>=PL_NOTIF_BASE && nid<PL_NOTIF_BASE+PL_NOTIF_MAX){ showTab('plan'); return; }   // block reminders → the plan
     kset('mission:alarmFired:'+todayKey(), true);
     const m=getMission();
@@ -4087,14 +4104,18 @@ function wtSync(){
    you reopened. The OS holds these instead: the next log and next break are
    scheduled as real notifications whenever the session changes, and cancelled
    the moment they're no longer true. */
-const TS_NOTIF_LOG=7101, TS_NOTIF_BREAK=7102;
+const TS_NOTIF_LOG=7101, TS_NOTIF_BREAK=7102, TS_NOTIF_END=7103;
 async function tsScheduleNotifs(){
   if(!NATIVE || !LN()) return;
-  try{ await LN().cancel({ notifications:[{id:TS_NOTIF_LOG},{id:TS_NOTIF_BREAK}] }); }catch(e){}
+  try{ await LN().cancel({ notifications:[{id:TS_NOTIF_LOG},{id:TS_NOTIF_BREAK},{id:TS_NOTIF_END}] }); }catch(e){}
   if(ts.mode!=='working' && ts.mode!=='resting') return;
   const local=t=>new Date(t-clockSkew);   // server-time instant → this device's clock
   const out=[];
-  if(SET.logOn && ts.nextLogAt > nowTs()+5000)
+  const endAt=tsPlannedEnd();
+  if(endAt > nowTs()+5000)
+    out.push({ id:TS_NOTIF_END, title:'Session complete', body:'Your '+(Math.round(ts.committedHours*10)/10)+'h is done — anything unlogged was filled in from your last entry.',
+      channelId:'kos-alarm', schedule:{ at: local(endAt), allowWhileIdle:true } });
+  if(SET.logOn && ts.nextLogAt > nowTs()+5000 && (!endAt || ts.nextLogAt < endAt))
     out.push({ id:TS_NOTIF_LOG, title:'⏱ Time to log', body:'What did you do since '+clock(ts.blockStart)+'?',
       channelId:'kos-alarm', schedule:{ at: local(ts.nextLogAt), allowWhileIdle:true } });
   if(SET.restOn){
@@ -4379,7 +4400,84 @@ function tsAdoptRemote(){
 const AWAY_MS = 3*3600000;
 let awayOpen=false;
 function tsLastActivity(){ return ts.touchedAt || ts.blockStart || ts.sessionStart || 0; }
+
+/* ---- a session ends when its time is up — whether or not anyone's looking ----
+   The committed hours are ACTIVE time (pauses don't count). The moment they run
+   out the session is over: ended at that exact minute, and whatever you hadn't
+   logged yet is filled in with your last entry's text. It used to wait for you —
+   leave the laptop for four days and you came back to a log prompt covering
+   "12:13 PM – 10:41 AM". Now you come back to a finished session.
+   A paused session left alone for 12h+ ends at the moment you paused it. */
+const TS_PAUSE_LIMIT=12*3600000;
+function tsPlannedEnd(){
+  if(ts.mode==='idle' || ts.mode==='paused' || !ts.sessionStart || !(ts.committedHours>0)) return 0;
+  return ts.sessionStart + (ts.pausedTotal||0) + ts.committedHours*3600000;
+}
+/* your most recent entry text in this session (it can span several days) */
+function tsLastText(){
+  if(!ts.sessionStart) return '';
+  for(let d=new Date(); d.getTime()>=ts.sessionStart-864e5; d.setDate(d.getDate()-1)){
+    const es=(kget('ts:entries:'+todayKey(d),[])||[]).filter(x=>x.text && x.s>=ts.sessionStart && !x.auto).sort((a,b)=>a.s-b.s);
+    if(es.length) return es[es.length-1].text;
+  }
+  return '';
+}
+/* write [from,to) as entries, split at local midnight so each lands on its own day */
+function tsFillGap(from, to, text){
+  const out=[]; let a=from;
+  while(a<to){
+    const d=new Date(a), mid=new Date(d.getFullYear(), d.getMonth(), d.getDate()+1).getTime(), b=Math.min(to, mid);
+    if(b-a>=60000){ const key='ts:entries:'+todayKey(d), L=kget(key,[])||[];
+      if(!L.some(x=>x.s===a && x.e===b)){ L.push({s:a, e:b, text, auto:true}); kset(key, L); }
+      out.push({key, s:a, e:b}); }
+    a=b;
+  }
+  return out;
+}
+let tsDoneSnap=null;
+function tsSettle(){
+  if(ts.mode==='idle') return false;
+  const now=nowTs(), planned=tsPlannedEnd();
+  let endAt=0, why='';
+  if(planned && now>=planned){ endAt=planned; why='done'; }
+  else if(ts.mode==='paused' && ts.pausedAt && now-ts.pausedAt>=TS_PAUSE_LIMIT){ endAt=ts.pausedAt; why='paused'; }
+  if(!endAt) return false;
+  const snap=JSON.parse(JSON.stringify(ts)), text=tsLastText()||'Work';
+  const from=ts.blockStart||ts.sessionStart;
+  const filled = from < endAt ? tsFillGap(from, endAt, text) : [];
+  const live = now-endAt < 30*60000;          // you're here for it, not coming back to it
+  closeAway();
+  tsClockOut(endAt, {quiet:true});
+  const fillMin=filled.reduce((a,f)=>a+(f.e-f.s),0)/60000, hrs=snap.committedHours;
+  const filledTxt = fillMin>=1 ? fmtMinShort(fillMin)+' since your last log filled in as “'+text+'”.' : 'Everything was already logged.';
+  if(why==='done' && live){
+    tsDoneSnap={snap, filled};
+    $('#tsDoneTitle').textContent=(hrs>=1 ? (Math.round(hrs*10)/10)+'h' : Math.round(hrs*60)+' min')+' done';
+    $('#tsDoneBody').textContent='Your session ended at '+clock(endAt)+'. '+filledTxt;
+    $('#tsDoneScrim').classList.add('show'); sfx('fanfare'); buzz([40,60,40,60,120]);
+    confettiBurst(innerWidth/2, innerHeight*.3, 90);
+  } else {
+    sfx('complete');
+    const day = new Date(endAt).toDateString()===new Date().toDateString() ? '' : ' '+new Date(endAt).toLocaleDateString(undefined,{weekday:'short'});
+    toast((why==='done' ? 'Session finished at ' : 'Paused session ended at ')+clock(endAt)+day+' · '+filledTxt);
+  }
+  return true;
+}
+function tsDoneClose(){ $('#tsDoneScrim').classList.remove('show'); tsDoneSnap=null; }
+/* "Keep going": put the session back exactly as it was, with one more hour on the clock */
+function tsKeepGoing(){
+  const d=tsDoneSnap; tsDoneClose(); if(!d) return;
+  d.filled.forEach(f=>{ kset(f.key, (kget(f.key,[])||[]).filter(x=>!(x.auto && x.s===f.s && x.e===f.e))); });
+  const key='ts:sessions:'+todayKey(new Date(d.snap.sessionStart));
+  kset(key, (kget(key,[])||[]).filter(x=>x.start!==d.snap.sessionStart));
+  ts=d.snap;
+  const activeH=sessionActiveMs()/3600000;
+  ts.committedHours=Math.round((Math.max(ts.committedHours, activeH)+1)*4)/4;
+  tsSave(); wtSync(); tsScheduleNotifs(); sfx('start'); renderWork(); renderToday();
+  toast('Keep going · new finish '+clock(tsPlannedEnd()));
+}
 function tsAwayCheck(){
+  if(syncedOnce && tsSettle()) return;
   if(ts.mode!=='working' && ts.mode!=='paused'){ closeAway(); return; }
   const last=tsLastActivity(), gap=nowTs()-last;
   if(gap<AWAY_MS){ closeAway(); return; }
@@ -4495,8 +4593,9 @@ function tsToggle(){
 }
 /* endAt: when the session actually ended — now for a normal clock-out, or the
    moment of your last activity when ending from the away check */
-function tsClockOut(endAt){
+function tsClockOut(endAt, opts){
   if(ts.mode==='idle') return;
+  const quiet=!!(opts&&opts.quiet);
   logOpen=false;
   const end = typeof endAt==='number' ? endAt : nowTs();
   const activeMin=Math.floor(sessionActiveMs(end)/60000), loggedMin=sessionLoggedMin();
@@ -4505,10 +4604,10 @@ function tsClockOut(endAt){
   sessions.push({start:ts.sessionStart, end, committedHours:ts.committedHours||6, workedMin:loggedMin, activeMin});
   kset(dayKey, sessions);
   const hitTarget = (ts.committedHours>0) && (activeMin/60 >= ts.committedHours);
-  chimeDone(); buzz([30,60,30,60,80]);
   addXP(hitTarget?20:10, hitTarget?'session target hit':'session logged');
-  confettiBurst(innerWidth/2, innerHeight*.3, hitTarget?90:45);
-  toast('🏁 Session done — '+(activeMin>=60?(activeMin/60).toFixed(1)+'h':activeMin+'m')+(hitTarget?' · target hit! 🎯':''));
+  if(!quiet){ chimeDone(); buzz([30,60,30,60,80]);
+    confettiBurst(innerWidth/2, innerHeight*.3, hitTarget?90:45);
+    toast('Session done — '+(activeMin>=60?(activeMin/60).toFixed(1)+'h':activeMin+'m')+(hitTarget?' · target hit':'')); }
   clearInterval(restTicker); $('#breakFloat').classList.remove('show'); $('#tsScrim').classList.remove('show'); hidePipLog();
   ts=Object.assign({}, TS_IDLE);
   tsSave(); wtSync(); tsScheduleNotifs();
@@ -5000,11 +5099,13 @@ let resumedAt=0, lastSyncOkAt=0;
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') resumedAt=Date.now(); });
 setInterval(()=>{
   updatePip(); // keep the floating widget live in every mode (idle/working/paused/resting)
-  if(ts.mode!=='working' || awayOpen) return;
+  if(ts.mode==='idle') return;
   /* just came back to the app: the copy here may be stale (the other device
      could have logged or ended this session meanwhile). Hold every prompt until
      the first pull after waking has landed — or 8s, if there's no network. */
-  if(hasSrv && resumedAt>lastSyncOkAt && Date.now()-resumedAt<8000) return;
+  if(hasSrv && (!syncedOnce || (resumedAt>lastSyncOkAt && Date.now()-resumedAt<8000))) return;
+  if(tsSettle()) return;
+  if(ts.mode!=='working' || awayOpen) return;
   const now=nowTs();
   tsCheckMilestones(); // fires regardless of which tab is open — a marathon session shouldn't need the Work tab up to celebrate
   if(SET.logOn && now>=ts.nextLogAt){ tsOpenLog(); }

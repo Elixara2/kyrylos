@@ -158,6 +158,8 @@
   .flexscreen .time{font-size:clamp(46px,13vw,66px)}
   .flex-sub{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;white-space:nowrap}
   .flex-sub.push{color:#ff8a5c}
+  .flex-sub.pull,.stretch-phase.pull{color:#3ee6c8}
+  .flex-seg i.pull b{background:#3ee6c8}
   .flex-seg{display:flex;gap:4px;width:min(86vw,440px);height:6px}
   .flex-seg i{position:relative;background:var(--faint);border-radius:4px;overflow:hidden}
   .flex-seg i b{position:absolute;left:0;top:0;bottom:0;background:var(--accent);border-radius:4px;transition:width .9s linear}
@@ -1078,30 +1080,40 @@ const PL_1=PZ({thL:[.04,.32,.95],shL:[.04,.32,.95],ftL:[.08,.8,.6],abd:[0,.97,.2
 const SX_A=PZ({thL:[.04,-.02,1],shL:[.04,-.02,1],ftL:[.08,1,.15],abd:[0,1,-.05],chest:[0,1,-.05],uaL:[.25,-.62,-.75],faL:[.12,-.88,-.46]});
 const SX_B=PZ({thL:[.04,-.02,1],shL:[.04,-.02,1],ftL:[.08,1,.15],abd:[0,.95,-.3],chest:[0,.98,-.2],neck:[0,1,.1],uaL:[.25,-.55,-.8],faL:[.1,-.9,-.42]});
 
+/* ---------- PAILs / RAILs (contract–relax–antagonist-contract) ----------
+   1. ease to your edge
+   2. PAILs: contract the STRETCHED muscle into the floor, building to ~70% over 10s
+   3. relax and sink into the slack that contraction just bought you
+   4. RAILs: now contract the OPPOSITE muscles to pull yourself deeper — 10s
+   5. relax and hold the new range
+   Agonist contract–relax gave more range than plain contract–relax or static
+   holds in trials, and stretch intensity matters more than duration. */
+const RAILS=(ease,pails,rails)=>[[ease,12,'sink'],["PAILs — "+pails,10,'push'],["Relax — exhale, sink into the slack",8,'hold',{to:.88}],
+  ["RAILs — "+rails,10,'pull'],["Relax — own the new range",12,'hold']];
+
 /* ---------- the sequence ---------- */
 function lungeBlock(side){
   const S=side==='R', leg=S?'right':'left', knee=S?'left':'right';
   return [
     {name:"Couch stretch", target:"Hip flexors · front split", side, view:'side', pin:'knR', hl:['thR'], A:LU_A, B:CU_B,
       tip:"Back knee down, squeeze that glute, tuck the pelvis and push the hips forward. Ribs down — don't arch.",
-      phases:[["Turn to your "+leg+" leg — drop the "+knee+" knee into a lunge",6,'move'],["Squeeze the back glute, hips forward",14,'sink'],
-              ["Contract — drive the back knee into the floor",6,'push'],["Relax — exhale, sink the hips forward",20,'hold']]},
+      phases:[["Turn to your "+leg+" leg — drop the "+knee+" knee into a lunge",6,'move'],
+              ...RAILS("Tuck the pelvis, hips forward","drag the back knee forward into the floor, hard","squeeze the back glute as hard as you can, drive the hips further forward")]},
     {name:"Half-split rocks", target:"Hamstrings · front split", side, view:'side', pin:'knR', hl:['thL','shL'], keys:[LU_A,HS_A], period:4, A:LU_A,
       tip:"Rock back over the back knee and straighten the front leg, then forward into the lunge. Smooth, no bouncing.",
       phases:[["Rock back — straighten the leg · rock forward",28,'loop']]},
     {name:"Half split", target:"Hamstrings · front split", side, view:'side', pin:'knR', hl:['thL','shL'], A:HS_A, B:HS_B,
       tip:"Hips stacked over the back knee, front leg straight, toes pulled back. Fold from the hips, long spine.",
-      phases:[["Fold over the front leg",12,'sink'],["Contract — dig the heel into the floor",6,'push'],["Relax — exhale, fold deeper",20,'hold']]},
+      phases:RAILS("Fold over the front leg","dig the heel down and back into the floor, hard","lift the heel off the floor — pull the toes up with your quad and hip")},
     {name:"Front split slides", target:"Front split", side, view:'side', hl:['thL','thR'], A:FS_A, B:FS_B,
-      tip:"Hands on blocks or books. Slide the front heel forward and the back knee back — hips square, as low as you can stay relaxed.",
-      phases:[["Slide into your split — hands stay down",15,'sink'],["Contract — press the front heel and back knee down",6,'push'],
-              ["Relax — exhale, let the hips sink",20,'hold']]},
+      tip:"Hands on the floor either side. Slide the front heel forward and the back knee back — hips square, as low as you can stay relaxed.",
+      phases:RAILS("Slide into your split — hands on the floor","press the front heel and back knee down into the floor","try to lift both legs off the floor — the hips drop lower")},
   ];
 }
 const FLEX=[
-  {name:"Shoulder pass-throughs", target:"Shoulders · warm-up", view:'front34', hl:['uaL','uaR'], prop:'stick', keys:[PASS[0],PASS[1],PASS[2],PASS[3],PASS[4],PASS[3],PASS[2],PASS[1]], period:6, A:PASS[0],
-    tip:"Towel or band, wide grip, arms dead straight. Up, over and behind — slow. Narrow the grip as you loosen.",
-    phases:[["Grab a towel — wide grip",3,'move'],["Over and back · slow, arms straight",36,'loop']]},
+  {name:"Shoulder CARs", target:"Shoulders · full-range rotations", view:'front34', hl:['uaL','uaR'], keys:[PASS[0],PASS[1],PASS[2],PASS[3],PASS[4],PASS[3],PASS[2],PASS[1]], period:6, A:PASS[0],
+    tip:"Fists clenched, arms locked, ribs down. Draw the biggest, slowest circle your shoulders can make — full tension the whole way.",
+    phases:[["Arms straight, fists clenched",3,'move'],["Biggest possible circles · slow, full tension",36,'loop']]},
   {name:"Leg swings", target:"Hamstrings + hip flexors · warm-up", view:'side', pin:'anR', hl:['thL'], keys:[SW_N,SW_F,SW_N,SW_B], keys2:[SW_N,SW_O,SW_N,SW_X], period:2.5, A:SW_N,
     tip:"Tall chest, loose leg. Let each swing grow a little higher — momentum, not force.",
     phases:[["Arms out for balance",3,'move'],["Front–back · left leg",15,'loop'],["Front–back · right leg",15,'loop',{side:'R'}],
@@ -1109,26 +1121,26 @@ const FLEX=[
   {name:"Cossack squats", target:"Adductors · side split, loaded", view:'front', pin:'anL', hl:['thL','thR'], keys:[CO_C,CO_L,CO_C,mirrorPose(CO_L)], period:6, A:CO_C,
     tip:"Wide stance. Sit deep into one hip, the other leg straight with toes up. Heel down, chest up.",
     phases:[["Step wide — toes slightly out",4,'move'],["Shift side to side, deep",42,'loop']]},
-  {name:"Jefferson curls", target:"Hamstrings + spine · fold in half, loaded", view:'side', pin:'anL', hl:['thL','shL','abd'], prop:'weight', keys:[JE_U,JE_D,JE_D,JE_U], period:10, A:JE_U,
-    tip:"Feet together, legs straight, a light weight. Chin to chest and roll down one vertebra at a time, then roll back up.",
-    phases:[["Feet together — light weight in your hands",4,'move'],["Roll down slow · hold · roll up",40,'loop']]},
+  {name:"Jefferson curls", target:"Hamstrings + spine · fold in half, loaded", view:'side', pin:'anL', hl:['thL','shL','abd'], keys:[JE_U,JE_D,JE_D,JE_U], period:10, A:JE_U,
+    tip:"Feet together, knees locked. Chin to chest, roll down one vertebra at a time and let your bodyweight hang, then roll back up.",
+    phases:[["Feet together, knees locked",4,'move'],["Roll down slow · hang · roll up",40,'loop']]},
   {name:"Elephant walks", target:"Hamstrings · fold in half", view:'side', hl:['thL','thR','shL','shR'], keys:[EL_1,mirrorPose(EL_1)], period:2.4, A:EL_1,
     tip:"Hands on the floor. Bend one knee while you straighten the other — push the straight-leg heel down.",
     phases:[["Fold down — hands to the floor",3,'move'],["Bend one knee, straighten the other",24,'loop']]},
   {name:"Straddle slides", target:"Adductors · side split", view:'front34', hl:['thL','thR'], A:ST_A, B:ST_B,
     tip:"Hands stay on the floor. Slide the feet apart on socks — knees straight, toes forward.",
-    phases:[["Walk the feet wide — hands stay down",4,'move'],["Slide the feet apart",14,'sink'],
-            ["Contract — pull the feet toward each other, 30%",6,'push'],["Relax — exhale, slide wider",20,'hold']]},
+    phases:[["Walk the feet wide — hands stay down",4,'move'],
+            ...RAILS("Slide the feet apart","pull the feet toward each other, hard","push the feet apart with your outer hips — slide wider")]},
   ...lungeBlock('L'),
   ...lungeBlock('R'),
   {name:"Pancake", target:"Adductors + hamstrings · side split", view:'front', hl:['thL','thR'], A:PA_A, B:PA_B,
     tip:"Legs wide, kneecaps to the ceiling. Tip the pelvis forward — belly to the floor first, not the head.",
-    phases:[["Sit and swing the legs wide",7,'move'],["Tip the pelvis forward, walk the hands out",15,'sink'],
-            ["Contract — press heels and the backs of your knees down",6,'push'],["Relax — exhale, belly toward the floor",20,'hold'],
-            ["Contract again — press down",6,'push'],["Relax — sink lower",15,'hold']]},
+    phases:[["Sit and swing the legs wide",7,'move'],
+            ...RAILS("Tip the pelvis forward, walk the hands out","press the heels and the backs of your knees down, hard","lift your hands — pull your chest to the floor with your hip flexors")]},
   {name:"Pike fold", target:"Fold in half", view:'side', hl:['thL','shL','abd'], A:PK_A, B:PK_B,
     tip:"Legs together, knees locked, toes pulled back. Reach long past the toes — chest to thighs, not head to knees.",
-    phases:[["Bring the legs together",5,'move'],["Fold from the hips",12,'sink'],["Contract — press the legs into the floor",6,'push'],["Relax — exhale, fold deeper",20,'hold']]},
+    phases:[["Bring the legs together",5,'move'],
+            ...RAILS("Fold from the hips","press the legs into the floor, hard","let go of the legs — pull your chest down to your thighs")]},
   {name:"Pike lifts", target:"Active fold · compression", view:'side', hl:['thL','thR'], keys:[PL_0,PL_1,PL_1,PL_0], period:3, A:PL_0,
     tip:"Hands beside the knees. Lift both heels off the floor, hold, lower slowly. Knees stay locked.",
     phases:[["Sit tall — hands beside your knees",3,'move'],["Lift · hold · lower",30,'loop']]},
@@ -1154,11 +1166,12 @@ function evalStep(st, e){
     pose=mixPose(ks[i], ks[(i+1)%n], easeIO(u-Math.floor(u)));
     const w=Math.max(0,1-e/.8); if(w>0) pose=mixPose(pose,S,easeIO(w));
   }
-  else if(mode==='sink') pose=mixPose(S, mixPose(P.A,P.B,.8), easeIO(Math.min(1,e/(secs*.85))));
+  else if(mode==='sink') pose=mixPose(S, mixPose(P.A,P.B,.7), easeIO(Math.min(1,e/(secs*.85))));
+  else if(mode==='pull') pose=mixPose(S, P.B, easeIO(Math.min(1,e/(secs*.6))));
   else if(mode==='push') pose=S;
   else { // hold: settle the rest of the way in, then breathe
     const k=easeIO(Math.min(1,e/(secs*.45))) - .06*(.5-.5*Math.cos(2*Math.PI*Math.max(0,e-secs*.45)/5));
-    pose=mixPose(S, P.B, Math.max(0,Math.min(1,k)));
+    pose=mixPose(S, o.to!=null?mixPose(P.A,P.B,o.to):P.B, Math.max(0,Math.min(1,k)));
   }
   let off=st.off0;
   if(st.pinName && mode!=='move'){ const J0=fk3(pose); off=[st.pinAt[0]-J0[st.pinName][0], st.pinAt[1]-J0[st.pinName][2]]; }
@@ -1190,8 +1203,8 @@ function figFrame(now){
   const mode=st.ph[2], o=st.ph[3]||{};
   if(now-flexAccentAt>1000){ flexAccentAt=now; flexAccent=getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()||flexAccent; }
   const look={ hl:(st.en.hl||[]).map(h=>st.mir?swapLR(h):h),
-    glow: mode==='push' ? .7+.3*Math.sin(now/130) : (mode==='move' ? 0 : .6),
-    push: mode==='push', view:o.view||st.en.view||'side', mir:st.mir, prop:st.en.prop||null, accent:flexAccent };
+    glow: (mode==='push'||mode==='pull') ? .7+.3*Math.sin(now/130) : (mode==='move' ? 0 : .6),
+    push: mode==='push', pull: mode==='pull', view:o.view||st.en.view||'side', mir:st.mir, prop:st.en.prop||null, accent:flexAccent };
   if(window.Flex3D && Flex3D.ok) Flex3D.draw(J, look); else draw2D(J, look);
 }
 /* fallback when WebGL isn't available: the same 3D body, projected flat */
@@ -1211,7 +1224,7 @@ function draw2D(J, look){
   svg.setAttribute('viewBox',(cx-sc*.6)+' '+(cy-sc*.6)+' '+sc*1.2+' '+sc*1.2);
   svg.querySelector('g').innerHTML=items.map(it=>it.head
     ? '<circle cx="'+it.A[0]+'" cy="'+it.A[1]+'" r=".11" fill="#efe9e1"/>'
-    : '<line x1="'+it.A[0]+'" y1="'+it.A[1]+'" x2="'+it.B[0]+'" y2="'+it.B[1]+'" stroke="'+(look.hl.includes(it.n)?(look.push?'#ff8a5c':look.accent):'#efe9e1')+'" stroke-width="'+it.w+'" stroke-linecap="round"/>').join('');
+    : '<line x1="'+it.A[0]+'" y1="'+it.A[1]+'" x2="'+it.B[0]+'" y2="'+it.B[1]+'" stroke="'+(look.hl.includes(it.n)?(look.push?'#ff8a5c':look.pull?'#3ee6c8':look.accent):'#efe9e1')+'" stroke-width="'+it.w+'" stroke-linecap="round"/>').join('');
 }
 function figStart(){ cancelAnimationFrame(figRAF); figRAF=requestAnimationFrame(figFrame); }
 function figStop(){ cancelAnimationFrame(figRAF); figRAF=0; }
@@ -1306,7 +1319,7 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 const BUFFER_SECONDS=30;
 const STAGE_INFO={
   meditation:{t:"Sam Harris Meditation", d:"10 minutes of stillness"},
-  stretch:{t:"Super Flexibility", d:"12½ min · standing → lunge → floor, splits protocol"},
+  stretch:{t:"Super Flexibility", d:"14 min · PAILs/RAILs splits protocol · no equipment"},
   strength:{t:"Strength", d:"40 push-ups · 40 squats · 10 pull-ups · 10 chin-ups"},
 };
 let bufEnd=0, bufTimer=null;
@@ -1527,8 +1540,8 @@ function runStretch(){clearInterval(sTimer);sTickAt=performance.now();sTimer=set
   if(sLeft<=0)advancePhase();},1000);}
 function advancePhase(){const st=STRETCHES[sIdx];
   if(sPhase+1<st.phases.length){sPhase++;sLeft=st.phases[sPhase][1];
-    if(A) A.play(st.phases[sPhase][2]==='push'?'countdown':'phase'); else chime(760,.35);
-    if(st.phases[sPhase][2]==='push') buzz([30,40,30]);
+    if(A) A.play(/push|pull/.test(st.phases[sPhase][2])?'countdown':'phase'); else chime(760,.35);
+    if(st.phases[sPhase][2]==='push'||st.phases[sPhase][2]==='pull') buzz([30,40,30]);
     renderStretch();return;}
   sIdx++;sPhase=0;
   if(sIdx>=STRETCHES.length){bell();stopStretch();next();return;}
@@ -1539,17 +1552,17 @@ function renderStretch(){const st=STRETCHES[sIdx],ph=st.phases[sPhase],mode=ph[2
   let left=sLeft; st.phases.slice(sPhase+1).forEach(p=>left+=p[1]); STRETCHES.slice(sIdx+1).forEach(x=>x.phases.forEach(p=>left+=p[1]));
   let what;
   if(mode==='loop'){ const per=(ph[3]&&ph[3].period)||st.period, reps=Math.round(ph[1]/per); what='Rep '+Math.min(reps,Math.floor(el/per)+1)+' of '+reps; }
-  else what={move:'Get into position',sink:'Ease in',push:'Contract',hold:'Relax · breathe out'}[mode]||'';
+  else what={move:'Get into position',sink:'Ease in',push:'PAILs · contract hard',pull:'RAILs · pull deeper',hold:'Relax · breathe out'}[mode]||'';
   $("strSub").textContent=what+' · '+fmt(left)+' left';
-  $("strSub").classList.toggle('push', mode==='push');
+  $("strSub").classList.toggle('push', mode==='push'); $("strSub").classList.toggle('pull', mode==='pull');
   $("strName").textContent=st.name;
   $("strKicker").textContent=(sIdx+1)+' / '+STRETCHES.length+' · '+st.target;
   $("strPhase").textContent=ph[0];
-  $("strPhase").classList.toggle('push', mode==='push');
+  $("strPhase").classList.toggle('push', mode==='push'); $("strPhase").classList.toggle('pull', mode==='pull');
   $("strTip").textContent=st.tip||'';
   // this move's phases as one bar: done · current (filling) · to come
   const tot=st.phases.reduce((a,p)=>a+p[1],0);
-  $("strSeg").innerHTML=st.phases.map((p,i)=>'<i class="'+(p[2]==='push'?'push':'')+'" style="flex:'+(p[1]/tot)+' 1 0"><b style="width:'+(i<sPhase?100:i>sPhase?0:Math.min(100,el/p[1]*100))+'%"></b></i>').join('');
+  $("strSeg").innerHTML=st.phases.map((p,i)=>'<i class="'+(p[2]==='push'||p[2]==='pull'?p[2]:'')+'" style="flex:'+(p[1]/tot)+' 1 0"><b style="width:'+(i<sPhase?100:i>sPhase?0:Math.min(100,el/p[1]*100))+'%"></b></i>').join('');
   $("strNext").textContent=sIdx+1<STRETCHES.length?'Next: '+STRETCHES[sIdx+1].name:'Last one — then strength';
   document.querySelectorAll('#stretchDots .dot').forEach((d,i)=>{d.classList.toggle('on',i<sIdx);d.classList.toggle('cur',i===sIdx);});}
 function toggleStretch(){sRunning=!sRunning;$("strToggle").textContent=sRunning?'Pause':'Resume';if(sRunning)runStretch();else clearInterval(sTimer);}
@@ -2029,7 +2042,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
   // camera: glide toward the view direction and keep the whole body framed
   const VIEW={side:[1,.3,.32], front:[.3,.28,1], front34:[.75,.3,.65]};
   const camDir=new THREE.Vector3(1,.3,.3).normalize(), camC=new THREE.Vector3(0,.6,0); let camDist=3.2, lastT=0, first=true;
-  const glowCol=new THREE.Color(), pushCol=new THREE.Color(0xff7a3c);
+  const glowCol=new THREE.Color(), pushCol=new THREE.Color(0xff7a3c), pullCol=new THREE.Color(0x30e0c4);
 
   function draw(J, look){
     const d=J._d;
@@ -2052,8 +2065,8 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
     // the worked muscle glows (warm and pulsing while you contract)
     glowCol.set(look.accent||'#6ea8ff');
     for(const n in limb){ const m=limb[n].material, on=look.hl.includes(n);
-      m.emissive.copy(on ? (look.push?pushCol:glowCol) : m.emissive.set(0x000000)); m.emissiveIntensity=on ? look.glow*.9 : 0; }
-    if(look.hl.includes('abd')){ chest.material.emissive.copy(look.push?pushCol:glowCol); chest.material.emissiveIntensity=look.glow*.5; }
+      m.emissive.copy(on ? (look.push?pushCol:look.pull?pullCol:glowCol) : m.emissive.set(0x000000)); m.emissiveIntensity=on ? look.glow*.9 : 0; }
+    if(look.hl.includes('abd')){ chest.material.emissive.copy(look.push?pushCol:look.pull?pullCol:glowCol); chest.material.emissiveIntensity=look.glow*.5; }
     else chest.material.emissiveIntensity=0;
 
     // frame

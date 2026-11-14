@@ -1675,6 +1675,91 @@
   /* missions archive */
   .goal-dayhead{ font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--dim); margin:16px 4px 6px; }
   .goal-dayhead:first-child{ margin-top:4px; }
+
+  /* ===== MY DAY (Today) ===== */
+  #dayView{ display:flex; flex-direction:column; gap:12px; margin-bottom:14px; }
+  .dv-head{ display:flex; align-items:center; gap:14px; padding:4px 2px 0; }
+  .dv-title{ font-size:28px; font-weight:800; letter-spacing:-.025em; margin:0; line-height:1.1; }
+  .dv-sub{ color:var(--dim); font-size:14px; margin-top:4px; }
+  .dv-streak{ display:flex; align-items:center; gap:8px; padding:8px 14px 8px 10px; border-radius:14px; background:rgba(255,140,60,.1); border:1px solid rgba(255,150,70,.22); color:#ffb37a; flex:0 0 auto; }
+  .dv-streak .ico{ width:20px; height:20px; }
+  .dv-streak b{ font-size:22px; font-weight:800; color:#fff; font-variant-numeric:tabular-nums; }
+  .dv-streak span{ font-size:10.5px; line-height:1.15; font-weight:600; text-transform:uppercase; letter-spacing:.06em; }
+  .dv-streak.zero{ background:rgba(255,255,255,.04); border-color:var(--line); color:var(--dim); }
+  .dv-segs{ display:flex; gap:6px; }
+  .dv-segs i{ flex:1; height:6px; border-radius:6px; background:rgba(255,255,255,.08); transition:background .4s; }
+  .dv-segs i.on{ background:hsl(var(--h),70%,58%); box-shadow:0 0 12px hsla(var(--h),80%,60%,.35); }
+  .dv-segs i.skip{ background:rgba(255,255,255,.2); }
+  .dv-segs i.now{ background:linear-gradient(90deg, hsla(var(--h),70%,58%,.55), rgba(255,255,255,.08)); animation:dvPulse 2.4s ease-in-out infinite; }
+  @keyframes dvPulse{ 50%{ opacity:.55 } }
+  .dv-pencil{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:8px 10px; border-radius:14px; border:1px dashed rgba(255,255,255,.14); background:rgba(255,255,255,.02); }
+  .dv-pic{ width:16px; height:16px; color:var(--dim); flex:0 0 auto; margin-left:2px; }
+  .dv-pchip{ display:inline-flex; align-items:center; gap:7px; padding:6px 11px; border-radius:10px; border:1px solid rgba(250,204,21,.28); background:rgba(250,204,21,.08); color:var(--txt); font-size:13.5px; font-weight:600; cursor:pointer; }
+  .dv-pchip b{ color:#facc15; font-weight:700; font-size:12.5px; }
+  .dv-pchip.done{ opacity:.5; text-decoration:line-through; }
+  .dv-pchip .ico{ width:14px; height:14px; }
+  .dv-pin{ flex:1; min-width:180px; background:transparent !important; border:none !important; box-shadow:none !important; color:var(--txt); font-size:14px; padding:6px 4px !important; outline:none; }
+  .dv-list{ display:flex; flex-direction:column; gap:8px; }
+  .dv-stage{ display:flex; align-items:center; gap:14px; padding:14px 16px; border-radius:18px; cursor:pointer;
+    background:linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.07);
+    transition:transform .2s var(--ease), background .2s, border-color .2s; }
+  .dv-stage:hover{ border-color:rgba(255,255,255,.14); }
+  .dv-stage:active{ transform:scale(.99); }
+  .dv-ic{ width:42px; height:42px; border-radius:13px; display:grid; place-items:center; flex:0 0 auto; color:#fff;
+    background:linear-gradient(145deg, hsl(var(--h),70%,56%), hsl(var(--h),65%,36%)); box-shadow:0 8px 20px -10px hsl(var(--h),80%,50%); }
+  .dv-ic .ico{ width:21px; height:21px; }
+  .dv-body{ flex:1; min-width:0; }
+  .dv-t{ font-size:16.5px; font-weight:700; display:flex; align-items:center; gap:8px; }
+  .dv-s{ color:var(--dim); font-size:13.5px; margin-top:2px; }
+  .dv-chev{ width:18px; height:18px; color:var(--dim); flex:0 0 auto; opacity:.6; }
+  .dv-now{ font-size:10.5px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; padding:3px 8px; border-radius:7px; color:#fff; background:hsla(var(--h),70%,50%,.35); border:1px solid hsla(var(--h),80%,65%,.45); }
+  .dv-stage.now{ align-items:flex-start; padding:20px; border-color:hsla(var(--h),80%,62%,.38);
+    background:radial-gradient(120% 140% at 0% 0%, hsla(var(--h),70%,50%,.16), transparent 60%), linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.025));
+    box-shadow:0 18px 40px -24px hsl(var(--h),80%,45%); }
+  .dv-stage.now .dv-ic{ width:54px; height:54px; border-radius:16px; }
+  .dv-stage.now .dv-ic .ico{ width:26px; height:26px; }
+  .dv-stage.now .dv-t{ font-size:21px; }
+  .dv-why{ font-size:14px; color:var(--txt); opacity:.75; margin-top:8px; }
+  .dv-bar{ height:5px; border-radius:5px; background:rgba(255,255,255,.08); margin-top:10px; overflow:hidden; max-width:420px; }
+  .dv-bar i{ display:block; height:100%; border-radius:5px; background:hsl(var(--h),70%,60%); transition:width .6s var(--ease); }
+  .dv-chips{ display:flex; flex-wrap:wrap; gap:7px; margin-top:12px; }
+  .dv-chip{ display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border-radius:11px; font-size:13.5px; font-weight:600; cursor:pointer;
+    background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); color:var(--txt); }
+  .dv-chip:hover{ background:rgba(255,255,255,.09); }
+  .dv-chip .ico{ width:15px; height:15px; }
+  .dv-chip .em{ font-size:14px; line-height:1; }
+  .dv-chip.on{ background:hsla(145,60%,45%,.16); border-color:hsla(145,60%,55%,.4); color:#b9f5cf; }
+  .dv-chip.add{ border-style:dashed; color:var(--dim); }
+  .dv-acts{ display:flex; align-items:center; gap:10px; margin-top:16px; flex-wrap:wrap; }
+  .dv-go{ display:inline-flex; align-items:center; gap:9px; padding:12px 22px; border-radius:13px; border:none; cursor:pointer; font-size:15.5px; font-weight:700; color:#fff;
+    background:linear-gradient(180deg, hsl(var(--h),70%,55%), hsl(var(--h),70%,42%)); box-shadow:0 10px 24px -12px hsl(var(--h),80%,45%), inset 0 1px 0 rgba(255,255,255,.25); }
+  .dv-go .ico{ width:17px; height:17px; }
+  .dv-skip{ background:none; border:none; color:var(--dim); font-size:13.5px; font-weight:600; cursor:pointer; padding:10px 6px; }
+  .dv-skip:hover{ color:var(--txt); }
+  .dv-stage.done{ padding:11px 16px; background:rgba(255,255,255,.02); }
+  .dv-stage.done .dv-ic{ width:34px; height:34px; border-radius:11px; background:hsla(145,60%,45%,.18); color:#4ade80; box-shadow:none; }
+  .dv-stage.done .dv-ic .ico{ width:18px; height:18px; }
+  .dv-stage.done .dv-t{ font-size:15px; color:var(--dim); }
+  .dv-stage.done .dv-chips{ display:none; }
+  .dv-stage.skipped{ padding:11px 16px; opacity:.6; }
+  .dv-stage.skipped .dv-ic{ width:34px; height:34px; border-radius:11px; filter:grayscale(1); box-shadow:none; }
+  .dv-stage.later .dv-ic{ opacity:.85; }
+  .dv-undo{ background:rgba(255,255,255,.06); border:1px solid var(--line); color:var(--txt); border-radius:9px; padding:6px 12px; font-size:12.5px; font-weight:600; cursor:pointer; }
+  .dv-reflect{ display:flex; align-items:center; gap:12px; padding:13px 16px; border-radius:16px; border:1px solid rgba(255,255,255,.07); background:rgba(120,110,255,.06); color:var(--txt); font-size:14.5px; font-weight:600; cursor:pointer; text-align:left; }
+  .dv-reflect .ico{ width:18px; height:18px; }
+  .dv-reflect span{ flex:1; }
+  body.desk #todayAside .da-session{ display:none; }
+  body:not(.desk) .dv-title{ font-size:24px; }
+  body:not(.desk) .dv-stage.now{ padding:16px; }
+  body:not(.desk) .dv-go{ flex:1; justify-content:center; }
+  .dv-go{ white-space:nowrap; }
+  .dv-stage{ align-items:flex-start; }
+  .dv-stage.done, .dv-stage.skipped{ align-items:center; }
+  .dv-chev, .dv-undo{ align-self:center; }
+  #streakBadge{ display:none !important; }   /* the streak lives on Today now */
+  body:not(.desk) .dv-chip{ padding:6px 10px; font-size:12.5px; gap:5px; }
+  body:not(.desk) .dv-chips{ gap:6px; margin-left:-56px; }
+  body:not(.desk) .dv-stage{ gap:14px; }
 </style>
 </head>
 <body>
@@ -1740,7 +1825,7 @@
     </div>
     <div class="hbtns">
       <div class="xpwrap" id="streakBadge" title="Days at 90%+ complete">
-        <span class="streakflame"><svg class="ico"><use href="#i-flame"/></svg></span><b id="streakNum">0</b><span class="streaklbl">day streak</span>
+        <span class="streakflame"><svg class="ico"><use href="#i-flame"/></svg></span><b id="streakNum">0</b><span class="streaklbl">day ASCEND</span>
       </div>
       <span class="syncdot" id="syncdot"></span>
       <button class="icobtn" onclick="openCmdk()" title="Search & commands (⌘K)" aria-label="Search"><svg class="ico"><use href="#i-search"/></svg></button>
@@ -1753,20 +1838,7 @@
 
   <!-- ============ TODAY (dashboard) ============ -->
   <section class="panel" id="p-today">
-    <div class="card">
-      <div class="ringrow">
-        <div class="ringbox">
-          <svg viewBox="0 0 120 120"><circle class="rbg" cx="60" cy="60" r="52"/><circle class="rfg" id="dayRing" cx="60" cy="60" r="52"/></svg>
-          <div class="rmid"><b id="dayPct">0%</b><span>today</span></div>
-        </div>
-        <div class="grow">
-          <div id="greet" class="hero-greet"></div>
-          <div class="hero-date" id="heroSub"></div>
-        </div>
-      </div>
-      <div id="heroPlan"></div>
-      <div id="heroStats"></div>
-    </div>
+    <div id="dayView"></div>
     <div class="blockhead">
       <span class="lbl">Today</span>
       <button class="sm ghost" onclick="openModuleEdit()">＋ Block</button>
@@ -3072,7 +3144,7 @@ const ico=(name, cls)=>'<svg class="ico'+(cls?' '+cls:'')+'" aria-hidden="true">
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261114-164049';
+const KOS_BUILD='20261114-165200';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -3410,6 +3482,7 @@ const RANKS=[[1,'Rookie'],[3,'Grinder'],[6,'Locked In'],[10,'Relentless'],[15,'M
 function rankFor(level){ let t='Rookie'; RANKS.forEach(([lv,name])=>{ if(level>=lv) t=name; }); return t; }
 function getXP(){ return kget('profile:xp',0); }
 function popXP(amt,reason){
+  return;   // levels/XP retired (14 Nov) — a day is done / not done, nothing to grind
   const el=document.createElement('div'); el.className='xppop';
   el.textContent='+'+amt+' XP'+(reason?' · '+reason:'');
   document.body.appendChild(el);
@@ -3441,12 +3514,13 @@ function computeDayStreak(threshold){
   return streak;
 }
 function renderDayStreak(){
-  const streak=computeDayStreak(90);
+  const streak=ascendStreak();
   animateNumber($('#streakNum'), streak);
   const w=$('#streakBadge');
-  if(w) w.title = streak>0 ? streak+' day'+(streak===1?'':'s')+' at 90%+ of your flow complete' : 'Complete 90%+ of your flow to start a streak';
+  if(w) w.title = streak>0 ? streak+' day'+(streak===1?'':'s')+' in a row of ASCEND' : 'Do ASCEND to start a streak';
 }
 function levelUp(level){
+  return;   // retired with XP
   chimeFanfare(); buzz([40,60,40,60,40,120]);
   // layered confetti bursts for a bigger moment
   confettiBurst(innerWidth*.5, innerHeight*.35, 120);
@@ -4419,46 +4493,13 @@ function capturePhotoMission(){ completeMission(); }
 
 /* ================= TODAY ================= */
 const RC = 2*Math.PI*52;
-$('#dayRing').style.strokeDasharray=RC;
 $('#habRing').style.strokeDasharray=RC;
 function renderToday(){
-  const f=getFlow();
-  const allBlocks=flowBlocks();
-  const doneN=allBlocks.filter(s=>flowBlockDone(s,f)).length;
-  const pct=allBlocks.length ? Math.round(doneN/allBlocks.length*100) : 0;
-  animateNumber($('#dayPct'), pct, '%');
-  $('#dayRing').style.strokeDashoffset=RC*(1-pct/100);
-  const h=new Date().getHours();
-  $('#greet').textContent = h<5?'Late night, Kyryl.':h<12?'Morning, Kyryl.':h<17?'Keep pushing, Kyryl.':'Evening, Kyryl.';
-  renderTodayHero();
-  // rebuild only the action bubbles; the two fixed cards are moved, not re-created
+  renderDayView();
+  // only the two big cards (missions + wall) live in the stack now — the day itself is #dayView
   const box=$('#todayStack');
   [...box.querySelectorAll('.fitem')].forEach(n=>n.remove());
-  const built={};
-  flowBlocks().forEach(s=>{
-    const done=flowBlockDone(s,f);
-    const div=document.createElement('div');
-    div.className='fitem dragblock tbub'+(done?' done':'');
-    div.dataset.tid=s.id;
-    div.innerHTML='<div class="drag-handle">'+DRAG_HANDLE_SVG+'</div>'+
-      /* emoji wrapped so Pip-Boy mode can hide it — a colour emoji is the one thing
-         that instantly breaks a single-ink phosphor screen, and it can't be
-         restyled by `color` since it comes from a colour font. */
-      '<div class="ft"><span class="ftile" style="--h:'+(s.hue!=null?s.hue:268)+'">'+(s.icon?ico(s.icon):'<span class="em">'+s.em+'</span>')+'</span>'+
-        '<span class="ftx"><b>'+esc(s.t)+'</b><span>'+esc(flowSub(s,done))+'</span></span></div>'+
-      '<div class="fgo">'+(done?ico('check'):ico('chevR'))+'</div>';
-    built[s.id]=div;
-  });
-  todayOrder().forEach(id=>{
-    if(built[id]){ box.appendChild(built[id]); return; }
-    const fixed=box.querySelector('.tbub[data-tid="'+id+'"]');
-    if(fixed) box.appendChild(fixed);
-  });
-  const lastBlock=[...box.querySelectorAll('.fitem.tbub')].pop();
-  const add=document.createElement('div'); add.className='fitem addtile';
-  add.innerHTML=ico('plus')+'<b>Add block</b>'; add.onclick=()=>openModuleEdit();
-  if(lastBlock) lastBlock.after(add); else box.appendChild(add);
-
+  todayOrder().forEach(id=>{ const fixed=box.querySelector('.tbub[data-tid="'+id+'"]'); if(fixed) box.appendChild(fixed); });
   const g=getGoals();
   $('#goalsMini').innerHTML = g.length
     ? g.slice(0,6).map(x=>'<div class="miniitem'+(x.done?' done':'')+'">'+esc(x.text)+'</div>').join('') +
@@ -4467,6 +4508,117 @@ function renderToday(){
   renderWall(); bindWall();
   bindTodayStack();
 }
+
+/* ================= MY DAY =================
+   The day as it's actually lived, in order, every day:
+     1. ASCEND — body + mind maintenance, first thing, whatever time you wake
+     2. Deep work — focus sessions against the session target
+     3. Gym
+     4. Nutrition — tick meals right here
+     5. Everything else — studio + your own blocks (hobbies that still matter)
+   The first stage that isn't done is NOW and gets the one big button; done stages
+   shrink to a tick. One-off Plan blocks for today are the anomalies, "pencilled in"
+   above the list. No XP and no levels: each stage is done, skipped, or still to do. */
+function daySkips(k){ return kget('dayskip:'+(k||todayKey()), {}); }
+function daySkip(id, on){
+  const sk=Object.assign({}, daySkips()); if(on) sk[id]=1; else delete sk[id];
+  kset('dayskip:'+todayKey(), sk); sfx(on?'toggleOff':'tap'); buzz(12); renderDayView();
+}
+function ascendDone(k){ k=k||todayKey(); return ascendPathsDone(k).length>0 || !!kget('flow:'+k,{}).morning; }
+function ascendStreak(){
+  let n=0; const p=new Date();
+  if(!ascendDone(todayKey(p))) p.setDate(p.getDate()-1);   // today isn't over yet — count from yesterday
+  while(n<3650 && ascendDone(todayKey(p))){ n++; p.setDate(p.getDate()-1); }
+  return n;
+}
+const capWord=x=>x? x[0].toUpperCase()+x.slice(1) : x;
+function dayStages(){
+  const f=getFlow(), today=todayKey();
+  const worked=todayWorkedMin(), target=Math.max(30, Math.round(getSessionTarget()*60));
+  const ap=ascendPathsDone(today);
+  const defs=getMealDefs(), d=getDiet(), meals=d.meals||{}, mealsDone=defs.filter(m=>meals[m.id]).length;
+  const sets=gymTodayEntries().length, rap=rapMinsToday();
+  const others=[{t:'Studio', icon:'mic', done:rap>=SET.rapGoal, open:()=>showTab('rap')}]
+    .concat(flowBlocks().filter(x=>x.custom).map(x=>({t:x.t, em:x.em, done:flowBlockDone(x,f), open:x.open})));
+  const othersDone=others.filter(o=>o.done).length;
+  return [
+    { id:'ascend', t:'ASCEND', icon:'sunrise', hue:24, why:'Body and mind first — breath, meditation, mobility, strength.',
+      done: ap.length>0 || !!f.morning,
+      sub: ap.length ? 'Done · '+ap.map(capWord).join(' + ') : f.morning ? 'Done' : 'Your morning routine',
+      act:{lbl:'Start ASCEND', ic:'play', run:'riseOpenAscend()'}, open:()=>riseOpenAscend() },
+    { id:'work', t:'Deep work', icon:'timer', hue:222, why:'Focus sessions. Clock in, log what you did every 15 min.',
+      done: worked>=target, prog: Math.min(1, worked/target),
+      sub: (ts.mode==='working'?'In session · ':ts.mode==='paused'?'Paused · ':'')+fmtMinShort(worked)+' of '+fmtMinShort(target),
+      act: ts.mode==='idle' ? {lbl:'Start focus session', ic:'play', run:'tsToggle();renderDayView()'}
+         : ts.mode==='paused' ? {lbl:'Resume session', ic:'play', run:'tsToggle();renderDayView()'}
+         : {lbl:'Open session', ic:'timer', run:"showTab('work')"},
+      open:()=>showTab('work') },
+    { id:'gym', t:'Gym', icon:'dumbbell', hue:338, why:'Train today’s split and log your sets.',
+      done: sets>0 || !!f.gym, sub: sets ? sets+' set'+(sets>1?'s':'')+' logged' : 'Not trained yet',
+      act:{lbl:'Start workout', ic:'dumbbell', run:"showTab('gym')"}, open:()=>showTab('gym') },
+    { id:'food', t:'Nutrition', icon:'utensils', hue:145, why:'Tick each meal as you eat it.',
+      done: defs.length>0 && mealsDone===defs.length, prog: defs.length ? mealsDone/defs.length : null,
+      sub: defs.length ? mealsDone+' of '+defs.length+' meals · '+((d.water||0)/1000).toFixed(1)+' L water' : 'Set up your meals',
+      chips: defs.map(m=>({lbl:m.name, em:m.emoji, on:!!meals[m.id], run:"toggleMeal('"+m.id+"',event)"}))
+        .concat([{lbl:'Water +250 ml', icon:'droplet', run:'addWater(250)'}]),
+      act: defs.length ? null : {lbl:'Set up meals', ic:'plus', run:"showTab('diet')"}, open:()=>showTab('diet') },
+    { id:'rest', t:'Everything else', icon:'sparkles', hue:268, why:'Hobbies — still important.',
+      done: others.length>0 && othersDone===others.length,
+      sub: othersDone+' of '+others.length+' done', group: others, open:()=>showTab('rap') },
+  ];
+}
+let _dvStages=[];
+function dvOpen(id){ const st=_dvStages.find(x=>x.id===id); if(st){ sfx('tap'); st.open(); } }
+function dvOpenGroup(j){ const st=_dvStages.find(x=>x.id==='rest'); if(st && st.group[j]){ sfx('tap'); st.group[j].open(); } }
+function dvPencilAdd(inp){
+  const v=(inp.value||'').trim(); if(!v) return;
+  const p=plParse(v, todayKey()); if(!p.date) p.date=todayKey();
+  const b=plNewBlock(p); putBlock(b);
+  sfx('toggleOn'); buzz(15); plAskNotifyPermission();
+  toast('Pencilled in '+b.title+' · '+(b.date===todayKey()?'':plDate(b.date).toLocaleDateString(undefined,{weekday:'short'})+' ')+plRange(b.start,b.dur));
+  renderDayView(); const ni=$('#dvPencil'); if(ni) ni.focus();
+}
+function renderDayView(){
+  const box=$('#dayView'); if(!box) return;
+  const S=_dvStages=dayStages(), skips=daySkips();
+  S.forEach(x=>{ x.skipped=!x.done && !!skips[x.id]; x.ok=x.done||x.skipped; });
+  const nowS=S.find(x=>!x.ok), n=S.filter(x=>x.ok).length, streak=ascendStreak();
+  let h='<div class="dv-head"><div class="grow"><h2 class="dv-title">'+(nowS?'Your day':'Day complete')+'</h2>'+
+    '<div class="dv-sub">'+n+' of '+S.length+' done'+(nowS?' · next up: '+esc(nowS.t):' · well done')+'</div></div>'+
+    '<div class="dv-streak'+(streak?'':' zero')+'" title="Days in a row you did ASCEND">'+ico('flame')+'<b>'+streak+'</b><span>day'+(streak===1?'':'s')+' of<br>ASCEND</span></div></div>';
+  h+='<div class="dv-segs">'+S.map(x=>'<i class="'+(x.done?'on':x.skipped?'skip':x===nowS?'now':'')+'" style="--h:'+x.hue+'"></i>').join('')+'</div>';
+  const pen=plDayBlocks(todayKey()).filter(o=>(o.b.repeat||'none')==='none');
+  h+='<div class="dv-pencil">'+ico('edit','dv-pic')+pen.map(o=>'<button class="dv-pchip'+(o.done?' done':'')+'" onclick="plToggleDone(\''+o.id+'\',\''+todayKey()+'\')" title="Tap when done">'+
+      (o.done?ico('check'):'')+'<b>'+plFmt(o.start)+'</b>'+esc(o.title)+'</button>').join('')+
+    '<input id="dvPencil" class="dv-pin" autocomplete="off" title="e.g. Dentist 3pm 1h" placeholder="'+(pen.length?'Pencil in another…':'Something different today? Pencil it in…')+'" onkeydown="if(event.key===\'Enter\')dvPencilAdd(this)"></div>';
+  h+='<div class="dv-list">';
+  S.forEach(x=>{
+    const st=x.done?'done':x.skipped?'skipped':x===nowS?'now':'later';
+    const chips=(x.chips||[]).map(c=>'<button class="dv-chip'+(c.on?' on':'')+'" onclick="event.stopPropagation();'+c.run+'">'+
+        (c.on?ico('check'):c.icon?ico(c.icon):c.em?'<span class="em">'+c.em+'</span>':'')+esc(c.lbl)+'</button>').join('')
+      +(x.group||[]).map((g,j)=>'<button class="dv-chip'+(g.done?' on':'')+'" onclick="event.stopPropagation();dvOpenGroup('+j+')">'+
+        (g.done?ico('check'):g.icon?ico(g.icon):'<span class="em">'+(g.em||'')+'</span>')+esc(g.t)+'</button>').join('')
+      +(x.group?'<button class="dv-chip add" onclick="event.stopPropagation();openModuleEdit()">'+ico('plus')+'Add</button>':'');
+    h+='<div class="dv-stage '+st+'" style="--h:'+x.hue+'" onclick="dvOpen(\''+x.id+'\')">'+
+      '<div class="dv-ic">'+ico(x.done?'check':x.icon)+'</div>'+
+      '<div class="dv-body"><div class="dv-t">'+esc(x.t)+(st==='now'?'<span class="dv-now">Now</span>':'')+'</div>'+
+        '<div class="dv-s">'+(x.skipped?'Skipped today':esc(x.sub))+'</div>'+
+        (st==='now'?'<div class="dv-why">'+esc(x.why)+'</div>':'')+
+        (x.prog!=null && st!=='done' && st!=='skipped' ? '<div class="dv-bar"><i style="width:'+(x.prog*100).toFixed(1)+'%"></i></div>':'')+
+        (chips && st!=='skipped' && (st==='now' || st==='later' || x.group) ? '<div class="dv-chips">'+chips+'</div>':'')+
+        (st==='now' ? '<div class="dv-acts">'+(x.act?'<button class="dv-go" onclick="event.stopPropagation();'+x.act.run+'">'+ico(x.act.ic)+esc(x.act.lbl)+'</button>':'')+
+          '<button class="dv-skip" onclick="event.stopPropagation();daySkip(\''+x.id+'\',1)">Not today</button></div>':'')+
+      '</div>'+
+      (x.skipped?'<button class="dv-undo" onclick="event.stopPropagation();daySkip(\''+x.id+'\',0)">Undo</button>':st!=='now'?ico('chevR','dv-chev'):'')+
+    '</div>';
+  });
+  h+='</div>';
+  if(new Date().getHours()>=17){ const r=getReflect();
+    h+='<button class="dv-reflect" onclick="openReflect()">'+ico('moon')+'<span>'+(r?'Reflected tonight · tap to edit':'Wind down · reflect on today')+'</span>'+ico('chevR','dv-chev')+'</button>'; }
+  box.innerHTML=h;
+}
+// keep the deep-work line live while a session runs and Today is on screen
+setInterval(()=>{ if(activeTab==='today' && ts.mode==='working' && document.visibilityState==='visible' && !(document.activeElement&&document.activeElement.id==='dvPencil')) renderDayView(); }, 30000);
 
 /* ================= WORK · time study ================= */
 /* ONE session, shared by every device. It lives in the synced store (ts:live)
@@ -8060,7 +8212,8 @@ setInterval(plCheckReminders, 20000);
    progress, or what's next and how long until it) and three live numbers. */
 const FLOW_ICON={morning:'sunrise', work:'timer', gym:'dumbbell', rap:'mic'};
 function fmtMinShort(m){ m=Math.round(m); const h=Math.floor(m/60), r=m%60; return h ? h+'h'+(r?' '+r+'m':'') : r+'m'; }
-function renderTodayHero(){
+function renderTodayHero(){ if(!(document.activeElement&&document.activeElement.id==='dvPencil')) renderDayView(); }
+function renderTodayHeroOld(){
   const box=$('#heroPlan'); if(!box) return;
   const {now, next, list, m}=plNowNext();
   const doneN=list.filter(o=>o.done).length;

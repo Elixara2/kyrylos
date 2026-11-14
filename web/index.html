@@ -1845,6 +1845,29 @@
   body:not(.desk) .td-next{ flex-wrap:wrap; }
   body:not(.desk) .td-nacts{ width:100%; justify-content:flex-end; }
   body:not(.desk) .td-nacts .td-go{ flex:1; justify-content:center; }
+
+  /* ── Today v3: header · Begin · Missions · Routine|Scheduled · Done ── */
+  .td-begin{ display:flex; flex-direction:column; align-items:center; gap:10px; padding:6px 0 4px; }
+  .td-bigbtn{ display:inline-flex; align-items:center; justify-content:center; gap:12px; min-width:260px; padding:18px 44px; border:none; border-radius:999px; cursor:pointer;
+    font-size:21px; font-weight:800; letter-spacing:.01em; color:#fff;
+    background:linear-gradient(180deg, hsl(var(--h),72%,57%), hsl(var(--h),72%,42%));
+    box-shadow:0 18px 40px -14px hsl(var(--h),85%,48%), 0 0 0 6px hsla(var(--h),80%,55%,.10), inset 0 1px 0 rgba(255,255,255,.28);
+    transition:transform .2s var(--ease), box-shadow .2s; }
+  .td-bigbtn:hover{ transform:translateY(-1px); box-shadow:0 22px 46px -14px hsl(var(--h),85%,48%), 0 0 0 8px hsla(var(--h),80%,55%,.13), inset 0 1px 0 rgba(255,255,255,.28); }
+  .td-bigbtn:active{ transform:scale(.98); }
+  .td-bigbtn .ico{ width:24px; height:24px; }
+  .td-bcap{ font-size:13.5px; color:var(--dim); text-align:center; }
+  .td-begin .td-skip{ padding:2px 8px; font-size:12.5px; }
+  .td-col.td-missions, .td-col.td-done{ min-height:0; }
+  .td-grid.two{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+  .td-grid.two .td-col{ min-height:250px; }
+  .td-mgrid, .td-dgrid{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); column-gap:12px; row-gap:2px; }
+  .td-dgrid{ grid-template-columns:repeat(3, minmax(0,1fr)); }
+  .td-missions .td-in{ margin-top:8px !important; }
+  .td-empty.sm{ padding:10px; flex:0 0 auto; }
+  .td-reflect{ margin:0 auto; }
+  @media (max-width: 980px){ .td-grid.two, .td-mgrid, .td-dgrid{ grid-template-columns:1fr; } }
+  body:not(.desk) .td-bigbtn{ width:100%; min-width:0; }
 </style>
 </head>
 <body>
@@ -3229,7 +3252,7 @@ const ico=(name, cls)=>'<svg class="ico'+(cls?' '+cls:'')+'" aria-hidden="true">
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261114-171241';
+const KOS_BUILD='20261114-172133';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -4679,57 +4702,58 @@ function renderDayView(){
   const blocks=plDayBlocks(today), m=plMin(new Date());
   const tile=x=>'<span class="td-ic" style="--h:'+x.hue+'">'+ico(x.icon)+'</span>';
   const tick='<span class="td-ic ok">'+ico('check')+'</span>';
-  const circ=(fn)=>'<button class="td-circ" onclick="event.stopPropagation();'+fn+'" aria-label="Done"></button>';
+  const circ=fn=>'<button class="td-circ" onclick="event.stopPropagation();'+fn+'" aria-label="Done"></button>';
+  const card=(k,t,cnt,body,extra)=>'<section class="td-col td-'+k+'"><header><span>'+t+'</span>'+(extra||'')+'<em>'+cnt+'</em></header><div class="td-body">'+body+'</div></section>';
 
-  // header
+  // 1 · header
   let h='<div class="td-head"><div class="td-date">'+new Date().toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'})+'</div>'+
     '<h2 class="td-greet">'+greet+', Kyryl</h2>'+
     '<div class="td-segs">'+S.map(x=>'<i class="'+(x.done?'on':x.skipped?'skip':x===nowS?'now':'')+'" style="--h:'+x.hue+'" title="'+esc(x.t)+'"></i>').join('')+'</div>'+
-    '<div class="td-meta"><span><b>'+n+'</b> of '+S.length+' done</span><span class="td-dot"></span><span><b>'+blocks.length+'</b> scheduled</span><span class="td-dot"></span>'+
+    '<div class="td-meta"><span><b>'+n+'</b> of '+S.length+' done</span><span class="td-dot"></span><span><b>'+open.length+'</b> mission'+(open.length===1?'':'s')+' left</span><span class="td-dot"></span>'+
       '<span class="td-streak'+(streak?' on':'')+'">'+ico('flame')+'<b>'+streak+'</b> day'+(streak===1?'':'s')+' of ASCEND</span></div></div>';
 
-  // next up
+  // 2 · the one centred button: Begin (ASCEND), or whatever's next
   if(nowS){
-    h+='<div class="td-next" style="--h:'+nowS.hue+'" onclick="dvOpen(\''+nowS.id+'\')">'+tile(nowS)+
-      '<div class="td-nx"><span class="td-k">Next up</span><b>'+esc(nowS.t)+'</b><small>'+esc(nowS.why)+'</small></div>'+
-      '<div class="td-nacts"><button class="td-skip" onclick="event.stopPropagation();daySkip(\''+nowS.id+'\',1)">Not today</button>'+
-      (nowS.act?'<button class="td-go" onclick="event.stopPropagation();'+nowS.act.run+'">'+ico(nowS.act.ic)+esc(nowS.act.lbl)+'</button>':
-        '<button class="td-go" onclick="event.stopPropagation();dvOpen(\''+nowS.id+'\')">'+ico('arrowR')+'Open</button>')+'</div></div>';
+    const lbl = nowS.id==='ascend' ? 'Begin' : (nowS.act ? nowS.act.lbl : 'Open '+nowS.t);
+    const run = nowS.id==='ascend' ? 'riseOpenAscend()' : (nowS.act ? nowS.act.run : "dvOpen('"+nowS.id+"')");
+    h+='<div class="td-begin" style="--h:'+nowS.hue+'"><button class="td-bigbtn" onclick="'+run+'">'+ico(nowS.id==='ascend'?'sunrise':nowS.act?nowS.act.ic:nowS.icon)+'<span>'+esc(lbl)+'</span></button>'+
+      '<div class="td-bcap">'+(nowS.id==='ascend'?'ASCEND · body and mind first':esc(nowS.t)+' · '+esc(nowS.sub))+'</div>'+
+      '<button class="td-skip" onclick="daySkip(\''+nowS.id+'\',1)">Not today</button></div>';
   } else {
-    h+='<div class="td-next complete" style="--h:145"><span class="td-ic ok">'+ico('checkCircle')+'</span>'+
-      '<div class="td-nx"><span class="td-k">Routine</span><b>Daily routine complete</b><small>Everything that repeats is done for today.</small></div>'+
-      '<div class="td-nacts"><button class="td-go" onclick="openReflect()">'+ico('moon')+'Reflect</button></div></div>';
+    h+='<div class="td-begin" style="--h:145"><button class="td-bigbtn" onclick="openReflect()">'+ico('checkCircle')+'<span>Routine complete</span></button>'+
+      '<div class="td-bcap">Everything that repeats is done · tap to reflect</div></div>';
   }
 
-  // column 1 · to do
-  const todoStages=S.filter(x=>!x.ok);
-  let c1=todoStages.map(x=>tdRow({cls:x===nowS?'next':'', h:x.hue, click:"dvOpen('"+x.id+"')", lead:tile(x), t:esc(x.t), s:esc(x.sub),
-      tail:x.prog!=null?'<span class="td-mini"><i style="width:'+(x.prog*100).toFixed(0)+'%"></i></span>':ico('chevR','td-chev')})).join('');
-  c1+='<div class="td-sub">Missions <span>'+open.length+'</span></div>';
-  c1+=open.slice(0,4).map(g=>tdRow({lead:circ("toggleGoal('"+g.id+"',event)"), t:esc(g.text), click:"showTab('goals')"})).join('');
-  if(open.length>4) c1+='<button class="td-more" onclick="showTab(\'goals\')">+'+(open.length-4)+' more</button>';
-  c1+='<input class="td-in" id="tdMission" autocomplete="off" placeholder="Add a mission…" onkeydown="if(event.key===\'Enter\'&&this.value.trim()){ addMission(this.value); this.value=\'\'; renderToday(); $(\'#tdMission\').focus(); }">';
+  // 3 · missions, at the top
+  let mb=open.length ? '<div class="td-mgrid">'+open.slice(0,8).map(g=>tdRow({lead:circ("toggleGoal('"+g.id+"',event)"), t:esc(g.text), click:"showTab('goals')"})).join('')+'</div>'
+                     : '<div class="td-empty sm">No missions left — add one below.</div>';
+  if(open.length>8) mb+='<button class="td-more" onclick="showTab(\'goals\')">+'+(open.length-8)+' more</button>';
+  mb+='<input class="td-in" id="tdMission" autocomplete="off" placeholder="Add a mission…" onkeydown="if(event.key===\'Enter\'&&this.value.trim()){ addMission(this.value); this.value=\'\'; renderToday(); }">';
+  h+=card('missions','Missions',open.length,mb);
 
-  // column 2 · scheduled
+  // 4 · routine still to do | scheduled — two equal columns
+  const rest=S.filter(x=>!x.ok && x!==nowS);
+  let c1=rest.length ? rest.map(x=>tdRow({h:x.hue, click:"dvOpen('"+x.id+"')", lead:tile(x), t:esc(x.t), s:esc(x.sub),
+      tail:x.prog!=null?'<span class="td-mini" style="--h:'+x.hue+'"><i style="width:'+(x.prog*100).toFixed(0)+'%"></i></span>':ico('chevR','td-chev')})).join('')
+    : '<div class="td-empty">'+(nowS?'Just '+esc(nowS.t)+' left.':'Routine done for today.')+'</div>';
   let c2=blocks.length ? blocks.map(o=>{
       const isNow=!o.done && m>=o.start && m<o.start+o.dur, past=!o.done && m>=o.start+o.dur;
       return tdRow({cls:(o.done?'done':'')+(isNow?' now':'')+(past?' past':''), h:o.hue<0?220:o.hue, click:"showTab('plan')",
         lead:'<span class="td-time">'+plFmt(o.start)+'</span>',
         t:esc(o.title)+((o.b.repeat||'none')==='none'?ico('edit','td-pen'):''), s:plDurLbl(o.dur)+(isNow?' · now':''),
         tail:o.done?'<span class="td-ic ok sm">'+ico('check')+'</span>':circ("plToggleDone('"+o.id+"','"+today+"')")});
-    }).join('') : '<div class="td-empty">Nothing scheduled.<br>Your routine is the plan.</div>';
+    }).join('') : '<div class="td-empty">Nothing scheduled.</div>';
   c2+='<input class="td-in" id="dvPencil" autocomplete="off" title="e.g. Dentist 3pm 1h" placeholder="Pencil something in — “Dentist 3pm”" onkeydown="if(event.key===\'Enter\')dvPencilAdd(this)">';
+  h+='<div class="td-grid two">'+card('todo','Routine',rest.length,c1)+card('sched','Scheduled',blocks.length,c2)+'</div>';
 
-  // column 3 · done
+  // 5 · already done, at the bottom
   const doneStages=S.filter(x=>x.ok);
   let c3=doneStages.map(x=>tdRow({cls:x.skipped?'skipped':'', click:"dvOpen('"+x.id+"')", lead:x.skipped?tile(x):tick, t:esc(x.t), s:x.skipped?'Skipped today':esc(x.sub),
-      tail:x.skipped?'<button class="td-undo" onclick="event.stopPropagation();daySkip(\''+x.id+'\',0)">Undo</button>':''})).join('');
-  c3+=doneG.map(g=>tdRow({cls:'mission', lead:'<button class="td-circ on" onclick="event.stopPropagation();toggleGoal(\''+g.id+'\',event)" aria-label="Undo">'+ico('check')+'</button>', t:esc(g.text), s:'Mission'})).join('');
-  if(!c3) c3='<div class="td-empty">Nothing done yet.<br>Start with '+esc(nowS?nowS.t:'ASCEND')+'.</div>';
-  if(hr>=17 && nowS){ const r=getReflect(); c3+='<button class="td-more" onclick="openReflect()">'+ico('moon')+(r?' Reflected · edit':' Reflect on today')+'</button>'; }
+      tail:x.skipped?'<button class="td-undo" onclick="event.stopPropagation();daySkip(\''+x.id+'\',0)">Undo</button>':''})).join('')
+    + doneG.map(g=>tdRow({cls:'mission', lead:'<button class="td-circ on" onclick="event.stopPropagation();toggleGoal(\''+g.id+'\',event)" aria-label="Undo">'+ico('check')+'</button>', t:esc(g.text), s:'Mission'})).join('');
+  h+=card('done','Done',doneStages.filter(x=>x.done).length+doneG.length, c3 ? '<div class="td-dgrid">'+c3+'</div>' : '<div class="td-empty sm">Nothing done yet.</div>');
+  if(hr>=17 && nowS){ const r=getReflect(); h+='<button class="td-more td-reflect" onclick="openReflect()">'+ico('moon')+(r?' Reflected tonight · edit':' Reflect on today')+'</button>'; }
 
-  const col=(k,t,cnt,body)=>'<section class="td-col td-'+k+'"><header><span>'+t+'</span><em>'+cnt+'</em></header><div class="td-body">'+body+'</div></section>';
-  h+='<div class="td-grid">'+col('todo','To do',todoStages.length+open.length,c1)+col('sched','Scheduled',blocks.length,c2)+col('done','Done',doneStages.filter(x=>x.done).length+doneG.length,c3)+'</div>';
   const keep=document.activeElement && document.activeElement.id;
   box.innerHTML=h;
   if(keep==='tdMission'||keep==='dvPencil'){ const el=$('#'+keep); if(el) el.focus(); }

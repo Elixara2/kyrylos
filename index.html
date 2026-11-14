@@ -1760,6 +1760,91 @@
   body:not(.desk) .dv-chip{ padding:6px 10px; font-size:12.5px; gap:5px; }
   body:not(.desk) .dv-chips{ gap:6px; margin-left:-56px; }
   body:not(.desk) .dv-stage{ gap:14px; }
+
+  /* ===== TODAY · symmetric summary ===== */
+  #p-today #todayStack #goalsCard{ display:none !important; }
+  body.desk #p-today.on{ display:block; }
+  body.desk #todayAside{ display:none !important; }
+  #dayView{ gap:16px; margin-bottom:18px; }
+  .td-head{ text-align:center; padding:6px 0 2px; }
+  .td-date{ font-size:12px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--dim); }
+  .td-greet{ font-size:30px; font-weight:800; letter-spacing:-.025em; margin:6px 0 14px; }
+  .td-segs{ display:flex; gap:6px; max-width:420px; margin:0 auto; }
+  .td-segs i{ flex:1; height:5px; border-radius:5px; background:rgba(255,255,255,.08); }
+  .td-segs i.on{ background:hsl(var(--h),70%,58%); box-shadow:0 0 10px hsla(var(--h),80%,60%,.4); }
+  .td-segs i.skip{ background:rgba(255,255,255,.22); }
+  .td-segs i.now{ background:hsla(var(--h),70%,58%,.45); animation:dvPulse 2.4s ease-in-out infinite; }
+  .td-meta{ display:flex; justify-content:center; align-items:center; gap:12px; margin-top:12px; color:var(--dim); font-size:13px; flex-wrap:wrap; }
+  .td-meta b{ color:var(--txt); font-weight:700; }
+  .td-dot{ width:3px; height:3px; border-radius:50%; background:var(--dim); opacity:.6; }
+  .td-streak{ display:inline-flex; align-items:center; gap:5px; }
+  .td-streak .ico{ width:14px; height:14px; }
+  .td-streak.on{ color:#ffb37a; } .td-streak.on b{ color:#ffd2ad; }
+  .td-next{ display:flex; align-items:center; gap:16px; padding:16px 18px; border-radius:18px; cursor:pointer;
+    border:1px solid hsla(var(--h),80%,62%,.32);
+    background:radial-gradient(90% 160% at 0% 50%, hsla(var(--h),70%,50%,.16), transparent 60%), rgba(255,255,255,.035); }
+  .td-next .td-ic{ width:48px; height:48px; border-radius:15px; }
+  .td-next .td-ic .ico{ width:24px; height:24px; }
+  .td-nx{ flex:1; min-width:0; display:flex; flex-direction:column; }
+  .td-k{ font-size:10.5px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:hsl(var(--h),80%,72%); }
+  .td-nx b{ font-size:19px; font-weight:750; margin-top:2px; }
+  .td-nx small{ font-size:13.5px; color:var(--dim); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .td-nacts{ display:flex; align-items:center; gap:8px; flex:0 0 auto; }
+  .td-go{ display:inline-flex; align-items:center; gap:8px; padding:11px 20px; border:none; border-radius:12px; cursor:pointer; white-space:nowrap;
+    font-size:14.5px; font-weight:700; color:#fff; background:linear-gradient(180deg, hsl(var(--h),70%,55%), hsl(var(--h),70%,42%));
+    box-shadow:0 10px 22px -12px hsl(var(--h),80%,45%), inset 0 1px 0 rgba(255,255,255,.22); }
+  .td-go .ico{ width:16px; height:16px; }
+  .td-skip{ background:none; border:none; color:var(--dim); font-size:13px; font-weight:600; cursor:pointer; padding:8px; }
+  .td-skip:hover{ color:var(--txt); }
+  .td-grid{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:16px; align-items:stretch; }
+  .td-col{ display:flex; flex-direction:column; border-radius:18px; border:1px solid rgba(255,255,255,.07);
+    background:linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.018)); min-height:340px; overflow:hidden; }
+  .td-col > header{ display:flex; align-items:center; justify-content:space-between; padding:14px 16px 10px; position:static !important; margin:0 !important;
+    background:none !important; backdrop-filter:none !important; border:none !important; }
+  .td-col > header span{ font-size:11.5px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--dim); }
+  .td-col > header em{ font-style:normal; font-size:12px; font-weight:700; min-width:24px; text-align:center; padding:2px 8px; border-radius:8px; background:rgba(255,255,255,.07); color:var(--txt); }
+  .td-done > header em{ background:hsla(145,60%,45%,.18); color:#86efac; }
+  .td-body{ display:flex; flex-direction:column; gap:2px; padding:0 8px 10px; flex:1; }
+  .td-row{ display:flex; align-items:center; gap:12px; padding:9px 8px; border-radius:12px; cursor:pointer; min-height:48px; }
+  .td-row:hover{ background:rgba(255,255,255,.04); }
+  .td-row.next{ background:hsla(var(--h),70%,50%,.09); }
+  .td-ic{ width:34px; height:34px; border-radius:11px; flex:0 0 auto; display:grid; place-items:center; color:#fff;
+    background:linear-gradient(145deg, hsl(var(--h),70%,56%), hsl(var(--h),65%,36%)); }
+  .td-ic .ico{ width:17px; height:17px; }
+  .td-ic.ok{ background:hsla(145,60%,45%,.18); color:#4ade80; }
+  .td-ic.sm{ width:24px; height:24px; border-radius:8px; } .td-ic.sm .ico{ width:13px; height:13px; }
+  .td-tx{ flex:1; min-width:0; display:flex; flex-direction:column; }
+  .td-tx b{ font-size:14.5px; font-weight:650; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; gap:6px; }
+  .td-tx small{ font-size:12.5px; color:var(--dim); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .td-pen{ width:12px; height:12px; color:#facc15; flex:0 0 auto; }
+  .td-chev{ width:16px; height:16px; color:var(--dim); opacity:.5; flex:0 0 auto; }
+  .td-mini{ width:44px; height:4px; border-radius:4px; background:rgba(255,255,255,.08); overflow:hidden; flex:0 0 auto; }
+  .td-mini i{ display:block; height:100%; background:hsl(var(--h),70%,60%); border-radius:4px; }
+  .td-circ{ width:22px; height:22px; border-radius:50%; border:1.5px solid rgba(255,255,255,.28); background:none; flex:0 0 auto; cursor:pointer; padding:0; display:grid; place-items:center; color:#fff; margin:0 6px; }
+  .td-circ:hover{ border-color:#4ade80; }
+  .td-circ.on{ background:#22c55e; border-color:#22c55e; }
+  .td-circ .ico{ width:12px; height:12px; }
+  .td-sub{ display:flex; justify-content:space-between; font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--dim); padding:14px 8px 6px; margin-top:6px; border-top:1px solid rgba(255,255,255,.06); }
+  .td-sub span{ color:var(--txt); }
+  .td-time{ width:58px; flex:0 0 auto; font-size:12.5px; font-weight:700; color:hsl(var(--h),75%,72%); font-variant-numeric:tabular-nums; text-align:right; padding-right:4px; border-right:2px solid hsla(var(--h),70%,55%,.5); }
+  .td-row.now{ background:hsla(var(--h),70%,50%,.1); }
+  .td-row.done .td-tx b, .td-row.past .td-tx b{ opacity:.5; } .td-row.done .td-tx b{ text-decoration:line-through; }
+  .td-row.skipped{ opacity:.6; } .td-row.skipped .td-ic{ filter:grayscale(1); }
+  .td-row.mission .td-tx b{ color:var(--dim); text-decoration:line-through; font-weight:550; }
+  .td-undo{ background:rgba(255,255,255,.06); border:1px solid var(--line); color:var(--txt); border-radius:8px; padding:5px 10px; font-size:12px; font-weight:600; cursor:pointer; }
+  .td-more{ display:flex; align-items:center; justify-content:center; gap:6px; background:none; border:none; color:var(--dim); font-size:13px; font-weight:600; cursor:pointer; padding:8px; }
+  .td-more .ico{ width:14px; height:14px; }
+  .td-empty{ flex:1; display:grid; place-items:center; text-align:center; color:var(--dim); font-size:13.5px; line-height:1.5; padding:24px 10px; }
+  .td-in{ margin:auto 4px 0 !important; margin-top:auto !important; background:rgba(255,255,255,.03) !important; border:1px dashed rgba(255,255,255,.12) !important; border-radius:11px !important;
+    padding:10px 12px !important; font-size:13.5px !important; color:var(--txt); box-shadow:none !important; outline:none; width:auto; }
+  .td-in:focus{ border-style:solid !important; border-color:rgba(255,255,255,.25) !important; }
+  .td-body > .td-in{ margin-top:auto; }
+  .td-sub + .td-row{ }
+  @media (max-width: 980px){ .td-grid{ grid-template-columns:1fr; } .td-col{ min-height:0; } }
+  body:not(.desk) .td-greet{ font-size:25px; }
+  body:not(.desk) .td-next{ flex-wrap:wrap; }
+  body:not(.desk) .td-nacts{ width:100%; justify-content:flex-end; }
+  body:not(.desk) .td-nacts .td-go{ flex:1; justify-content:center; }
 </style>
 </head>
 <body>
@@ -3144,7 +3229,7 @@ const ico=(name, cls)=>'<svg class="ico'+(cls?' '+cls:'')+'" aria-hidden="true">
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261114-165200';
+const KOS_BUILD='20261114-171241';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -4578,44 +4663,76 @@ function dvPencilAdd(inp){
   toast('Pencilled in '+b.title+' · '+(b.date===todayKey()?'':plDate(b.date).toLocaleDateString(undefined,{weekday:'short'})+' ')+plRange(b.start,b.dur));
   renderDayView(); const ni=$('#dvPencil'); if(ni) ni.focus();
 }
+/* Today = a summary, laid out symmetrically: centered header, one "Next up" bar,
+   then three equal columns — To do · Scheduled · Done. */
+function tdRow(o){
+  return '<div class="td-row'+(o.cls?' '+o.cls:'')+'"'+(o.click?' onclick="'+o.click+'"':'')+(o.h!=null?' style="--h:'+o.h+'"':'')+'>'+
+    (o.lead||'')+'<span class="td-tx"><b>'+o.t+'</b>'+(o.s?'<small>'+o.s+'</small>':'')+'</span>'+(o.tail||'')+'</div>';
+}
 function renderDayView(){
   const box=$('#dayView'); if(!box) return;
-  const S=_dvStages=dayStages(), skips=daySkips();
+  const today=todayKey(), S=_dvStages=dayStages(), skips=daySkips();
   S.forEach(x=>{ x.skipped=!x.done && !!skips[x.id]; x.ok=x.done||x.skipped; });
-  const nowS=S.find(x=>!x.ok), n=S.filter(x=>x.ok).length, streak=ascendStreak();
-  let h='<div class="dv-head"><div class="grow"><h2 class="dv-title">'+(nowS?'Your day':'Day complete')+'</h2>'+
-    '<div class="dv-sub">'+n+' of '+S.length+' done'+(nowS?' · next up: '+esc(nowS.t):' · well done')+'</div></div>'+
-    '<div class="dv-streak'+(streak?'':' zero')+'" title="Days in a row you did ASCEND">'+ico('flame')+'<b>'+streak+'</b><span>day'+(streak===1?'':'s')+' of<br>ASCEND</span></div></div>';
-  h+='<div class="dv-segs">'+S.map(x=>'<i class="'+(x.done?'on':x.skipped?'skip':x===nowS?'now':'')+'" style="--h:'+x.hue+'"></i>').join('')+'</div>';
-  const pen=plDayBlocks(todayKey()).filter(o=>(o.b.repeat||'none')==='none');
-  h+='<div class="dv-pencil">'+ico('edit','dv-pic')+pen.map(o=>'<button class="dv-pchip'+(o.done?' done':'')+'" onclick="plToggleDone(\''+o.id+'\',\''+todayKey()+'\')" title="Tap when done">'+
-      (o.done?ico('check'):'')+'<b>'+plFmt(o.start)+'</b>'+esc(o.title)+'</button>').join('')+
-    '<input id="dvPencil" class="dv-pin" autocomplete="off" title="e.g. Dentist 3pm 1h" placeholder="'+(pen.length?'Pencil in another…':'Something different today? Pencil it in…')+'" onkeydown="if(event.key===\'Enter\')dvPencilAdd(this)"></div>';
-  h+='<div class="dv-list">';
-  S.forEach(x=>{
-    const st=x.done?'done':x.skipped?'skipped':x===nowS?'now':'later';
-    const chips=(x.chips||[]).map(c=>'<button class="dv-chip'+(c.on?' on':'')+'" onclick="event.stopPropagation();'+c.run+'">'+
-        (c.on?ico('check'):c.icon?ico(c.icon):c.em?'<span class="em">'+c.em+'</span>':'')+esc(c.lbl)+'</button>').join('')
-      +(x.group||[]).map((g,j)=>'<button class="dv-chip'+(g.done?' on':'')+'" onclick="event.stopPropagation();dvOpenGroup('+j+')">'+
-        (g.done?ico('check'):g.icon?ico(g.icon):'<span class="em">'+(g.em||'')+'</span>')+esc(g.t)+'</button>').join('')
-      +(x.group?'<button class="dv-chip add" onclick="event.stopPropagation();openModuleEdit()">'+ico('plus')+'Add</button>':'');
-    h+='<div class="dv-stage '+st+'" style="--h:'+x.hue+'" onclick="dvOpen(\''+x.id+'\')">'+
-      '<div class="dv-ic">'+ico(x.done?'check':x.icon)+'</div>'+
-      '<div class="dv-body"><div class="dv-t">'+esc(x.t)+(st==='now'?'<span class="dv-now">Now</span>':'')+'</div>'+
-        '<div class="dv-s">'+(x.skipped?'Skipped today':esc(x.sub))+'</div>'+
-        (st==='now'?'<div class="dv-why">'+esc(x.why)+'</div>':'')+
-        (x.prog!=null && st!=='done' && st!=='skipped' ? '<div class="dv-bar"><i style="width:'+(x.prog*100).toFixed(1)+'%"></i></div>':'')+
-        (chips && st!=='skipped' && (st==='now' || st==='later' || x.group) ? '<div class="dv-chips">'+chips+'</div>':'')+
-        (st==='now' ? '<div class="dv-acts">'+(x.act?'<button class="dv-go" onclick="event.stopPropagation();'+x.act.run+'">'+ico(x.act.ic)+esc(x.act.lbl)+'</button>':'')+
-          '<button class="dv-skip" onclick="event.stopPropagation();daySkip(\''+x.id+'\',1)">Not today</button></div>':'')+
-      '</div>'+
-      (x.skipped?'<button class="dv-undo" onclick="event.stopPropagation();daySkip(\''+x.id+'\',0)">Undo</button>':st!=='now'?ico('chevR','dv-chev'):'')+
-    '</div>';
-  });
-  h+='</div>';
-  if(new Date().getHours()>=17){ const r=getReflect();
-    h+='<button class="dv-reflect" onclick="openReflect()">'+ico('moon')+'<span>'+(r?'Reflected tonight · tap to edit':'Wind down · reflect on today')+'</span>'+ico('chevR','dv-chev')+'</button>'; }
+  const nowS=S.find(x=>!x.ok), n=S.filter(x=>x.done).length, streak=ascendStreak();
+  const hr=new Date().getHours(), greet=hr<5?'Late night':hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
+  const goals=getGoals(), open=goals.filter(g=>!g.done), doneG=goals.filter(g=>g.done);
+  const blocks=plDayBlocks(today), m=plMin(new Date());
+  const tile=x=>'<span class="td-ic" style="--h:'+x.hue+'">'+ico(x.icon)+'</span>';
+  const tick='<span class="td-ic ok">'+ico('check')+'</span>';
+  const circ=(fn)=>'<button class="td-circ" onclick="event.stopPropagation();'+fn+'" aria-label="Done"></button>';
+
+  // header
+  let h='<div class="td-head"><div class="td-date">'+new Date().toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'})+'</div>'+
+    '<h2 class="td-greet">'+greet+', Kyryl</h2>'+
+    '<div class="td-segs">'+S.map(x=>'<i class="'+(x.done?'on':x.skipped?'skip':x===nowS?'now':'')+'" style="--h:'+x.hue+'" title="'+esc(x.t)+'"></i>').join('')+'</div>'+
+    '<div class="td-meta"><span><b>'+n+'</b> of '+S.length+' done</span><span class="td-dot"></span><span><b>'+blocks.length+'</b> scheduled</span><span class="td-dot"></span>'+
+      '<span class="td-streak'+(streak?' on':'')+'">'+ico('flame')+'<b>'+streak+'</b> day'+(streak===1?'':'s')+' of ASCEND</span></div></div>';
+
+  // next up
+  if(nowS){
+    h+='<div class="td-next" style="--h:'+nowS.hue+'" onclick="dvOpen(\''+nowS.id+'\')">'+tile(nowS)+
+      '<div class="td-nx"><span class="td-k">Next up</span><b>'+esc(nowS.t)+'</b><small>'+esc(nowS.why)+'</small></div>'+
+      '<div class="td-nacts"><button class="td-skip" onclick="event.stopPropagation();daySkip(\''+nowS.id+'\',1)">Not today</button>'+
+      (nowS.act?'<button class="td-go" onclick="event.stopPropagation();'+nowS.act.run+'">'+ico(nowS.act.ic)+esc(nowS.act.lbl)+'</button>':
+        '<button class="td-go" onclick="event.stopPropagation();dvOpen(\''+nowS.id+'\')">'+ico('arrowR')+'Open</button>')+'</div></div>';
+  } else {
+    h+='<div class="td-next complete" style="--h:145"><span class="td-ic ok">'+ico('checkCircle')+'</span>'+
+      '<div class="td-nx"><span class="td-k">Routine</span><b>Daily routine complete</b><small>Everything that repeats is done for today.</small></div>'+
+      '<div class="td-nacts"><button class="td-go" onclick="openReflect()">'+ico('moon')+'Reflect</button></div></div>';
+  }
+
+  // column 1 · to do
+  const todoStages=S.filter(x=>!x.ok);
+  let c1=todoStages.map(x=>tdRow({cls:x===nowS?'next':'', h:x.hue, click:"dvOpen('"+x.id+"')", lead:tile(x), t:esc(x.t), s:esc(x.sub),
+      tail:x.prog!=null?'<span class="td-mini"><i style="width:'+(x.prog*100).toFixed(0)+'%"></i></span>':ico('chevR','td-chev')})).join('');
+  c1+='<div class="td-sub">Missions <span>'+open.length+'</span></div>';
+  c1+=open.slice(0,4).map(g=>tdRow({lead:circ("toggleGoal('"+g.id+"',event)"), t:esc(g.text), click:"showTab('goals')"})).join('');
+  if(open.length>4) c1+='<button class="td-more" onclick="showTab(\'goals\')">+'+(open.length-4)+' more</button>';
+  c1+='<input class="td-in" id="tdMission" autocomplete="off" placeholder="Add a mission…" onkeydown="if(event.key===\'Enter\'&&this.value.trim()){ addMission(this.value); this.value=\'\'; renderToday(); $(\'#tdMission\').focus(); }">';
+
+  // column 2 · scheduled
+  let c2=blocks.length ? blocks.map(o=>{
+      const isNow=!o.done && m>=o.start && m<o.start+o.dur, past=!o.done && m>=o.start+o.dur;
+      return tdRow({cls:(o.done?'done':'')+(isNow?' now':'')+(past?' past':''), h:o.hue<0?220:o.hue, click:"showTab('plan')",
+        lead:'<span class="td-time">'+plFmt(o.start)+'</span>',
+        t:esc(o.title)+((o.b.repeat||'none')==='none'?ico('edit','td-pen'):''), s:plDurLbl(o.dur)+(isNow?' · now':''),
+        tail:o.done?'<span class="td-ic ok sm">'+ico('check')+'</span>':circ("plToggleDone('"+o.id+"','"+today+"')")});
+    }).join('') : '<div class="td-empty">Nothing scheduled.<br>Your routine is the plan.</div>';
+  c2+='<input class="td-in" id="dvPencil" autocomplete="off" title="e.g. Dentist 3pm 1h" placeholder="Pencil something in — “Dentist 3pm”" onkeydown="if(event.key===\'Enter\')dvPencilAdd(this)">';
+
+  // column 3 · done
+  const doneStages=S.filter(x=>x.ok);
+  let c3=doneStages.map(x=>tdRow({cls:x.skipped?'skipped':'', click:"dvOpen('"+x.id+"')", lead:x.skipped?tile(x):tick, t:esc(x.t), s:x.skipped?'Skipped today':esc(x.sub),
+      tail:x.skipped?'<button class="td-undo" onclick="event.stopPropagation();daySkip(\''+x.id+'\',0)">Undo</button>':''})).join('');
+  c3+=doneG.map(g=>tdRow({cls:'mission', lead:'<button class="td-circ on" onclick="event.stopPropagation();toggleGoal(\''+g.id+'\',event)" aria-label="Undo">'+ico('check')+'</button>', t:esc(g.text), s:'Mission'})).join('');
+  if(!c3) c3='<div class="td-empty">Nothing done yet.<br>Start with '+esc(nowS?nowS.t:'ASCEND')+'.</div>';
+  if(hr>=17 && nowS){ const r=getReflect(); c3+='<button class="td-more" onclick="openReflect()">'+ico('moon')+(r?' Reflected · edit':' Reflect on today')+'</button>'; }
+
+  const col=(k,t,cnt,body)=>'<section class="td-col td-'+k+'"><header><span>'+t+'</span><em>'+cnt+'</em></header><div class="td-body">'+body+'</div></section>';
+  h+='<div class="td-grid">'+col('todo','To do',todoStages.length+open.length,c1)+col('sched','Scheduled',blocks.length,c2)+col('done','Done',doneStages.filter(x=>x.done).length+doneG.length,c3)+'</div>';
+  const keep=document.activeElement && document.activeElement.id;
   box.innerHTML=h;
+  if(keep==='tdMission'||keep==='dvPencil'){ const el=$('#'+keep); if(el) el.focus(); }
 }
 // keep the deep-work line live while a session runs and Today is on screen
 setInterval(()=>{ if(activeTab==='today' && ts.mode==='working' && document.visibilityState==='visible' && !(document.activeElement&&document.activeElement.id==='dvPencil')) renderDayView(); }, 30000);

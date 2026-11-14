@@ -1868,6 +1868,26 @@
   .td-reflect{ margin:0 auto; }
   @media (max-width: 980px){ .td-grid.two, .td-mgrid, .td-dgrid{ grid-template-columns:1fr; } }
   body:not(.desk) .td-bigbtn{ width:100%; min-width:0; }
+
+  /* ── Today v4: Missions (one list) | Schedule · Routine · Notes ── */
+  #p-today #todayStack{ display:none; }
+  .td-split{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:16px; align-items:stretch; }
+  .td-left{ display:flex; flex-direction:column; }
+  .td-left .td-col{ flex:1; }
+  .td-right{ display:flex; flex-direction:column; gap:16px; }
+  .td-right .td-col, .td-left .td-col{ min-height:0; }
+  .td-missions .td-body > .td-in{ margin-top:auto !important; }
+  .td-missions .td-body{ gap:0; }
+  .td-missions .td-row{ min-height:46px; border-bottom:1px solid rgba(255,255,255,.04); border-radius:10px; }
+  #tdNotesSlot .card{ margin:0; padding:14px 16px 12px; border-radius:18px; border:1px solid rgba(255,255,255,.07);
+    background:linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.018)); box-shadow:none; }
+  #tdNotesSlot .card-handle, #tdNotesSlot .card > .sub{ display:none !important; }
+  #tdNotesSlot h2{ font-size:11.5px !important; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--dim); }
+  #tdNotesSlot #wallInput{ min-height:0; font-size:13.5px; }
+  #tdNotesSlot #wallDrop{ margin-top:10px; padding:0; border:none; background:none; }
+  #tdNotesSlot #wallList{ max-height:260px; overflow:auto; margin-top:8px; }
+  #tdNotesSlot .empty{ padding:8px 0; font-size:13px; }
+  @media (max-width: 980px){ .td-split{ grid-template-columns:1fr; } }
 </style>
 </head>
 <body>
@@ -1961,7 +1981,7 @@
       <div class="card dragblock tbub" data-tid="wall" id="noteWallCard">
         <div class="drag-handle card-handle"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3" r="1.3"/><circle cx="11" cy="3" r="1.3"/><circle cx="5" cy="8" r="1.3"/><circle cx="11" cy="8" r="1.3"/><circle cx="5" cy="13" r="1.3"/><circle cx="11" cy="13" r="1.3"/></svg></div>
         <div class="row" style="justify-content:space-between;align-items:center">
-          <h2 style="margin:0">Wall</h2>
+          <h2 style="margin:0">Notes</h2>
           <span class="sub" id="wallCount"></span>
         </div>
         <div class="sub" style="margin-top:2px">Paste text, links or images — drop files in. Synced to your phone.</div>
@@ -3252,7 +3272,7 @@ const ico=(name, cls)=>'<svg class="ico'+(cls?' '+cls:'')+'" aria-hidden="true">
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261114-172133';
+const KOS_BUILD='20261114-173043';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -4725,11 +4745,10 @@ function renderDayView(){
   }
 
   // 3 · missions, at the top
-  let mb=open.length ? '<div class="td-mgrid">'+open.slice(0,8).map(g=>tdRow({lead:circ("toggleGoal('"+g.id+"',event)"), t:esc(g.text), click:"showTab('goals')"})).join('')+'</div>'
+  let mb=open.length ? open.slice(0,14).map(g=>tdRow({lead:circ("toggleGoal('"+g.id+"',event)"), t:esc(g.text), click:"showTab('goals')"})).join('')
                      : '<div class="td-empty sm">No missions left — add one below.</div>';
-  if(open.length>8) mb+='<button class="td-more" onclick="showTab(\'goals\')">+'+(open.length-8)+' more</button>';
+  if(open.length>14) mb+='<button class="td-more" onclick="showTab(\'goals\')">+'+(open.length-14)+' more</button>';
   mb+='<input class="td-in" id="tdMission" autocomplete="off" placeholder="Add a mission…" onkeydown="if(event.key===\'Enter\'&&this.value.trim()){ addMission(this.value); this.value=\'\'; renderToday(); }">';
-  h+=card('missions','Missions',open.length,mb);
 
   // 4 · routine still to do | scheduled — two equal columns
   const rest=S.filter(x=>!x.ok && x!==nowS);
@@ -4744,7 +4763,8 @@ function renderDayView(){
         tail:o.done?'<span class="td-ic ok sm">'+ico('check')+'</span>':circ("plToggleDone('"+o.id+"','"+today+"')")});
     }).join('') : '<div class="td-empty">Nothing scheduled.</div>';
   c2+='<input class="td-in" id="dvPencil" autocomplete="off" title="e.g. Dentist 3pm 1h" placeholder="Pencil something in — “Dentist 3pm”" onkeydown="if(event.key===\'Enter\')dvPencilAdd(this)">';
-  h+='<div class="td-grid two">'+card('todo','Routine',rest.length,c1)+card('sched','Scheduled',blocks.length,c2)+'</div>';
+  h+='<div class="td-split"><div class="td-left">'+card('missions','Missions',open.length,mb)+'</div>'+
+    '<div class="td-right">'+card('sched','Schedule',blocks.length,c2)+card('todo','Routine',rest.length,c1)+'<div id="tdNotesSlot"></div></div></div>';
 
   // 5 · already done, at the bottom
   const doneStages=S.filter(x=>x.ok);
@@ -4754,9 +4774,15 @@ function renderDayView(){
   h+=card('done','Done',doneStages.filter(x=>x.done).length+doneG.length, c3 ? '<div class="td-dgrid">'+c3+'</div>' : '<div class="td-empty sm">Nothing done yet.</div>');
   if(hr>=17 && nowS){ const r=getReflect(); h+='<button class="td-more td-reflect" onclick="openReflect()">'+ico('moon')+(r?' Reflected tonight · edit':' Reflect on today')+'</button>'; }
 
-  const keep=document.activeElement && document.activeElement.id;
+  // keep what you're typing (and the Notes card, which is a live node, not markup) across re-renders
+  const ae=document.activeElement, keepId=ae && ae.id, sel=ae && ae.selectionStart!=null ? [ae.selectionStart, ae.selectionEnd] : null;
+  const vals={}; ['tdMission','dvPencil'].forEach(id=>{ const el=$('#'+id); if(el && el.value) vals[id]=el.value; });
+  const wall=$('#noteWallCard'); if(wall && wall.parentNode) wall.parentNode.removeChild(wall);
   box.innerHTML=h;
-  if(keep==='tdMission'||keep==='dvPencil'){ const el=$('#'+keep); if(el) el.focus(); }
+  if(wall) $('#tdNotesSlot').appendChild(wall);
+  Object.keys(vals).forEach(id=>{ const el=$('#'+id); if(el) el.value=vals[id]; });
+  const back = keepId ? $('#'+keepId) : null;
+  if(back && back!==document.activeElement){ try{ back.focus({preventScroll:true}); if(sel && back.setSelectionRange) back.setSelectionRange(sel[0], sel[1]); }catch(e){} }
 }
 // keep the deep-work line live while a session runs and Today is on screen
 setInterval(()=>{ if(activeTab==='today' && ts.mode==='working' && document.visibilityState==='visible' && !(document.activeElement&&document.activeElement.id==='dvPencil')) renderDayView(); }, 30000);
@@ -8741,7 +8767,7 @@ function renderWall(){
   const box=$('#wallList'); if(!box) return;
   const items=getWall();
   const c=$('#wallCount'); if(c) c.textContent = items.length ? items.length+' item'+(items.length===1?'':'s') : '';
-  box.innerHTML = items.length ? '' : '<div class="empty">Nothing on the wall yet.</div>';
+  box.innerHTML = items.length ? '' : '<div class="empty">No notes yet.</div>';
   items.forEach(it=>{
     const row=document.createElement('div');
     row.className='wallitem'+(it.pending?' pending':'');

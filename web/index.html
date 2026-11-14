@@ -1640,6 +1640,41 @@
   #wrap #todayStack .addtile .ico{width:22px;height:22px}
   #wrap #todayStack .addtile b{font-size:14px;font-weight:600}
   #wrap #todayStack .addtile:hover{color:var(--txt);border-color:color-mix(in srgb,var(--accent) 60%,transparent) !important}
+
+  /* ===== slim bars (14 Nov): the top bar and the tab bar stay low-profile even when
+     the Mac app zooms the content up. --bz = 1/zoom (set by fitBars), so the bars hold
+     roughly the same on-screen size whatever the window width. ===== */
+  :root{ --bz:1; }
+  body.desk #wrap > header{ padding-top:calc(8px*var(--bz)); padding-bottom:calc(8px*var(--bz)); margin-bottom:16px; }
+  body.desk #wrap > header .hleft, body.desk #wrap > header .hbtns{ zoom:var(--bz); }
+  body.desk:not(.sidenav) #tabbar{ padding:calc(5px*var(--bz)) 12px calc(6px*var(--bz));
+    background:linear-gradient(0deg, rgba(10,12,17,.9), rgba(10,12,17,.78)); backdrop-filter:blur(18px) saturate(150%); -webkit-backdrop-filter:blur(18px) saturate(150%);
+    border-top:1px solid rgba(255,255,255,.06); }
+  body.desk:not(.sidenav) #tabbar .inner{ max-width:calc(1060px*var(--bz)); }
+  body.desk:not(.sidenav) #tabbar .tab{ flex-direction:row; justify-content:center; align-items:center; gap:calc(8px*var(--bz));
+    height:calc(34px*var(--bz)); padding:0 calc(6px*var(--bz)); margin:0 calc(2px*var(--bz)); border-radius:calc(10px*var(--bz)); color:#9ba3b1; cursor:pointer; }
+  body.desk:not(.sidenav) #tabbar .tab .ic{ display:flex; line-height:0; }
+  body.desk:not(.sidenav) #tabbar .tab .ic .ico{ width:calc(17px*var(--bz)); height:calc(17px*var(--bz)); }
+  body.desk:not(.sidenav) #tabbar .tab .lbl{ font-size:calc(13px*var(--bz)); margin:0; font-weight:600; letter-spacing:0; white-space:nowrap; }
+  body.desk:not(.sidenav) #tabbar .tab .dotdone{ position:absolute; top:calc(7px*var(--bz)); right:calc(8px*var(--bz)); margin:0; }
+  body.desk:not(.sidenav) #tabbar .tab:hover{ color:var(--txt); background:rgba(255,255,255,.04); }
+  body.desk:not(.sidenav) #tabbar .tab.on{ color:#fff; background:rgba(255,255,255,.085); box-shadow:inset 0 0 0 1px rgba(255,255,255,.07); }
+  body.desk:not(.sidenav) #tabbar .tab.on .ic{ transform:none; filter:none; color:var(--accent); }
+  body.desk:not(.sidenav) #tabbar .tab.lifted{ background:var(--panel2); box-shadow:0 8px 22px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.12); }
+  body.desk:not(.sidenav) #tabGlow{ display:none; }
+  body.desk:not(.sidenav) #wrap{ padding-bottom:calc(60px*var(--bz) + 32px); }
+  body.desk #toast{ bottom:calc(60px*var(--bz) + 20px); }
+  /* phone: trim the bars too */
+  body:not(.desk) #wrap > header{ padding-top:calc(var(--safe-t) + 8px); padding-bottom:7px; }
+  body:not(.desk) #tabbar{ padding:3px 4px calc(var(--safe-b) + 3px); }
+  body:not(.desk) #tabbar .tab{ padding:5px 0 4px; }
+  /* shuffle mode: while one tab is held, all of them wobble like home-screen icons */
+  @keyframes tabWob{ 0%,100%{rotate:-1.8deg} 50%{rotate:1.8deg} }
+  #tabbar.editing .tab:not(.lifted){ animation:tabWob .28s ease-in-out infinite; }
+  #tabbar.editing .tab:nth-child(even):not(.lifted){ animation-delay:-.14s; }
+  /* missions archive */
+  .goal-dayhead{ font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--dim); margin:16px 4px 6px; }
+  .goal-dayhead:first-child{ margin-top:4px; }
 </style>
 </head>
 <body>
@@ -2143,6 +2178,7 @@
         <div class="goal-date"><b id="goalDateLbl">Today</b><span class="sub" id="goalCount"></span></div>
         <button class="sm ghost" id="goalNextBtn" onclick="goalDateShift(1)">›</button>
         <button class="sm ghost" id="goalTodayBtn" onclick="goalDateToday()" style="display:none">Today</button>
+        <button class="sm ghost" id="goalArchBtn" onclick="goalArchive()" title="Everything you've finished">Archive</button>
       </div>
       <div class="sub" id="goalStreak" style="margin-top:6px"></div>
       <div class="qhead" style="margin-top:14px">
@@ -3036,7 +3072,7 @@ const ico=(name, cls)=>'<svg class="ico'+(cls?' '+cls:'')+'" aria-hidden="true">
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261114-091244';
+const KOS_BUILD='20261114-164049';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -3912,18 +3948,28 @@ function bindTabDrag(){
     // which steals the gesture before the 400ms hold fires. CSS user-select:none
     // isn't enough on its own — the callout still fires on some browsers.
     el.oncontextmenu=e=>{ e.preventDefault(); return false; };
+    // press and hold (300ms) OR pull sideways → the tab lifts, every tab starts to
+    // jiggle and the neighbours slide out of the way as you shuffle it along
     el.onpointerdown=e=>{
+      if(e.button>0) return;
       e.preventDefault();
-      tabPress={el, x:e.clientX, y:e.clientY, pid:e.pointerId, timer:setTimeout(()=>tabLift(el,e),400)};
+      try{ el.setPointerCapture(e.pointerId); }catch(_){}
+      const p={el, x:e.clientX, y:e.clientY};
+      p.timer=setTimeout(()=>{ if(tabPress===p) tabLift(el, p.x, p.y); }, 300);
+      tabPress=p;
     };
     el.onpointermove=e=>{
-      if(tabPress && tabPress.timer && (Math.abs(e.clientX-tabPress.x)>10 || Math.abs(e.clientY-tabPress.y)>10)){
-        clearTimeout(tabPress.timer); tabPress=null; // moved before the hold fired — treat as a mis-tap, not a drag
+      if(tabPress && tabPress.el===el && tabPress.timer){
+        const dx=Math.abs(e.clientX-tabPress.x), dy=Math.abs(e.clientY-tabPress.y);
+        const vert=document.body.classList.contains('sidenav');
+        const along=vert?dy:dx, across=vert?dx:dy;
+        if(along>8 && along>=across){ clearTimeout(tabPress.timer); tabLift(el, tabPress.x, tabPress.y); }
+        else if(across>16){ clearTimeout(tabPress.timer); tabPress=null; }
       }
       if(tabDrag && tabDrag.el===el) tabDragMove(e);
     };
     el.onpointerup=()=>{
-      if(tabPress && tabPress.timer){ clearTimeout(tabPress.timer); tabPress=null; showTab(el.dataset.tab); return; } // quick tap → switch tabs, same as before
+      if(tabPress && tabPress.el===el && tabPress.timer){ clearTimeout(tabPress.timer); tabPress=null; showTab(el.dataset.tab); return; } // quick tap → switch tabs
       if(tabDrag && tabDrag.el===el) tabDrop();
     };
     el.onpointercancel=()=>{
@@ -3932,52 +3978,65 @@ function bindTabDrag(){
     };
   });
 }
-function tabLift(el,e){
+function tabLift(el,x,y){
   tabPress=null;
-  try{ el.setPointerCapture(e.pointerId); }catch(_){}
-  el.classList.add('lifted'); buzz(28); sfx('lift'); // same lift cue as the Today cards
+  el.classList.add('lifted'); buzz(28); sfx('lift');
+  $('#tabbar').classList.add('editing');
   const box=$('#tabbar .inner'), rect=box.getBoundingClientRect();
   const vert=document.body.classList.contains('sidenav');   // a sidebar reorders up/down, the bottom bar left/right
   const order=tabOrder(), n=order.length, slot=(vert?rect.height:rect.width)/n;
-  tabDrag={el, id:el.dataset.tab, startX:vert?e.clientY:e.clientX, vert, order, slot, origin:order.indexOf(el.dataset.tab), current:order.indexOf(el.dataset.tab)};
+  tabDrag={el, id:el.dataset.tab, startX:vert?y:x, vert, order, slot, origin:order.indexOf(el.dataset.tab), current:order.indexOf(el.dataset.tab)};
 }
+const tabEl=id=>$('#tabbar .inner').querySelector('.tab[data-tab="'+id+'"]');
 function tabDragMove(e){
   if(!tabDrag) return;
-  const dx=(tabDrag.vert?e.clientY:e.clientX)-tabDrag.startX;
+  const {order, slot, origin}=tabDrag;
+  let dx=(tabDrag.vert?e.clientY:e.clientX)-tabDrag.startX;
+  dx=Math.max(-origin*slot-slot*.3, Math.min((order.length-1-origin)*slot+slot*.3, dx));   // can't fly off the bar
   // independent `translate` property — scale/rotate come from .tab.lifted + its
   // jiggle keyframes, so writing the shorthand here would wipe both out
   tabDrag.el.style.translate = tabDrag.vert ? '4px '+dx+'px' : dx+'px -3px';
-  const {order, slot, origin}=tabDrag;
   let cur=Math.round(origin + dx/slot);
   cur=Math.max(0, Math.min(order.length-1, cur));
   if(cur!==tabDrag.current){
-    tabDrag.current=cur;
+    tabDrag.current=cur; buzz(6);
     order.forEach((id,j)=>{
       if(id===tabDrag.id) return;
-      const sib=$('#tabbar .inner').querySelector('.tab[data-tab="'+id+'"]'); if(!sib) return;
+      const sib=tabEl(id); if(!sib) return;
       let shift=0;
-      if(cur<=j && j<origin) shift=1;        // dragged tab moved left past this one → it slides right, opening a gap on the left
+      if(cur<=j && j<origin) shift=1;        // dragged tab moved left past this one → it slides right
       else if(origin<j && j<=cur) shift=-1;  // dragged tab moved right past this one → it slides left
       sib.style.translate = shift ? (tabDrag.vert ? '0 '+(shift*slot)+'px' : (shift*slot)+'px') : '';
     });
   }
 }
+function tabSettle(order){
+  order.forEach(id=>{ const t=tabEl(id); if(t){ t.style.transition='none'; t.style.translate=''; } });
+  applyTabOrder(); bindTabDrag();
+  const on=$('#tabbar .tab.on'); if(on) moveTabGlow(on.dataset.tab);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>order.forEach(id=>{ const t=tabEl(id); if(t) t.style.transition=''; })));
+}
 function tabDragReset(){
   if(!tabDrag) return;
-  tabDrag.el.classList.remove('lifted'); tabDrag.el.style.translate='';
-  tabDrag.order.forEach(id=>{ const sib=$('#tabbar .inner').querySelector('.tab[data-tab="'+id+'"]'); if(sib) sib.style.translate=''; });
-  tabDrag=null;
+  const d=tabDrag; tabDrag=null;
+  d.el.classList.remove('lifted'); $('#tabbar').classList.remove('editing');
+  tabSettle(d.order);
 }
 function tabDrop(){
   if(!tabDrag) return;
-  const {id, order, origin, current}=tabDrag;
-  tabDragReset();
-  if(current!==origin){
-    const next=order.filter(x=>x!==id);
-    next.splice(current,0,id);
-    saveTabOrder(next); buzz(15);
-  }
-  applyTabOrder(); bindTabDrag(); // re-bind: applyTabOrder() re-parents the DOM nodes
+  const d=tabDrag; tabDrag=null;
+  const off=(d.current-d.origin)*d.slot;
+  // glide the held tab into the gap, then commit the new order
+  d.el.classList.remove('lifted'); $('#tabbar').classList.remove('editing');
+  d.el.style.transition='translate .2s var(--ease)';
+  d.el.style.translate = d.vert ? '0 '+off+'px' : off+'px 0';
+  setTimeout(()=>{
+    if(d.current!==d.origin){
+      const next=d.order.filter(x=>x!==d.id); next.splice(d.current,0,d.id);
+      saveTabOrder(next); buzz(15); sfx('drop');
+    }
+    tabSettle(d.order);
+  }, 210);
 }
 
 /* ================= MORNING MISSION =================
@@ -6469,6 +6528,8 @@ function migrateMissionsV2(){
 let goalDate = todayKey();
 function viewGoals(){
   const today=todayKey();
+  if(goalDate==='archive')   // every finished mission, newest first — ticked ones move here at midnight
+    return missionsReady() ? allMissions().filter(m=>!m.deleted && m.done && dayOf(m.doneAt)!==today).sort((a,b)=>b.doneAt-a.doneAt) : [];
   if(goalDate>=today) return getGoals();
   // a past day: what you finished that day, plus that day's old list (pre-rebuild history)
   const done=missionsReady() ? allMissions().filter(m=>!m.deleted && m.done && dayOf(m.doneAt)===goalDate) : [];
@@ -6477,7 +6538,9 @@ function viewGoals(){
     .filter(x=>!seen.has(x.text.trim().toLowerCase())).map(x=>Object.assign(x,{legacy:true}));
   return done.sort(byOrder).concat(legacy);
 }
+function goalArchive(){ goalDate = goalDate==='archive' ? todayKey() : 'archive'; renderGoals(); }
 function goalDateShift(days){
+  if(goalDate==='archive'){ goalDate=todayKey(); if(days>0) return renderGoals(); }
   const d=new Date(goalDate+'T00:00:00'); d.setDate(d.getDate()+days);
   const k=todayKey(d); goalDate = k>todayKey() ? todayKey() : k;   // nothing to show in the future — open missions just carry
   renderGoals();
@@ -6521,7 +6584,7 @@ function setFocusQuest(id){
 }
 function toggleFocusQuest(id){ setFocusQuest(getFocusQuestId()===id ? null : id); }
 function reorderGoals(newIdOrder){
-  if(goalDate<todayKey()) return;   // history doesn't reorder
+  if(goalDate!==todayKey()) return;   // history / archive don't reorder
   newIdOrder.forEach((id,i)=>{ const m=getMissionRec(id); if(m && m.order!==i+1){ m.order=i+1; putMission(m); } });
 }
 const bindGoalsDrag=makeDragReorder('#glist','.goal','gid',()=>viewGoals().map(x=>x.id),reorderGoals,renderGoals);
@@ -6537,16 +6600,21 @@ function fmtMissionAge(createdAt){
 }
 function renderGoals(){
   const g=viewGoals(), box=$('#glist');
-  const isToday=goalDate===todayKey();
+  const isToday=goalDate===todayKey(), isArch=goalDate==='archive';
   const focusId=getFocusQuestId();
-  const d=new Date(goalDate+'T00:00:00');
-  $('#goalDateLbl').textContent = isToday ? 'Today' : d.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'});
-  $('#goalTodayBtn').style.display = isToday ? 'none' : '';
+  const d=new Date((isArch?todayKey():goalDate)+'T00:00:00');
+  $('#goalDateLbl').textContent = isArch ? 'Archive' : isToday ? 'Today' : d.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'});
+  const ab=$('#goalArchBtn'); if(ab){ ab.textContent = isArch ? 'Back' : 'Archive'; }
+  $('#goalTodayBtn').style.display = (isToday||isArch) ? 'none' : '';
   const nextBtn=$('#goalNextBtn'); if(nextBtn) nextBtn.disabled=isToday;
   $('#p-goals').classList.toggle('history', !isToday);
-  $('#goalCount').textContent = g.length ? '· '+g.filter(x=>x.done).length+'/'+g.length+' done' : '';
-  box.innerHTML = g.length?'':'<div class="empty">'+(isToday?'No active missions — add your first one above.':'Nothing finished on this day.')+'</div>';
+  $('#goalCount').textContent = isArch ? (g.length ? '· '+g.length+' finished' : '') : g.length ? '· '+g.filter(x=>x.done).length+'/'+g.length+' done' : '';
+  box.innerHTML = g.length?'':'<div class="empty">'+(isArch?'Nothing archived yet — missions you tick off move here after midnight.':isToday?'No active missions — add your first one above.':'Nothing finished on this day.')+'</div>';
+  let lastHead='';
   g.forEach(x=>{
+    if(isArch){ const k=dayOf(x.doneAt); if(k!==lastHead){ lastHead=k;
+      const h=document.createElement('div'); h.className='goal-dayhead';
+      h.textContent=new Date(k+'T00:00:00').toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'}); box.appendChild(h); } }
     const pm=prioMeta(x.priority);
     const subDone=x.subtasks.filter(s=>s.done).length, subN=x.subtasks.length;
     const meta=[]; if(subN) meta.push('☑ '+subDone+'/'+subN); if(x.notes.trim()) meta.push('📝');
@@ -8434,6 +8502,12 @@ function bindWall(){
 /* ================= init ================= */
 if(!hasSrv){ $('#localnote').style.display='block'; setSyncUI(null); } else { setSyncUI('ok'); doSync(false); }
 applyTabOrder(); bindTabDrag();
+/* the Mac app zooms the whole page to fill the window; the bars counter that so they stay slim */
+function fitBars(){
+  const z = window.kosNative && innerWidth ? outerWidth/innerWidth : 1;
+  document.documentElement.style.setProperty('--bz', Math.min(1, Math.max(.45, 1.1/Math.max(z,1))).toFixed(3));
+}
+fitBars(); addEventListener('resize', ()=>{ fitBars(); const on=$('#tabbar .tab.on'); if(on) moveTabGlow(on.dataset.tab); });
 document.body.classList.toggle('desk', innerWidth>=1024);
 showTab(activeTab);
 applyLayout();

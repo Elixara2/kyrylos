@@ -375,6 +375,14 @@
   .fv-box:not(.on):not(.off)::after{content:'';position:absolute;inset:0;margin:auto;width:28px;height:28px;border-radius:50%;
     border:2.5px solid rgba(255,255,255,.18);border-top-color:rgba(255,255,255,.7);animation:fvspin .9s linear infinite}
   @keyframes fvspin{to{transform:rotate(360deg)}}
+
+  /* studio clips (our own restyled video) */
+  .fv-vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .4s;display:none}
+  .fv-box.studio .fv-vid{display:block}
+  .fv-box.studio.on .fv-vid{opacity:1}
+  .fv-box.studio .fv-frame{display:none}
+  .fv-box.mirror .fv-vid{transform:scaleX(-1)}
+  .fv-box.studio{background:#0b0c10}
 </style>
 </head>
 <body>
@@ -496,6 +504,7 @@
     <div class="flex-stage" id="flexStage">
       <div class="flex-video" id="flexVideo"><div class="fv-box" id="fvBox">
         <div class="fv-frame"><div id="ytFlex"></div></div>
+        <video id="fvVid" class="fv-vid" muted playsinline loop preload="auto"></video>
         <div class="fv-shield"></div>
         <div class="fv-by" id="fvBy"></div>
         <div class="fv-off">Demo needs internet — follow the cues below.</div>
@@ -1004,14 +1013,14 @@ const CLIPS={
   jeff:    {id:'sAsCstYZj4U', s:1,   e:26,  by:'Theory of Motion'},
   clasp:   {id:'6SK8jcDBkBk', s:70,  e:110, by:'Dani Winks Flexibility'},
   cross:   {id:'YL0ixnneISk', s:28,  e:72,  by:'Dani Winks Flexibility'},
-  cowface: {id:'ByLJK0Tmkl8', s:26,  e:36,  by:'Yogi Flight School'},
+  cowface: {id:'5VSNmqtW7uw', s:8,   e:54,  by:'Vive Health'},
   downdog: {id:'oDs7KqUhC2I', s:86,  e:146, by:'Dani Winks Flexibility'},
   hipflex: {id:'0TRd1Qdn3nk', s:160, e:200, by:'Dani Winks Flexibility'},
   halfsp:  {id:'zzJTkcgyo-w', s:8,   e:44,  by:'ATOP Coaching'},
   frontsp: {id:'SKL8_hvGyIE', s:2,   e:25,  by:'LiveLeanTV'},
   ninety:  {id:'BiSCSMqx-rE', s:1,   e:15,  by:'Theory of Motion'},
   frogger: {id:'y4AWiyksmCA', s:11,  e:62,  by:'Dani Winks Flexibility'},
-  pancake: {id:'y8_rL6ZI6pI', s:6,   e:35,  by:'Dani Winks Flexibility'},
+  pancake: {id:'FOanjHsHk4I', s:16,  e:40,  by:'Dani Winks Flexibility'},
   pike:    {id:'9ZhqSyQbc98', s:87,  e:101, by:'The Sustainable Training Method'},
   pikelift:{id:'6w4gmF0NUX0', s:44,  e:100, by:'The Sustainable Training Method'},
   twist:   {id:'EpAhl1NN4fY', s:61,  e:96,  by:'Dani Winks Flexibility'},
@@ -1179,24 +1188,59 @@ function fvInit(){
       },
       onError:()=>flexOffline(true) }});
 }
+/* ---------- studio clips: the same coaches, cut out of their rooms and restyled into one studio
+   (~/FlexStudio: RVM matting + MediaPipe pose → target-muscle glow). The files sit in your own
+   Google Drive; their ids live only in your private K-OS data (kv 'flex:media'), never in this
+   public file. After the first play each clip is cached on the device (IndexedDB) → offline. */
+Object.keys(CLIPS).forEach(k=>{ CLIPS[k].key=k; });
+let fvMap={}, fvVidKey=null, fvPrefetching=false, fvDB=null; const fvURL={}, fvBad={};
+function fvLoadMap(){ try{ const kv=JSON.parse(localStorage.getItem('kyos_kv')||'{}'); const e=kv['flex:media']; fvMap=e?JSON.parse(e.v):{}; }catch(e){ fvMap={}; } }
+function fvIdb(){ if(!fvDB) fvDB=new Promise((res,rej)=>{ try{ const r=indexedDB.open('ascend-media',1);
+  r.onupgradeneeded=()=>r.result.createObjectStore('clips'); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }catch(e){ rej(e); } }); return fvDB; }
+async function fvGet(id){ try{ const db=await fvIdb(); return await new Promise(res=>{ const q=db.transaction('clips').objectStore('clips').get(id); q.onsuccess=()=>res(q.result||null); q.onerror=()=>res(null); }); }catch(e){ return null; } }
+async function fvPut(id,blob){ try{ const db=await fvIdb(); db.transaction('clips','readwrite').objectStore('clips').put(blob,id); }catch(e){} }
+// Drive's own download host refuses cross-site embeds, so clips come through the Drive API with a
+// key that only reads Drive and only works from the K-OS site (also kept in the private store)
+const fvDrive=id=>'https://www.googleapis.com/drive/v3/files/'+encodeURIComponent(id)+'?alt=media&key='+encodeURIComponent(fvMap._key||'');
+async function fvFetch(id){ if(await fvGet(id)) return; try{ const r=await fetch(fvDrive(id)); if(!r.ok) return; const b=await r.blob(); if(b.size>20000) await fvPut(id,b); }catch(e){} }
+async function fvPrefetchAll(){ if(fvPrefetching||!fvMap._key) return; fvPrefetching=true; for(const [k,id] of Object.entries(fvMap)) if(k!=='_key') await fvFetch(id); fvPrefetching=false; }
+async function fvStudio(id){
+  const b=fvBoxEl(), v=document.getElementById('fvVid'); if(!b||!v) return;
+  fvVidKey=id; b.classList.add('studio'); b.classList.remove('on');
+  let src=fvURL[id]; if(!src){ const blob=await fvGet(id); if(blob) src=fvURL[id]=URL.createObjectURL(blob); }
+  if(fvVidKey!==id) return;                                   // moved on while it loaded
+  v.muted=true; v.loop=true; v.playsInline=true; v.src=src||fvDrive(id);
+  v.onplaying=()=>{ if(fvVidKey===id) b.classList.add('on'); };
+  v.onerror=()=>{ fvBad[id]=1; fvVidKey=null; b.classList.remove('studio'); flexSync(); };
+  v.play().catch(()=>{});
+}
 function flexSync(){
   const w=flexWant(), b=fvBoxEl(); if(!w || !b) return;
   b.classList.toggle('mirror', w.mirror);
-  const by=document.getElementById('fvBy'); if(by) by.textContent='Demo · '+w.c.by;
+  const by=document.getElementById('fvBy'); if(by) by.textContent='Coach · '+w.c.by;
+  const sid=fvMap._key && fvMap[w.c.key];
+  if(sid && !fvBad[sid]){                                       // studio clip: our own restyled video
+    if(fvReady){ try{ fvP.pauseVideo(); }catch(e){} }
+    const v=document.getElementById('fvVid');
+    if(fvVidKey!==sid) fvStudio(sid); else if(v && v.paused) v.play().catch(()=>{});
+    return;
+  }
+  b.classList.remove('studio'); fvVidKey=null;
+  const v=document.getElementById('fvVid'); if(v && !v.paused) v.pause();
   if(!fvReady){ fvLoadApi(); return; }
   if(fvHave && fvHave.id===w.c.id && fvHave.s===w.c.s) return;
   fvHave=w.c; clearTimeout(fvRevealT); b.classList.remove('on');
   try{ fvP.loadVideoById({videoId:w.c.id, startSeconds:w.c.s, endSeconds:w.c.e}); fvP.mute(); }catch(e){}
 }
 function figStart(){
-  flexSync();
+  fvLoadMap(); fvVidKey=null; flexSync(); fvPrefetchAll();
   clearInterval(fvPoll);
-  fvPoll=setInterval(()=>{   // seamless loop: jump back just before the segment ends
-    if(!fvReady || !fvHave || current!=='stretch') return;
+  fvPoll=setInterval(()=>{   // YouTube fallback only: seamless loop, jump back just before the segment ends
+    if(!fvReady || !fvHave || current!=='stretch' || fvBoxEl().classList.contains('studio')) return;
     try{ const t=fvP.getCurrentTime(); if(t>=fvHave.e-.3 || t<fvHave.s-1) fvP.seekTo(fvHave.s,true); if(fvP.getPlayerState()===2) fvP.playVideo(); }catch(e){}
   }, 300);
 }
-function figStop(){ clearInterval(fvPoll); try{ if(fvReady) fvP.pauseVideo(); }catch(e){} }
+function figStop(){ clearInterval(fvPoll); try{ if(fvReady) fvP.pauseVideo(); }catch(e){} const v=document.getElementById('fvVid'); if(v) v.pause(); }
 document.addEventListener('visibilitychange',()=>{ if(document.hidden) figStop(); else if(current==='stretch') figStart(); });
 
 /*FLEX3-END*/

@@ -1888,6 +1888,50 @@
   #tdNotesSlot #wallList{ max-height:260px; overflow:auto; margin-top:8px; }
   #tdNotesSlot .empty{ padding:8px 0; font-size:13px; }
   @media (max-width: 980px){ .td-split{ grid-template-columns:1fr; } }
+
+  /* ===== NUTRITION ===== */
+  .nu-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .nu-head h2{margin:0}
+  .nu-ringrow{display:flex;align-items:center;gap:20px}
+  .nu-ring{position:relative;width:128px;height:128px;flex:0 0 auto}
+  .nu-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+  .nu-rbg{fill:none;stroke:rgba(255,255,255,.08);stroke-width:10}
+  .nu-rfg{fill:none;stroke:#4ade80;stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset .8s var(--ease)}
+  .nu-rfg.over{stroke:#f97316}
+  .nu-rmid{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+  .nu-rmid b{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1}
+  .nu-rmid span{font-size:11.5px;color:var(--dim);margin-top:3px}
+  .nu-macros{flex:1;min-width:0;display:flex;flex-direction:column;gap:9px}
+  .nu-kc{font-size:13.5px;color:var(--dim)} .nu-kc b{color:var(--txt);font-size:17px}
+  .nu-bl{display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px}
+  .nu-bl span{color:var(--dim);font-weight:600} .nu-bl b{font-weight:700} .nu-bl em{font-style:normal;color:var(--dim);font-weight:500}
+  .nu-track{height:7px;border-radius:7px;background:rgba(255,255,255,.08);overflow:hidden}
+  .nu-track i{display:block;height:100%;border-radius:7px;transition:width .6s var(--ease)}
+  .nu-bar.p .nu-track i{background:#60a5fa} .nu-bar.c .nu-track i{background:#fbbf24} .nu-bar.f .nu-track i{background:#f472b6}
+  .nu-track.water{height:10px} .nu-track.water i{background:linear-gradient(90deg,#38bdf8,#60a5fa)}
+  .nu-meal{display:flex;align-items:center;gap:12px;padding:11px 8px;border-radius:13px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05)}
+  .nu-meal:hover{background:rgba(255,255,255,.03)}
+  .nu-check{width:24px;height:24px;border-radius:50%;border:1.5px solid rgba(255,255,255,.28);display:grid;place-items:center;flex:0 0 auto}
+  .nu-meal.on .nu-check{background:#22c55e;border-color:#22c55e;color:#fff} .nu-check .ico{width:13px;height:13px}
+  .nu-em{font-size:22px;line-height:1}
+  .nu-mt{flex:1;min-width:0;display:flex;flex-direction:column}
+  .nu-mt b{font-size:15px} .nu-mt small{font-size:12.5px;color:var(--dim);margin-top:2px}
+  .nu-meal.on .nu-mt b{color:var(--dim)}
+  .nu-edit{background:none;border:none;color:var(--dim);padding:6px;cursor:pointer} .nu-edit .ico{width:15px;height:15px}
+  .nu-item{display:flex;align-items:center;gap:10px;padding:8px;font-size:13.5px;border-bottom:1px solid rgba(255,255,255,.05)}
+  .nu-item span{flex:1;text-transform:capitalize} .nu-item em{font-style:normal;color:var(--dim);font-size:12.5px}
+  .nu-item button{background:none;border:none;color:var(--dim);cursor:pointer}
+  .nu-add{display:flex;gap:8px;margin-top:12px}
+  .nu-add input{flex:1;min-width:0} .nu-add input[type=number]{flex:0 0 84px}
+  .nu-quick{margin-top:10px} .nu-quick summary{cursor:pointer;color:var(--dim);font-size:13px;font-weight:600}
+  .nu-wbtns{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap} .nu-wbtns button{flex:1}
+  .nu-chart{width:100%;height:110px;margin-top:12px} .nu-chart circle{fill:rgba(255,255,255,.35)} .nu-chart polyline{fill:none;stroke:#4ade80;stroke-width:2;vector-effect:non-scaling-stroke}
+  .nu-chl{display:flex;justify-content:space-between;font-size:11px;color:var(--dim)}
+  .nu-adv{margin-top:12px;font-size:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .nu-seg{display:flex;gap:6px} .nu-seg button{flex:1} .nu-seg button.on{background:var(--accent2);border-color:var(--accent2);color:#fff}
+  .nu-prof{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
+  .nu-prof label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--dim)}
+  .nu-wbtns button{white-space:nowrap}
 </style>
 </head>
 <body>
@@ -2193,32 +2237,11 @@
 
   <!-- ============ DIET ============ -->
   <section class="panel" id="p-diet">
-    <div class="card">
-      <div class="row" style="justify-content:space-between">
-        <h2 style="margin:0">Meals</h2>
-        <button class="sm primary" onclick="openMealBuilder(null)">+ New meal</button>
-      </div>
-      <div class="meals" id="mealsGrid" style="margin-top:10px"></div>
-    </div>
-    <div class="card">
-      <h2>Today's macros</h2>
-      <div class="tiles" id="macroTiles"></div>
-    </div>
-    <div class="card">
-      <h2>Water · 3L = 2 tanks</h2>
-      <div class="tanks">
-        <div class="tank"><div class="fill" id="tank1"></div><div class="lbl" id="tank1lbl">Tank 1</div></div>
-        <div class="tank"><div class="fill" id="tank2"></div><div class="lbl" id="tank2lbl">Tank 2</div></div>
-      </div>
-      <div class="wtotal" id="wtotal"><b>0.00</b> / 3.00 L</div>
-      <div class="waterbtns">
-        <button onclick="addWater(250)">+ Glass 250ml</button>
-        <button onclick="addWater(750)">+ ½ Tank</button>
-        <button onclick="addWater(1500)">+ Full tank</button>
-        <button class="sm ghost danger" onclick="addWater(-250)">− 250ml</button>
-      </div>
-    </div>
-    <div class="card"><h2>Streak</h2><div class="sub" id="dietStreak">—</div></div>
+    <div class="card nu-top" id="nuTop"></div>
+    <div class="card" id="nuMeals"></div>
+    <div class="card" id="nuWater"></div>
+    <div class="card" id="nuWeight"></div>
+    <div class="card" id="nuPlan"></div>
     <div class="card" id="hcCard">
       <h2>Steps · Health Connect</h2>
       <div class="sub" id="hcStatus">—</div>
@@ -3272,7 +3295,7 @@ const ico=(name, cls)=>'<svg class="ico'+(cls?' '+cls:'')+'" aria-hidden="true">
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261117-065514';
+const KOS_BUILD='20261117-084109';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -4685,8 +4708,8 @@ function dayStages(){
       done: sets>0 || !!f.gym, sub: sets ? sets+' set'+(sets>1?'s':'')+' logged' : 'Not trained yet',
       act:{lbl:'Start workout', ic:'dumbbell', run:"showTab('gym')"}, open:()=>showTab('gym') },
     { id:'food', t:'Nutrition', icon:'utensils', hue:145, why:'Tick each meal as you eat it.',
-      done: defs.length>0 && mealsDone===defs.length, prog: defs.length ? mealsDone/defs.length : null,
-      sub: defs.length ? mealsDone+' of '+defs.length+' meals · '+((d.water||0)/1000).toFixed(1)+' L water' : 'Set up your meals',
+      done: defs.length>0 && mealsDone===defs.length, prog: Math.min(1, dietEaten(d).kcal/dietTargets().kcal),
+      sub: Math.round(dietEaten(d).kcal).toLocaleString()+' / '+dietTargets().kcal.toLocaleString()+' kcal · '+Math.round(dietEaten(d).pro)+'g protein',
       chips: defs.map(m=>({lbl:m.name, em:m.emoji, on:!!meals[m.id], run:"toggleMeal('"+m.id+"',event)"}))
         .concat([{lbl:'Water +250 ml', icon:'droplet', run:'addWater(250)'}]),
       act: defs.length ? null : {lbl:'Set up meals', ic:'plus', run:"showTab('diet')"}, open:()=>showTab('diet') },
@@ -6572,16 +6595,29 @@ const FOOD_DB = {
   'spinach':{kcal:23,pro:2.9,carb:3.6,fat:0.4}, 'sweet potato':{kcal:86,pro:1.6,carb:20,fat:0.1},
   'olive oil':{kcal:884,pro:0,carb:0,fat:100}, 'almonds':{kcal:579,pro:21,carb:22,fat:50},
   'broccoli':{kcal:34,pro:2.8,carb:7,fat:0.4}, 'blueberries':{kcal:57,pro:0.7,carb:14,fat:0.3},
+  /* Kyryl's own foods (per 100g). Label = from the pack panel; est = typical values, check the pack */
+  'moo pro greek yoghurt':{kcal:65,pro:10,carb:5,fat:0.4},            // est: tub says 15g protein/serve, <0.5g fat
+  'frozen blueberries':{kcal:51,pro:0.7,carb:12,fat:0.3},
+  'rolled oats':{kcal:375,pro:12.5,carb:58,fat:8.5},
+  'earth protein (bulk nutrients)':{kcal:405,pro:75,carb:5,fat:8.3},   // label: 509kJ / 22.5g protein per 30g scoop
+  'creatine':{kcal:0,pro:0,carb:0,fat:0},
+  'tuna triple chilli (drained)':{kcal:176,pro:24.8,carb:0.5,fat:8.6}, // label: Ocean Rise, per 100g drained
+  'eggs':{kcal:143,pro:12.6,carb:0.7,fat:9.5},                         // ~50g edible per egg
+  'mayonnaise':{kcal:690,pro:1,carb:3,fat:75},
+  'chicken breast (raw)':{kcal:110,pro:23,carb:0,fat:2},
+  'frozen spinach':{kcal:29,pro:2.8,carb:1.5,fat:1.3},                 // Bell Farms: 22kcal / 2.1g protein per 75g
+  'white rice (dry)':{kcal:360,pro:7,carb:79,fat:0.6},
+  'red curry simmer sauce':{kcal:100,pro:1.5,carb:9,fat:6.5},          // est: check the jar
 };
+const ING=(name,grams)=>Object.assign({name,grams},FOOD_DB[name]);
 const DEFAULT_MEALDEFS = [
-  {id:'smoothie', emoji:'🥤', name:'Smoothie', ingredients:[
-    {name:'banana',grams:120,...FOOD_DB['banana']}, {name:'whey protein',grams:30,...FOOD_DB['whey protein']},
-    {name:'milk',grams:250,...FOOD_DB['milk']}, {name:'peanut butter',grams:15,...FOOD_DB['peanut butter']}]},
-  {id:'chicken', emoji:'🍗', name:'Chicken meal', ingredients:[
-    {name:'chicken breast',grams:200,...FOOD_DB['chicken breast']}, {name:'rice (cooked)',grams:200,...FOOD_DB['rice (cooked)']},
-    {name:'broccoli',grams:100,...FOOD_DB['broccoli']}]},
-  {id:'eggtuna', emoji:'🥚', name:'Egg & Tuna', ingredients:[
-    {name:'egg',grams:120,...FOOD_DB['egg']}, {name:'tuna (canned)',grams:150,...FOOD_DB['tuna (canned)']}]},
+  {id:'shake', emoji:'🥤', name:'Morning shake', ingredients:[
+    ING('moo pro greek yoghurt',200), ING('frozen blueberries',50), ING('rolled oats',50),
+    ING('earth protein (bulk nutrients)',30), ING('creatine',10)]},
+  {id:'tunaeggs', emoji:'🍳', name:'Tuna & eggs', ingredients:[
+    ING('tuna triple chilli (drained)',70), ING('eggs',200), ING('mayonnaise',15)]},
+  {id:'prep', emoji:'🍛', name:'Chicken prep bowl', ingredients:[
+    ING('chicken breast (raw)',350), ING('frozen spinach',83), ING('white rice (dry)',70), ING('red curry simmer sauce',167)]},
 ];
 function getMealDefs(){ const v=kget('diet:mealdefs',null); return v || JSON.parse(JSON.stringify(DEFAULT_MEALDEFS)); }
 function computeMacros(ingredients){
@@ -6676,39 +6712,126 @@ function deleteMealDef(){
   kset('diet:mealdefs', getMealDefs().filter(x=>x.id!==editingMealId));
   closeMealBuilder(); renderDiet();
 }
+/* ================= NUTRITION — MyFitnessPal-style, minimal =================
+   Targets come from the body (Mifflin-St Jeor × activity) and the phase:
+     cut  = maintenance − 750 kcal (≈0.7–0.9 kg/week), protein 2.2 g/kg, fat 0.7 g/kg
+     gain = maintenance + 250 kcal (lean gain),        protein 2.0 g/kg, fat 0.9 g/kg
+   then corrected by the scale: the 7-day average weight trend says whether to nudge ±150 kcal. */
+const NU_PHASES={cut:'Cut — get shredded', gain:'Lean gain — build to the goal', maint:'Maintain'};
+function dietProfile(){ return Object.assign({age:35, heightCm:190.5, weightKg:92, act:1.45, phase:'cut', goalKg:100, adj:0}, kget('diet:profile',{})); }
+function setDietProfile(patch){ kset('diet:profile', Object.assign(dietProfile(), patch)); renderDiet(); renderToday(); }
+function weightLog(days){
+  const out=[]; const d=new Date();
+  for(let i=(days||60)-1;i>=0;i--){ const x=new Date(d); x.setDate(d.getDate()-i); const k=todayKey(x), w=kget('body:w:'+k,null); if(w) out.push({k, w:+w, i}); }
+  return out;
+}
+function avgWeight(fromDaysAgo, toDaysAgo){
+  const L=weightLog(30).filter(o=>o.i<=fromDaysAgo && o.i>toDaysAgo); if(L.length<3) return null;
+  return L.reduce((a,o)=>a+o.w,0)/L.length;
+}
+function currentWeight(){ const L=weightLog(14); const a=avgWeight(6,-1); return a || (L.length ? L[L.length-1].w : dietProfile().weightKg); }
+function dietTargets(){
+  const p=dietProfile(), w=currentWeight();
+  const bmr=10*w+6.25*p.heightCm-5*p.age+5, tdee=bmr*p.act;
+  const base = p.phase==='cut' ? tdee-750 : p.phase==='gain' ? tdee+250 : tdee;
+  const kcal=Math.round((base+(p.adj||0))/10)*10;
+  const pro=Math.round(w*(p.phase==='cut'?2.2:2.0)), fat=Math.round(Math.max(55, w*(p.phase==='gain'?0.9:0.7)));
+  const carb=Math.max(0,Math.round((kcal-pro*4-fat*9)/4));
+  return {kcal, pro, carb, fat, tdee:Math.round(tdee), w};
+}
+function mealMacros(m){ return computeMacros(m.ingredients); }
+function dietEaten(d){
+  d=d||getDiet(); const t={kcal:0,pro:0,carb:0,fat:0};
+  getMealDefs().forEach(m=>{ if(d.meals&&d.meals[m.id]){ const x=mealMacros(m); for(const k in t) t[k]+=x[k]; } });
+  (d.items||[]).forEach(x=>{ for(const k in t) t[k]+=x[k]||0; });
+  return t;
+}
+function dietAddFood(){
+  const name=($('#nuFood').value||'').trim().toLowerCase(), g=parseFloat($('#nuGrams').value)||0;
+  const f=FOOD_DB[name]; if(!f){ toast('Pick a food from the list, or use Quick add'); return; }
+  if(!g){ toast('How many grams?'); return; }
+  const d=getDiet(); d.items=d.items||[];
+  d.items.push({id:newId(), n:name, g, kcal:f.kcal*g/100, pro:f.pro*g/100, carb:f.carb*g/100, fat:f.fat*g/100});
+  kset('diet:'+todayKey(),d); sfx('tap'); renderDiet(); renderToday();
+}
+function dietQuickAdd(){
+  const n=($('#nuQName').value||'').trim()||'Quick add', kcal=parseFloat($('#nuQKcal').value)||0, pro=parseFloat($('#nuQPro').value)||0;
+  if(!kcal && !pro){ toast('Add calories or protein'); return; }
+  const d=getDiet(); d.items=d.items||[]; d.items.push({id:newId(), n, kcal, pro, carb:0, fat:0, quick:true});
+  kset('diet:'+todayKey(),d); sfx('tap'); renderDiet(); renderToday();
+}
+function dietDelItem(id){ const d=getDiet(); d.items=(d.items||[]).filter(x=>x.id!==id); kset('diet:'+todayKey(),d); renderDiet(); renderToday(); }
+function dietLogWeight(){
+  const v=parseFloat(($('#nuW').value||'').replace(',','.'));
+  if(!(v>30 && v<300)){ toast('Enter your weight in kg'); return; }
+  kset('body:w:'+todayKey(), Math.round(v*10)/10); sfx('toggleOn'); buzz(15); renderDiet(); renderToday();
+}
+function dietAdvice(){
+  const p=dietProfile(), now=avgWeight(6,-1), prev=avgWeight(13,6);
+  if(now==null || prev==null) return {txt:'Weigh in each morning (after the toilet, before food). After 2 weeks the trend tells you whether to adjust.', rate:null};
+  const rate=now-prev, pct=rate/prev*100;
+  if(p.phase==='cut'){
+    if(pct>-0.4) return {txt:'Losing slowly ('+rate.toFixed(2)+' kg/week). Drop 150 kcal.', rate, adj:-150};
+    if(pct<-1.2) return {txt:'Losing fast ('+rate.toFixed(2)+' kg/week) — muscle at risk. Add 150 kcal.', rate, adj:150};
+    return {txt:'On track: '+rate.toFixed(2)+' kg/week. Keep going.', rate};
+  }
+  if(p.phase==='gain'){
+    if(rate<0.05) return {txt:'Not gaining ('+rate.toFixed(2)+' kg/week). Add 150 kcal.', rate, adj:150};
+    if(rate>0.35) return {txt:'Gaining fast ('+rate.toFixed(2)+' kg/week) — mostly fat. Drop 150 kcal.', rate, adj:-150};
+    return {txt:'Lean gain on track: '+rate.toFixed(2)+' kg/week.', rate};
+  }
+  return {txt:'Trend: '+rate.toFixed(2)+' kg/week.', rate};
+}
+function nuBar(lbl, v, t, cls){ const pc=t?Math.min(100,v/t*100):0;
+  return '<div class="nu-bar '+cls+'"><div class="nu-bl"><span>'+lbl+'</span><b>'+Math.round(v)+'<em>/'+t+'g</em></b></div><div class="nu-track"><i style="width:'+pc.toFixed(1)+'%"></i></div></div>'; }
 function renderDiet(){
-  const defs=getMealDefs(), d=getDiet();
-  const grid=$('#mealsGrid'); grid.innerHTML='';
-  defs.forEach(m=>{
-    const done=!!(d.meals&&d.meals[m.id]);
-    const card=document.createElement('div'); card.className='meal'+(done?' done':'');
-    card.innerHTML='<div class="em">'+m.emoji+'</div><b>'+esc(m.name)+'</b><span>tap to log</span>';
-    card.onclick=(e)=>toggleMeal(m.id,e);
-    const editBtn=document.createElement('button'); editBtn.className='editb'; editBtn.textContent='✎';
-    editBtn.onclick=(e)=>{ e.stopPropagation(); openMealBuilder(m.id); };
-    card.appendChild(editBtn);
-    grid.appendChild(card);
-  });
-  const eaten=defs.filter(m=>d.meals&&d.meals[m.id]);
-  const tot=eaten.reduce((a,m)=>{ const mm=computeMacros(m.ingredients); a.kcal+=mm.kcal;a.pro+=mm.pro;a.carb+=mm.carb;a.fat+=mm.fat; return a; },{kcal:0,pro:0,carb:0,fat:0});
-  $('#macroTiles').innerHTML=
-    '<div class="tile"><b>'+Math.round(tot.kcal)+'</b><span>kcal</span></div>'+
-    '<div class="tile"><b>'+Math.round(tot.pro)+'g</b><span>protein</span></div>'+
-    '<div class="tile"><b>'+Math.round(tot.carb)+'g</b><span>carbs</span></div>'+
-    '<div class="tile"><b>'+Math.round(tot.fat)+'g</b><span>fat</span></div>';
-  const tank=SET.tankMl;
-  const t1=Math.min(tank,d.water), t2=Math.min(tank,Math.max(0,d.water-tank));
-  $('#tank1').style.height=(t1/tank*100)+'%'; $('#tank2').style.height=(t2/tank*100)+'%';
-  $('#tank1lbl').textContent=t1>=tank?'FULL ✓':(t1/1000).toFixed(2)+'L';
-  $('#tank2lbl').textContent=t2>=tank?'FULL ✓':(t2/1000).toFixed(2)+'L';
-  $('#wtotal').innerHTML='<b>'+(d.water/1000).toFixed(2)+'</b> / '+(tank*2/1000).toFixed(2)+' L'+
-    (d.water>=tank*2?' · hit! 💧🏆':'');
-  let streak=0; const probe=new Date();
-  const full=k=>{ const x=kget('diet:'+k,null); if(!x||!x.meals) return false;
-    return defs.length>0 && defs.every(m=>x.meals[m.id]) && (x.water||0)>=tank*2; };
-  if(!full(todayKey())) probe.setDate(probe.getDate()-1);
-  while(full(todayKey(probe))){ streak++; probe.setDate(probe.getDate()-1); }
-  $('#dietStreak').textContent = streak ? '🔥 '+streak+' day'+(streak>1?'s':'')+' of perfect diet in a row' : 'Complete every meal + 3L water to start a streak.';
+  if(!$('#nuTop')) return;
+  const defs=getMealDefs(), d=getDiet(), T=dietTargets(), E=dietEaten(d), p=dietProfile();
+  const keep=document.activeElement && document.activeElement.id;
+  // 1 · today: ring + macros
+  const left=T.kcal-E.kcal, pc=Math.min(1,E.kcal/T.kcal), R=52, C=2*Math.PI*R;
+  $('#nuTop').innerHTML='<div class="nu-ringrow"><div class="nu-ring"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="'+R+'" class="nu-rbg"/><circle cx="60" cy="60" r="'+R+'" class="nu-rfg'+(left<0?' over':'')+'" style="stroke-dasharray:'+C.toFixed(1)+';stroke-dashoffset:'+(C*(1-pc)).toFixed(1)+'"/></svg>'+
+    '<div class="nu-rmid"><b>'+Math.abs(Math.round(left)).toLocaleString()+'</b><span>'+(left>=0?'kcal left':'kcal over')+'</span></div></div>'+
+    '<div class="nu-macros"><div class="nu-kc"><b>'+Math.round(E.kcal).toLocaleString()+'</b> of '+T.kcal.toLocaleString()+' kcal</div>'+
+      nuBar('Protein',E.pro,T.pro,'p')+nuBar('Carbs',E.carb,T.carb,'c')+nuBar('Fat',E.fat,T.fat,'f')+'</div></div>';
+  // 2 · meals + anything extra
+  let h='<div class="nu-head"><h2>Meals</h2><button class="sm ghost" onclick="openMealBuilder(null)">+ Meal</button></div>';
+  defs.forEach(m=>{ const x=mealMacros(m), on=!!(d.meals&&d.meals[m.id]);
+    h+='<div class="nu-meal'+(on?' on':'')+'" onclick="toggleMeal(\''+m.id+'\',event)"><span class="nu-check">'+(on?ico('check'):'')+'</span><span class="nu-em">'+m.emoji+'</span>'+
+      '<span class="nu-mt"><b>'+esc(m.name)+'</b><small>'+Math.round(x.kcal)+' kcal · '+Math.round(x.pro)+'g protein · '+Math.round(x.carb)+'c · '+Math.round(x.fat)+'f</small></span>'+
+      '<button class="nu-edit" onclick="event.stopPropagation();openMealBuilder(\''+m.id+'\')" aria-label="Edit meal">'+ico('edit')+'</button></div>'; });
+  (d.items||[]).forEach(x=>{ h+='<div class="nu-item"><span>'+esc(x.n)+(x.g?' · '+x.g+'g':'')+'</span><em>'+Math.round(x.kcal)+' kcal · '+Math.round(x.pro)+'g P</em><button onclick="dietDelItem(\''+x.id+'\')" aria-label="Remove">✕</button></div>'; });
+  h+='<div class="nu-add"><input id="nuFood" type="text" list="foodDb" placeholder="Add food…" autocomplete="off"><input id="nuGrams" type="number" inputmode="decimal" placeholder="g"><button class="sm primary" onclick="dietAddFood()">Add</button></div>'+
+     '<details class="nu-quick"><summary>Quick add calories</summary><div class="nu-add"><input id="nuQName" type="text" placeholder="What"><input id="nuQKcal" type="number" inputmode="decimal" placeholder="kcal"><input id="nuQPro" type="number" inputmode="decimal" placeholder="protein g"><button class="sm" onclick="dietQuickAdd()">Add</button></div></details>';
+  $('#nuMeals').innerHTML=h; const dl=$('#foodDb'); if(dl && !dl.children.length) dl.innerHTML=foodDbOptions();
+  // 3 · water
+  const wt=SET.tankMl*2, wp=Math.min(100,(d.water||0)/wt*100);
+  $('#nuWater').innerHTML='<div class="nu-head"><h2>Water</h2><span class="sub">'+((d.water||0)/1000).toFixed(2)+' / '+(wt/1000).toFixed(1)+' L</span></div>'+
+    '<div class="nu-track water"><i style="width:'+wp.toFixed(1)+'%"></i></div>'+
+    '<div class="nu-wbtns"><button onclick="addWater(250)">+250</button><button onclick="addWater(500)">+500</button><button onclick="addWater(750)">+750</button><button class="ghost" onclick="addWater(-250)">−250</button></div>';
+  // 4 · weight trend
+  const L=weightLog(42), adv=dietAdvice(), today=kget('body:w:'+todayKey(),null), avg=avgWeight(6,-1);
+  let chart='';
+  if(L.length>=2){
+    const ws=L.map(o=>o.w), mn=Math.min(...ws)-.5, mx=Math.max(...ws)+.5, X=i=>(41-i)/41*300, Y=w=>90-(w-mn)/(mx-mn)*80;
+    const ma=L.map(o=>{ const win=L.filter(q=>q.i>=o.i && q.i<o.i+7); return [X(o.i), Y(win.reduce((a,q)=>a+q.w,0)/win.length)]; });
+    chart='<svg class="nu-chart" viewBox="0 0 300 100" preserveAspectRatio="none">'+L.map(o=>'<circle cx="'+X(o.i).toFixed(1)+'" cy="'+Y(o.w).toFixed(1)+'" r="2"/>').join('')+
+      '<polyline points="'+ma.map(q=>q[0].toFixed(1)+','+q[1].toFixed(1)).join(' ')+'"/></svg><div class="nu-chl"><span>'+mn.toFixed(0)+'–'+mx.toFixed(0)+' kg · last 6 weeks</span><span>line = 7-day average</span></div>';
+  }
+  $('#nuWeight').innerHTML='<div class="nu-head"><h2>Weight</h2><span class="sub">'+(avg?avg.toFixed(1)+' kg 7-day avg':'')+'</span></div>'+
+    '<div class="nu-add"><input id="nuW" type="number" inputmode="decimal" step="0.1" placeholder="'+(today?today+' kg today':'Today\'s weight, kg')+'"><button class="sm primary" onclick="dietLogWeight()">'+(today?'Update':'Log')+'</button></div>'+chart+
+    '<div class="nu-adv">'+esc(adv.txt)+(adv.adj?' <button class="sm" onclick="setDietProfile({adj:(dietProfile().adj||0)+('+adv.adj+')})">'+(adv.adj>0?'+':'')+adv.adj+' kcal</button>':'')+'</div>';
+  // 5 · plan
+  $('#nuPlan').innerHTML='<div class="nu-head"><h2>Plan</h2><span class="sub">maintenance ≈ '+T.tdee.toLocaleString()+' kcal</span></div>'+
+    '<div class="nu-seg">'+Object.keys(NU_PHASES).map(k=>'<button class="'+(p.phase===k?'on':'')+'" onclick="setDietProfile({phase:\''+k+'\', adj:0})">'+NU_PHASES[k].split(' — ')[0]+'</button>').join('')+'</div>'+
+    '<div class="sub" style="margin-top:8px">'+esc(NU_PHASES[p.phase])+' · '+T.kcal.toLocaleString()+' kcal · '+T.pro+'g protein · '+T.carb+'g carbs · '+T.fat+'g fat'+(p.adj?' (includes '+(p.adj>0?'+':'')+p.adj+' kcal adjustment)':'')+'</div>'+
+    '<details class="nu-quick"><summary>Body & activity</summary><div class="nu-prof">'+
+      '<label>Age<input type="number" value="'+p.age+'" onchange="setDietProfile({age:+this.value})"></label>'+
+      '<label>Height cm<input type="number" value="'+p.heightCm+'" onchange="setDietProfile({heightCm:+this.value})"></label>'+
+      '<label>Goal kg<input type="number" value="'+p.goalKg+'" onchange="setDietProfile({goalKg:+this.value})"></label>'+
+      '<label>Activity<select onchange="setDietProfile({act:+this.value})">'+[[1.3,'Desk + light'],[1.45,'Train 3-5×/wk'],[1.6,'Train daily + active'],[1.75,'Very active job']].map(o=>'<option value="'+o[0]+'"'+(Math.abs(p.act-o[0])<.01?' selected':'')+'>'+o[1]+'</option>').join('')+'</select></label>'+
+    '</div></details>';
+  if(keep && $('#'+keep)) $('#'+keep).focus();
   renderHealthConnect();
 }
 

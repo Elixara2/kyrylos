@@ -980,7 +980,7 @@ function kosFlush(){
 addEventListener('online', kosFlush);
 addEventListener('load', ()=>setTimeout(kosFlush,800));
 /*FLEX3-BEGIN*/
-/* ================= SUPER FLEXIBILITY · v3 — 15:00, real coaches on video =================
+/* ================= SUPER FLEXIBILITY · v3.1 — full body, 15:00, real coaches on video =================
    Built from the evidence (see SUPER-FLEXIBILITY.md for the sources):
    · Chronic range of motion: PNF (contract–relax) and static stretching beat
      dynamic/ballistic (Konrad 2024, 77 studies). So the big moves are contract–relax.
@@ -993,7 +993,8 @@ addEventListener('load', ()=>setTimeout(kosFlush,800));
      plus some stiffness drop (Ingram 2025). Contract–relax trains exactly that.
    · Cross-body is the best-tested internal-rotation stretch (+20° in 4 weeks, McClure)
      — the bottom arm of "hands meet behind the back" needs exactly that.
-   Order only goes down: standing → lunge (both sides) → floor. No equipment.
+   Full body: legs, hips (all directions), spine (forward, twist, backbend), shoulders, calves.
+   Order only goes down: standing → down dog → lunge (both sides) → seated → lying. No equipment.
    Every move shows a real coach doing it (YouTube embed, muted, looped segment). */
 
 const CLIPS={
@@ -1004,13 +1005,17 @@ const CLIPS={
   clasp:   {id:'6SK8jcDBkBk', s:70,  e:110, by:'Dani Winks Flexibility'},
   cross:   {id:'YL0ixnneISk', s:28,  e:72,  by:'Dani Winks Flexibility'},
   cowface: {id:'ByLJK0Tmkl8', s:26,  e:36,  by:'Yogi Flight School'},
+  downdog: {id:'oDs7KqUhC2I', s:86,  e:146, by:'Dani Winks Flexibility'},
   hipflex: {id:'0TRd1Qdn3nk', s:160, e:200, by:'Dani Winks Flexibility'},
   halfsp:  {id:'zzJTkcgyo-w', s:8,   e:44,  by:'ATOP Coaching'},
   frontsp: {id:'SKL8_hvGyIE', s:2,   e:25,  by:'LiveLeanTV'},
+  ninety:  {id:'BiSCSMqx-rE', s:1,   e:15,  by:'Theory of Motion'},
   frogger: {id:'y4AWiyksmCA', s:11,  e:62,  by:'Dani Winks Flexibility'},
   pancake: {id:'y8_rL6ZI6pI', s:6,   e:35,  by:'Dani Winks Flexibility'},
   pike:    {id:'9ZhqSyQbc98', s:87,  e:101, by:'The Sustainable Training Method'},
   pikelift:{id:'6w4gmF0NUX0', s:44,  e:100, by:'The Sustainable Training Method'},
+  twist:   {id:'EpAhl1NN4fY', s:61,  e:96,  by:'Dani Winks Flexibility'},
+  cobra:   {id:'Ccgkwfv68cY', s:107, e:160, by:'Dani Winks Flexibility'},
 };
 
 function lungeBlock(side){
@@ -1018,69 +1023,68 @@ function lungeBlock(side){
   return [
     {name:"Hip flexor contract–relax", target:"Hip flexors · front split ("+leg+" leg forward)", clip:CLIPS.hipflex, mirror,
       tip:"Back knee down, tuck the pelvis (tailbone under), squeeze the back glute, hips forward. Ribs down — don't arch your lower back.",
-      phases:[["Drop the "+knee+" knee — lunge on your "+leg+" leg",5,'move'],
-              ["Tuck the pelvis, squeeze the back glute, hips forward",9,'sink'],
+      phases:[["Step the "+leg+" foot forward, drop the "+knee+" knee",4,'move'],
+              ["Tuck the pelvis, squeeze the back glute, hips forward",6,'sink'],
               ["Contract — drag the back knee forward into the floor",6,'push'],
-              ["Relax — exhale, sink the hips forward",10,'hold'],
+              ["Relax — exhale, sink the hips forward",8,'hold'],
               ["Pull — squeeze the glute harder, drive the hips further",6,'pull'],
-              ["Relax — own the new range",14,'hold']]},
+              ["Relax — own the new range",10,'hold']]},
     {name:"Half split contract–relax", target:"Hamstrings · front split ("+leg+" leg)", clip:CLIPS.halfsp, mirror,
       tip:"Shift the hips back over the knee, front leg straight, toes pulled back. Fold from the hips with a long spine — chest toward the knee, not head.",
-      phases:[["Hips back over the knee, "+leg+" leg straight",6,'sink'],
-              ["Fold from the hips, long spine",6,'sink'],
+      phases:[["Hips back over the knee, "+leg+" leg straight — fold",6,'sink'],
               ["Contract — dig the heel down into the floor",6,'push'],
-              ["Relax — exhale, fold deeper",10,'hold'],
+              ["Relax — exhale, fold deeper",9,'hold'],
               ["Pull — lift the heel, pull the toes up with your thigh",5,'pull'],
-              ["Relax — fold and breathe",12,'hold']]},
+              ["Relax — fold and breathe",14,'hold']]},
     {name:"Front split slides", target:"Front split ("+leg+" leg forward)", clip:CLIPS.frontsp, mirror,
       tip:"Hands on the floor either side. Slide the front heel forward and the back knee back — hips square. Go only as low as you can stay relaxed.",
-      phases:[["Hands down — slide the front heel forward, back knee back",12,'sink'],
+      phases:[["Hands down — slide the front heel forward, back knee back",10,'sink'],
               ["Contract — press both legs down into the floor",6,'push'],
-              ["Relax — exhale, slide lower",10,'hold'],
+              ["Relax — exhale, slide lower",9,'hold'],
               ["Contract again — harder",6,'push'],
-              ["Relax — as low as you can stay relaxed",16,'hold']]},
+              ["Relax — as low as you can stay relaxed",14,'hold']]},
   ];
 }
-function crossSide(arm, other){ return [
-  ["Pull your "+arm+" arm across the chest at the elbow",8,'sink'],
-  ["Contract — push the arm out against your hand",6,'push'],
-  ["Relax — pull it further across",8,'hold'],
+function crossSide(arm){ return [
+  ["Pull your "+arm+" arm across the chest at the elbow",6,'sink'],
+  ["Contract — push the arm out against your hand",5,'push'],
+  ["Relax — pull it further across",6,'hold'],
   ["Contract again",4,'push'],
   ["Relax — deeper",4,'hold']]; }
 function cowSide(top, bottom, mirror){ return [
-  [top[0].toUpperCase()+top.slice(1)+" arm up and bent, "+bottom+" thumb down and up your spine",8,'sink',{mirror}],
-  ["Contract — pull the hands away from each other",6,'push',{mirror}],
-  ["Relax — walk the fingers closer",8,'hold',{mirror}],
+  [top[0].toUpperCase()+top.slice(1)+" arm up and bent, "+bottom+" thumb down and up your spine",6,'sink',{mirror}],
+  ["Contract — pull the hands away from each other",5,'push',{mirror}],
+  ["Relax — walk the fingers closer",6,'hold',{mirror}],
   ["Contract again",4,'push',{mirror}],
   ["Relax — closer",4,'hold',{mirror}]]; }
 function frogSide(bent, straight, mirror){ return [
-  [bent[0].toUpperCase()+bent.slice(1)+" knee bent out at 90°, "+straight+" leg straight to the side",6,'move',{mirror}],
-  ["Lower onto your forearms, hips back",6,'sink',{mirror}],
+  [bent[0].toUpperCase()+bent.slice(1)+" knee bent out at 90°, "+straight+" leg straight to the side",5,'move',{mirror}],
+  ["Lower onto your forearms, hips back",5,'sink',{mirror}],
   ["Contract — press the straight leg's foot into the floor",6,'push',{mirror}],
-  ["Relax — exhale, sink the hips",8,'hold',{mirror}],
+  ["Relax — exhale, sink the hips",7,'hold',{mirror}],
   ["Contract again",4,'push',{mirror}],
-  ["Relax — hold",5,'hold',{mirror}]]; }
+  ["Relax — hold",3,'hold',{mirror}]]; }
 
 const FLEX=[
-  /* ── STANDING · warm and load ── */
+  /* ── STANDING · warm, load, shoulders ── */
   {name:"Leg swings", target:"Hips · warm-up", clip:CLIPS.legFB, period:1.5,
     tip:"Tall chest, loose leg, one hand on something if you need it. Let each swing go a little higher — momentum, never force.",
-    phases:[["Front–back · left leg",15,'loop'],["Front–back · right leg",15,'loop',{mirror:true}],
-            ["Side to side · left leg, across your body",15,'loop',{clip:CLIPS.legSide}],["Side to side · right leg",15,'loop',{clip:CLIPS.legSide,mirror:true}]]},
-  {name:"Cossack squats", target:"Adductors · side split, loaded", clip:CLIPS.cossack, period:7,
+    phases:[["Front–back · left leg",11,'loop'],["Front–back · right leg",11,'loop',{mirror:true}],
+            ["Side to side · left leg, across your body",11,'loop',{clip:CLIPS.legSide}],["Side to side · right leg",11,'loop',{clip:CLIPS.legSide,mirror:true}]]},
+  {name:"Cossack squats", target:"Adductors · side split, loaded", clip:CLIPS.cossack, period:7.5,
     tip:"Wide stance, toes slightly out. Sit all the way down into one hip, the other leg straight with its toes up. Heel down, chest up. Pause at the bottom.",
-    phases:[["Step wide — toes slightly out",4,'move'],["Sit deep · pause 2s · shift across",56,'loop']]},
+    phases:[["Step wide — toes slightly out",5,'move'],["Sit deep · pause 2s · shift across",45,'loop']]},
   {name:"Jefferson curls", target:"Hamstrings + spine · fold in half, loaded", clip:CLIPS.jeff, period:11,
     tip:"Feet together, knees locked. Chin to chest, roll down one vertebra at a time, hang, then roll back up the same way. Slow is the point.",
-    phases:[["Feet together, knees locked",5,'move'],["5s down · hang · 4s up",55,'loop']]},
+    phases:[["Feet together, knees locked",5,'move'],["5s down · hang · 4s up",45,'loop']]},
   {name:"Rear hand clasp", target:"Chest + front shoulders · hands behind your back", clip:CLIPS.clasp,
     tip:"Interlace the fingers behind you, straighten the arms. Fold forward from the hips and let the arms fall over your head.",
-    phases:[["Interlace your fingers behind your back",5,'move'],
-            ["Straighten the arms, lift them away from you",10,'sink'],
+    phases:[["Interlace your fingers behind your back",4,'move'],
+            ["Straighten the arms, lift them away from you",8,'sink'],
             ["Contract — pull the hands down toward your butt",6,'push'],
-            ["Relax — fold forward, let the arms fall overhead",14,'hold'],
-            ["Pull — lift the arms further with your own muscles",6,'pull'],
-            ["Relax — breathe, hang",9,'hold']]},
+            ["Relax — fold forward, let the arms fall overhead",10,'hold'],
+            ["Pull — lift the arms further with your own muscles",5,'pull'],
+            ["Relax — breathe, hang",7,'hold']]},
   {name:"Cross-body stretch", target:"Back of the shoulder · reaching behind you", clip:CLIPS.cross,
     tip:"Arm straight across the chest, pull at the elbow — not the wrist. Shoulder stays down, away from your ear.",
     phases:[...crossSide('left'), ...crossSide('right').map(p=>[p[0],p[1],p[2],{mirror:true}])]},
@@ -1088,37 +1092,54 @@ const FLEX=[
     tip:"Bottom arm: turn the thumb DOWN first, then slide the back of the hand up the spine. Top arm: reach up, bend, hand down between the shoulder blades. Not touching yet? Work at your edge — the gap closes.",
     phases:[...cowSide('right','left',false), ...cowSide('left','right',true)]},
 
-  /* ── LUNGE · front split, both sides ── */
+  /* ── DOWN TO THE FLOOR · calves, overhead shoulders, then the splits ── */
+  {name:"Downward dog", target:"Calves + hamstrings + arms overhead", clip:CLIPS.downdog, period:2,
+    tip:"Hands shoulder-width, push the floor away, armpits toward the floor. Hips high. Heels reach down — they don't have to touch.",
+    phases:[["Hands to the floor, walk back into down dog",6,'move'],
+            ["Pedal — bend one knee, press the other heel down",16,'loop'],
+            ["Both heels down, push the floor away, chest toward your thighs",18,'hold']]},
   ...lungeBlock('L'),
   ...lungeBlock('R'),
 
-  /* ── FLOOR · side split, fold ── */
+  /* ── FLOOR · hip rotation, side split, fold, spine ── */
+  {name:"90/90 hip switches", target:"Hip rotation · both ways", clip:CLIPS.ninety, period:5,
+    tip:"Sit with both knees bent at 90°, one in front, one to the side. Chest tall. Rotate both knees over to the other side, slowly — hands off the floor if you can.",
+    phases:[["Sit — both knees bent to one side at 90°",5,'move'],["Switch side to side · slow · chest tall",40,'loop']]},
   {name:"Half frogger contract–relax", target:"Adductors · side split", clip:CLIPS.frogger,
     tip:"One knee bent out to the side at 90°, the other leg straight out with the kneecap up. Ease the hips back toward the straight leg.",
     phases:[...frogSide('left','right',false), ...frogSide('right','left',true)]},
   {name:"Pancake contract–relax", target:"Adductors + hamstrings · straddle", clip:CLIPS.pancake,
     tip:"Legs wide, kneecaps to the ceiling. Tip the pelvis forward — belly toward the floor first, keep the back flat. Rounding the back is cheating the hips.",
-    phases:[["Sit, legs wide, kneecaps up",7,'move'],
-            ["Tip the pelvis forward, walk the hands out — back flat",11,'sink'],
-            ["Contract — press the heels and backs of the knees into the floor",8,'push'],
-            ["Relax — exhale, chest forward",11,'hold'],
-            ["Pull — hands off the floor, pull yourself down with your hip flexors",8,'pull'],
-            ["Relax — let gravity take you",12,'hold'],
-            ["Contract — heels down once more",6,'push'],
-            ["Relax — final sink",12,'hold']]},
+    phases:[["Sit, legs wide, kneecaps up",6,'move'],
+            ["Tip the pelvis forward, walk the hands out — back flat",9,'sink'],
+            ["Contract — press the heels and backs of the knees into the floor",7,'push'],
+            ["Relax — exhale, chest forward",10,'hold'],
+            ["Pull — hands off the floor, pull yourself down with your hip flexors",7,'pull'],
+            ["Relax — let gravity take you",10,'hold'],
+            ["Contract — heels down once more",5,'push'],
+            ["Relax — final sink",11,'hold']]},
   {name:"Pike contract–relax", target:"Hamstrings · fold in half", clip:CLIPS.pike,
     tip:"Legs together, knees locked, toes pulled back. Fold from the hips — chest to thighs, not head to knees.",
     phases:[["Bring the legs together, toes pulled back",5,'move'],
-            ["Fold from the hips — chest to thighs",12,'sink'],
-            ["Contract — press the backs of the legs into the floor",8,'push'],
-            ["Relax — exhale, fold deeper",11,'hold'],
-            ["Pull — let go of the legs, pull your chest down with your hip flexors",8,'pull'],
-            ["Relax — hang",11,'hold'],
-            ["Contract — once more",6,'push'],
-            ["Relax — final fold",14,'hold']]},
-  {name:"Pike lifts", target:"Active fold · compression strength", clip:CLIPS.pikelift, period:4,
-    tip:"Sit tall, hands beside the knees. Lift both heels off the floor, hold, lower slowly. Knees locked. This is what turns range into range you can use.",
-    phases:[["Sit tall — hands beside your knees",4,'move'],["Lift both heels · hold 2s · lower slowly",36,'loop']]},
+            ["Fold from the hips — chest to thighs",10,'sink'],
+            ["Contract — press the backs of the legs into the floor",7,'push'],
+            ["Relax — exhale, fold deeper",10,'hold'],
+            ["Pull — let go of the legs, pull your chest down with your hip flexors",7,'pull'],
+            ["Relax — hang",10,'hold'],
+            ["Contract — once more",5,'push'],
+            ["Relax — final fold",11,'hold']]},
+  {name:"Pike lifts", target:"Active fold · compression strength", clip:CLIPS.pikelift, period:4.5,
+    tip:"Sit tall, hands beside the knees. Lift both heels off the floor, hold, lower slowly. Knees locked. This turns range into range you can use.",
+    phases:[["Sit tall — hands beside your knees",3,'move'],["Lift both heels · hold 2s · lower slowly",27,'loop']]},
+  {name:"Kneeling twist", target:"Spine · rotation", clip:CLIPS.twist, period:6.5,
+    tip:"Kneel and sit back on your heels — that locks the hips so the twist comes from your upper back. Hands behind your head, elbows wide.",
+    phases:[["Kneel, sit back on your heels, hands behind your head",4,'move'],["Rotate left · hold 2s · rotate right — as far as you can",26,'loop']]},
+  {name:"Cobra", target:"Spine + front of the hips · backbend", clip:CLIPS.cobra,
+    tip:"Hands under the shoulders, hips and legs stay on the floor. Press up only as far as your lower back is comfortable — squeeze the glutes, lift through the chest.",
+    phases:[["Lie face down, hands under your shoulders",5,'move'],
+            ["Press up slowly — hips stay down",8,'sink'],
+            ["Contract — squeeze the glutes, press the hips into the floor",6,'push'],
+            ["Relax — breathe into the arch, then lower down",12,'hold']]},
 ];
 const FLEX_SECONDS=FLEX.reduce((a,s)=>a+s.phases.reduce((b,p)=>b+p[1],0),0);
 

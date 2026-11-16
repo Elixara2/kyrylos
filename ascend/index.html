@@ -1213,6 +1213,8 @@ async function fvStudio(id){
   v.onplaying=()=>{ if(fvVidKey===id) b.classList.add('on'); };
   v.onerror=()=>{ fvBad[id]=1; fvVidKey=null; b.classList.remove('studio'); flexSync(); };
   v.play().catch(()=>{});
+  // can't load (slow network, Google throttling)? fall back to the YouTube demo for this move
+  setTimeout(()=>{ if(fvVidKey===id && v.readyState<2){ fvBad[id]=1; fvVidKey=null; b.classList.remove('studio'); flexSync(); } }, 9000);
 }
 function flexSync(){
   const w=flexWant(), b=fvBoxEl(); if(!w || !b) return;

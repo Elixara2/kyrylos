@@ -1932,6 +1932,31 @@
   .nu-prof{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
   .nu-prof label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--dim)}
   .nu-wbtns button{white-space:nowrap}
+
+  /* nutrition week strip + Today fuel card */
+  .nu-week{display:flex;align-items:flex-end;gap:8px;margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06);flex-wrap:wrap}
+  .nu-day{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:26px}
+  .nu-dcol{width:100%;max-width:26px;height:44px;border-radius:7px;background:rgba(255,255,255,.06);display:flex;align-items:flex-end;overflow:hidden}
+  .nu-dcol i{display:block;width:100%;background:#4ade80;border-radius:7px;transition:height .6s var(--ease)} .nu-dcol i.over{background:#f97316}
+  .nu-pdot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.15)} .nu-pdot.on{background:#60a5fa}
+  .nu-day em{font-style:normal;font-size:11px;color:var(--dim)} .nu-day.today em{color:var(--txt);font-weight:700}
+  .nu-wkey{width:100%;display:flex;gap:14px;font-size:11px;color:var(--dim)} .nu-wkey i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px}
+  .nu-wkey i.k{background:#4ade80} .nu-wkey i.p{background:#60a5fa;border-radius:50%}
+  .td-fuel .td-body{padding:0 14px 14px}
+  .tf-nums{display:flex;justify-content:space-between;gap:10px;margin-bottom:8px}
+  .tf-nums b{font-size:20px;font-weight:800;letter-spacing:-.02em} .tf-nums span{font-size:12.5px;color:var(--dim);margin-left:4px}
+  .tf-bar{height:6px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:5px}
+  .tf-bar i{display:block;height:100%;border-radius:6px;transition:width .6s var(--ease)} .tf-bar.k i{background:#4ade80} .tf-bar.p i{background:#60a5fa}
+  .tf-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+  .tf-meal,.tf-water{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:12px;font-size:13.5px;font-weight:600;cursor:pointer;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:var(--txt);transition:transform .15s var(--ease),background .2s,border-color .2s}
+  .tf-meal:active,.tf-water:active{transform:scale(.95)}
+  .tf-ck{width:16px;height:16px;border-radius:50%;border:1.5px solid rgba(255,255,255,.35);display:grid;place-items:center}
+  .tf-ck .ico{width:10px;height:10px}
+  .tf-meal.on{background:hsla(145,60%,45%,.16);border-color:hsla(145,60%,55%,.45)} .tf-meal.on .tf-ck{background:#22c55e;border-color:#22c55e;color:#fff;animation:tfPop .35s var(--ease)}
+  @keyframes tfPop{0%{transform:scale(.4)}70%{transform:scale(1.2)}100%{transform:scale(1)}}
+  .tf-water{color:#7dd3fc} .tf-water .ico{width:14px;height:14px} .tf-water b{color:var(--txt)} .tf-water.on{border-color:rgba(56,189,248,.5);background:rgba(56,189,248,.1)}
+  .nu-meal .nu-check{transition:background .2s,border-color .2s} .nu-meal.on .nu-check{animation:tfPop .35s var(--ease)}
 </style>
 </head>
 <body>
@@ -3295,7 +3320,7 @@ const ico=(name, cls)=>'<svg class="ico'+(cls?' '+cls:'')+'" aria-hidden="true">
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261117-084109';
+const KOS_BUILD='20261117-192344';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -3895,7 +3920,7 @@ function celebratePerfectDay(){
 function autoFlow(){
   const defs=getMealDefs(), d=getDiet();
   const allMealsDone = defs.length>0 && defs.every(m=>d.meals && d.meals[m.id]);
-  setFlowPartQuiet('diet', allMealsDone && d.water>=SET.tankMl*2);
+  setFlowPartQuiet('diet', allMealsDone && d.water>=waterTarget());
   setFlowPartQuiet('work', getTsEntries().length>=1);
   setFlowPartQuiet('gym', gymTodayEntries().length>=1);
   // only ever sets it — a Morning block you ticked by hand stays ticked
@@ -4735,6 +4760,15 @@ function tdRow(o){
   return '<div class="td-row'+(o.cls?' '+o.cls:'')+'"'+(o.click?' onclick="'+o.click+'"':'')+(o.h!=null?' style="--h:'+o.h+'"':'')+'>'+
     (o.lead||'')+'<span class="td-tx"><b>'+o.t+'</b>'+(o.s?'<small>'+o.s+'</small>':'')+'</span>'+(o.tail||'')+'</div>';
 }
+function tdFuel(){
+  const d=getDiet(), E=dietEaten(d), T=dietTargets(), wt=waterTarget(), w=d.water||0;
+  const pc=v=>Math.min(100,v*100).toFixed(1);
+  return '<div class="tf-nums"><div><b>'+Math.round(E.kcal).toLocaleString()+'</b><span>/ '+T.kcal.toLocaleString()+' kcal</span></div><div><b>'+Math.round(E.pro)+'</b><span>/ '+T.pro+'g protein</span></div></div>'+
+    '<div class="tf-bar k"><i style="width:'+pc(E.kcal/T.kcal)+'%"></i></div><div class="tf-bar p"><i style="width:'+pc(E.pro/T.pro)+'%"></i></div>'+
+    '<div class="tf-chips">'+getMealDefs().map(m=>{ const on=!!(d.meals&&d.meals[m.id]);
+      return '<button class="tf-meal'+(on?' on':'')+'" onclick="toggleMeal(\''+m.id+'\',event)"><span class="tf-ck">'+(on?ico('check'):'')+'</span>'+m.emoji+' '+esc(({shake:'Shake',tunaeggs:'Tuna & eggs',prep:'Chicken bowl'})[m.id]||m.name)+'</button>'; }).join('')+
+    '<button class="tf-water'+(w>=wt?' on':'')+'" onclick="addWater(500)">'+ico('droplet')+(w/1000).toFixed(1)+' / '+(wt/1000)+' L <b>+½</b></button></div>';
+}
 function renderDayView(){
   const box=$('#dayView'); if(!box) return;
   const today=todayKey(), S=_dvStages=dayStages(), skips=daySkips();
@@ -4787,7 +4821,7 @@ function renderDayView(){
     }).join('') : '<div class="td-empty">Nothing scheduled.</div>';
   c2+='<input class="td-in" id="dvPencil" autocomplete="off" title="e.g. Dentist 3pm 1h" placeholder="Pencil something in — “Dentist 3pm”" onkeydown="if(event.key===\'Enter\')dvPencilAdd(this)">';
   h+='<div class="td-split"><div class="td-left">'+card('missions','Missions',open.length,mb)+'</div>'+
-    '<div class="td-right">'+card('sched','Schedule',blocks.length,c2)+card('todo','Routine',rest.length,c1)+'<div id="tdNotesSlot"></div></div></div>';
+    '<div class="td-right">'+card('fuel','Fuel', Math.round(dietEaten().kcal/dietTargets().kcal*100)+'%', tdFuel())+card('sched','Schedule',blocks.length,c2)+card('todo','Routine',rest.length,c1)+'<div id="tdNotesSlot"></div></div></div>';
 
   // 5 · already done, at the bottom
   const doneStages=S.filter(x=>x.ok);
@@ -6613,11 +6647,11 @@ const ING=(name,grams)=>Object.assign({name,grams},FOOD_DB[name]);
 const DEFAULT_MEALDEFS = [
   {id:'shake', emoji:'🥤', name:'Morning shake', ingredients:[
     ING('moo pro greek yoghurt',200), ING('frozen blueberries',50), ING('rolled oats',50),
-    ING('earth protein (bulk nutrients)',30), ING('creatine',10)]},
+    ING('earth protein (bulk nutrients)',60), ING('creatine',5)]},
   {id:'tunaeggs', emoji:'🍳', name:'Tuna & eggs', ingredients:[
     ING('tuna triple chilli (drained)',70), ING('eggs',200), ING('mayonnaise',15)]},
   {id:'prep', emoji:'🍛', name:'Chicken prep bowl', ingredients:[
-    ING('chicken breast (raw)',350), ING('frozen spinach',83), ING('white rice (dry)',70), ING('red curry simmer sauce',167)]},
+    ING('chicken breast (raw)',350), ING('frozen spinach',83), ING('white rice (dry)',100), ING('red curry simmer sauce',167)]},
 ];
 function getMealDefs(){ const v=kget('diet:mealdefs',null); return v || JSON.parse(JSON.stringify(DEFAULT_MEALDEFS)); }
 function computeMacros(ingredients){
@@ -6718,7 +6752,8 @@ function deleteMealDef(){
      gain = maintenance + 250 kcal (lean gain),        protein 2.0 g/kg, fat 0.9 g/kg
    then corrected by the scale: the 7-day average weight trend says whether to nudge ±150 kcal. */
 const NU_PHASES={cut:'Cut — get shredded', gain:'Lean gain — build to the goal', maint:'Maintain'};
-function dietProfile(){ return Object.assign({age:35, heightCm:190.5, weightKg:92, act:1.45, phase:'cut', goalKg:100, adj:0}, kget('diet:profile',{})); }
+function dietProfile(){ return Object.assign({age:35, heightCm:190.5, weightKg:92, act:1.45, phase:'cut', goalKg:100, adj:0, waterMl:4000}, kget('diet:profile',{})); }
+function waterTarget(){ return dietProfile().waterMl||4000; }
 function setDietProfile(patch){ kset('diet:profile', Object.assign(dietProfile(), patch)); renderDiet(); renderToday(); }
 function weightLog(days){
   const out=[]; const d=new Date();
@@ -6793,7 +6828,11 @@ function renderDiet(){
   $('#nuTop').innerHTML='<div class="nu-ringrow"><div class="nu-ring"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="'+R+'" class="nu-rbg"/><circle cx="60" cy="60" r="'+R+'" class="nu-rfg'+(left<0?' over':'')+'" style="stroke-dasharray:'+C.toFixed(1)+';stroke-dashoffset:'+(C*(1-pc)).toFixed(1)+'"/></svg>'+
     '<div class="nu-rmid"><b>'+Math.abs(Math.round(left)).toLocaleString()+'</b><span>'+(left>=0?'kcal left':'kcal over')+'</span></div></div>'+
     '<div class="nu-macros"><div class="nu-kc"><b>'+Math.round(E.kcal).toLocaleString()+'</b> of '+T.kcal.toLocaleString()+' kcal</div>'+
-      nuBar('Protein',E.pro,T.pro,'p')+nuBar('Carbs',E.carb,T.carb,'c')+nuBar('Fat',E.fat,T.fat,'f')+'</div></div>';
+      nuBar('Protein',E.pro,T.pro,'p')+nuBar('Carbs',E.carb,T.carb,'c')+nuBar('Fat',E.fat,T.fat,'f')+'</div></div>'+
+    '<div class="nu-week">'+[6,5,4,3,2,1,0].map(i=>{ const x=new Date(); x.setDate(x.getDate()-i); const k=todayKey(x), dd=kget('diet:'+k,null), e=dd?dietEaten(dd):{kcal:0,pro:0};
+      const pk=Math.min(1,e.kcal/T.kcal), hit=e.pro>=T.pro-10, wd=x.toLocaleDateString(undefined,{weekday:'narrow'});
+      return '<div class="nu-day'+(i===0?' today':'')+'" title="'+Math.round(e.kcal)+' kcal · '+Math.round(e.pro)+'g protein"><div class="nu-dcol"><i style="height:'+(pk*100).toFixed(0)+'%" class="'+(e.kcal>T.kcal*1.05?'over':'')+'"></i></div><span class="nu-pdot'+(hit?' on':'')+'"></span><em>'+wd+'</em></div>'; }).join('')+
+    '<div class="nu-wkey"><span><i class="k"></i>kcal</span><span><i class="p"></i>protein hit</span></div></div>';
   // 2 · meals + anything extra
   let h='<div class="nu-head"><h2>Meals</h2><button class="sm ghost" onclick="openMealBuilder(null)">+ Meal</button></div>';
   defs.forEach(m=>{ const x=mealMacros(m), on=!!(d.meals&&d.meals[m.id]);
@@ -6805,10 +6844,10 @@ function renderDiet(){
      '<details class="nu-quick"><summary>Quick add calories</summary><div class="nu-add"><input id="nuQName" type="text" placeholder="What"><input id="nuQKcal" type="number" inputmode="decimal" placeholder="kcal"><input id="nuQPro" type="number" inputmode="decimal" placeholder="protein g"><button class="sm" onclick="dietQuickAdd()">Add</button></div></details>';
   $('#nuMeals').innerHTML=h; const dl=$('#foodDb'); if(dl && !dl.children.length) dl.innerHTML=foodDbOptions();
   // 3 · water
-  const wt=SET.tankMl*2, wp=Math.min(100,(d.water||0)/wt*100);
+  const wt=waterTarget(), wp=Math.min(100,(d.water||0)/wt*100);
   $('#nuWater').innerHTML='<div class="nu-head"><h2>Water</h2><span class="sub">'+((d.water||0)/1000).toFixed(2)+' / '+(wt/1000).toFixed(1)+' L</span></div>'+
     '<div class="nu-track water"><i style="width:'+wp.toFixed(1)+'%"></i></div>'+
-    '<div class="nu-wbtns"><button onclick="addWater(250)">+250</button><button onclick="addWater(500)">+500</button><button onclick="addWater(750)">+750</button><button class="ghost" onclick="addWater(-250)">−250</button></div>';
+    '<div class="nu-wbtns"><button onclick="addWater(250)">+250</button><button onclick="addWater(500)">+500</button><button onclick="addWater(1000)">+1 L</button><button class="ghost" onclick="addWater(-250)">−250</button></div>';
   // 4 · weight trend
   const L=weightLog(42), adv=dietAdvice(), today=kget('body:w:'+todayKey(),null), avg=avgWeight(6,-1);
   let chart='';

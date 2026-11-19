@@ -3320,7 +3320,7 @@ const ico=(name, cls)=>'<svg class="ico'+(cls?' '+cls:'')+'" aria-hidden="true">
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261119-103801';
+const KOS_BUILD='20261119-104203';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -6648,7 +6648,7 @@ const ING=(name,grams)=>Object.assign({name,grams},FOOD_DB[name]);
 const DEFAULT_MEALDEFS = [
   {id:'shake', emoji:'🥤', name:'Morning shake', ingredients:[
     ING('moo pro greek yoghurt',200), ING('frozen blueberries',50), ING('rolled oats',50),
-    ING('earth protein (bulk nutrients)',60), ING('creatine',5)]},
+    ING('earth protein (bulk nutrients)',30), ING('creatine',5)]},
   {id:'tunaeggs', emoji:'🍳', name:'Tuna & eggs', ingredients:[
     ING('tuna triple chilli (drained)',70), ING('eggs',200), ING('mayonnaise',15)]},
   {id:'prep', emoji:'🍛', name:'Chicken prep bowl', ingredients:[
@@ -6664,6 +6664,12 @@ function getMealDefs(){
       if(!p.ingredients.some(i=>/bean/i.test(i.name))){ const at=p.ingredients.findIndex(i=>/rice/i.test(i.name)); p.ingredients.splice(at<0?p.ingredients.length:at,0,ING('4 bean mix (drained)',40)); }
     }
     kset('diet:mealdefs',v); kset('diet:mig:beans',true);
+  }
+  // one-time: shake goes to 1 scoop (30g) of protein
+  if(v && !kget('diet:mig:1scoop',false)){
+    const s=v.find(x=>x.id==='shake'), pr=s&&s.ingredients&&s.ingredients.find(i=>/earth protein/i.test(i.name));
+    if(pr) pr.grams=30;
+    kset('diet:mealdefs',v); kset('diet:mig:1scoop',true);
   }
   return v || JSON.parse(JSON.stringify(DEFAULT_MEALDEFS));
 }
@@ -6783,7 +6789,7 @@ function dietTargets(){
   const bmr=10*w+6.25*p.heightCm-5*p.age+5, tdee=bmr*p.act;
   const base = p.phase==='cut' ? tdee-750 : p.phase==='gain' ? tdee+250 : tdee;
   const kcal=Math.round((base+(p.adj||0))/10)*10;
-  const pro=Math.round(w*(p.phase==='cut'?2.2:2.0)), fat=Math.round(Math.max(55, w*(p.phase==='gain'?0.9:0.7)));
+  const pro=Math.round(w*2.0), fat=Math.round(Math.max(55, w*(p.phase==='gain'?0.9:0.7)));
   const carb=Math.max(0,Math.round((kcal-pro*4-fat*9)/4));
   return {kcal, pro, carb, fat, tdee:Math.round(tdee), w};
 }

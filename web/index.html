@@ -3320,7 +3320,7 @@ const ico=(name, cls)=>'<svg class="ico'+(cls?' '+cls:'')+'" aria-hidden="true">
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261117-192344';
+const KOS_BUILD='20261119-103801';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -6642,6 +6642,7 @@ const FOOD_DB = {
   'frozen spinach':{kcal:29,pro:2.8,carb:1.5,fat:1.3},                 // Bell Farms: 22kcal / 2.1g protein per 75g
   'white rice (dry)':{kcal:360,pro:7,carb:79,fat:0.6},
   'red curry simmer sauce':{kcal:100,pro:1.5,carb:9,fat:6.5},          // est: check the jar
+  '4 bean mix (drained)':{kcal:100,pro:7,carb:13,fat:0.6},            // est: typical AU 4 bean mix, drained (~240g per 400g can)
 };
 const ING=(name,grams)=>Object.assign({name,grams},FOOD_DB[name]);
 const DEFAULT_MEALDEFS = [
@@ -6651,9 +6652,21 @@ const DEFAULT_MEALDEFS = [
   {id:'tunaeggs', emoji:'🍳', name:'Tuna & eggs', ingredients:[
     ING('tuna triple chilli (drained)',70), ING('eggs',200), ING('mayonnaise',15)]},
   {id:'prep', emoji:'🍛', name:'Chicken prep bowl', ingredients:[
-    ING('chicken breast (raw)',350), ING('frozen spinach',83), ING('white rice (dry)',100), ING('red curry simmer sauce',167)]},
+    ING('chicken breast (raw)',333), ING('frozen spinach',83), ING('4 bean mix (drained)',40), ING('white rice (dry)',100), ING('red curry simmer sauce',167)]},
 ];
-function getMealDefs(){ const v=kget('diet:mealdefs',null); return v || JSON.parse(JSON.stringify(DEFAULT_MEALDEFS)); }
+function getMealDefs(){
+  const v=kget('diet:mealdefs',null);
+  // one-time update of a saved prep bowl: 2kg chicken tray / 6 bowls + a can of 4 bean mix
+  if(v && !kget('diet:mig:beans',false)){
+    const p=v.find(x=>x.id==='prep');
+    if(p && p.ingredients){
+      const c=p.ingredients.find(i=>i.name==='chicken breast (raw)'); if(c) c.grams=333;
+      if(!p.ingredients.some(i=>/bean/i.test(i.name))){ const at=p.ingredients.findIndex(i=>/rice/i.test(i.name)); p.ingredients.splice(at<0?p.ingredients.length:at,0,ING('4 bean mix (drained)',40)); }
+    }
+    kset('diet:mealdefs',v); kset('diet:mig:beans',true);
+  }
+  return v || JSON.parse(JSON.stringify(DEFAULT_MEALDEFS));
+}
 function computeMacros(ingredients){
   return (ingredients||[]).reduce((a,i)=>{ const f=(i.grams||0)/100;
     a.kcal+=f*(i.kcal||0); a.pro+=f*(i.pro||0); a.carb+=f*(i.carb||0); a.fat+=f*(i.fat||0); return a; }, {kcal:0,pro:0,carb:0,fat:0});

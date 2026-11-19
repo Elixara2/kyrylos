@@ -3320,7 +3320,7 @@ const ico=(name, cls)=>'<svg class="ico'+(cls?' '+cls:'')+'" aria-hidden="true">
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261119-104203';
+const KOS_BUILD='20261119-171933';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -6652,7 +6652,7 @@ const DEFAULT_MEALDEFS = [
   {id:'tunaeggs', emoji:'🍳', name:'Tuna & eggs', ingredients:[
     ING('tuna triple chilli (drained)',70), ING('eggs',200), ING('mayonnaise',15)]},
   {id:'prep', emoji:'🍛', name:'Chicken prep bowl', ingredients:[
-    ING('chicken breast (raw)',333), ING('frozen spinach',83), ING('4 bean mix (drained)',40), ING('white rice (dry)',100), ING('red curry simmer sauce',167)]},
+    ING('chicken breast (raw)',350), ING('frozen spinach',83), ING('4 bean mix (drained)',40), ING('white rice (dry)',100), ING('red curry simmer sauce',250)]},
 ];
 function getMealDefs(){
   const v=kget('diet:mealdefs',null);
@@ -6670,6 +6670,12 @@ function getMealDefs(){
     const s=v.find(x=>x.id==='shake'), pr=s&&s.ingredients&&s.ingredients.find(i=>/earth protein/i.test(i.name));
     if(pr) pr.grams=30;
     kset('diet:mealdefs',v); kset('diet:mig:1scoop',true);
+  }
+  // one-time: 2.1kg chicken + 3 tins of sauce per 6-bowl batch
+  if(v && !kget('diet:mig:3tins',false)){
+    const p=v.find(x=>x.id==='prep');
+    if(p && p.ingredients){ p.ingredients.forEach(i=>{ if(i.name==='chicken breast (raw)') i.grams=350; if(/simmer sauce/i.test(i.name)) i.grams=250; }); }
+    kset('diet:mealdefs',v); kset('diet:mig:3tins',true);
   }
   return v || JSON.parse(JSON.stringify(DEFAULT_MEALDEFS));
 }

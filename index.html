@@ -3320,7 +3320,7 @@ const ico=(name, cls)=>'<svg class="ico'+(cls?' '+cls:'')+'" aria-hidden="true">
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261119-172051';
+const KOS_BUILD='20261119-172535';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -6653,7 +6653,7 @@ const DEFAULT_MEALDEFS = [
   {id:'tunaeggs', emoji:'🍳', name:'Tuna & eggs', ingredients:[
     ING('tuna triple chilli (drained)',70), ING('eggs',200), ING('mayonnaise',15)]},
   {id:'prep', emoji:'🍛', name:'Chicken prep bowl', ingredients:[
-    ING('chicken breast (raw)',350), ING('frozen spinach',83), ING('4 bean mix (drained)',40), ING('white rice (dry)',100), ING('red curry simmer sauce',167), ING('green curry simmer sauce',83)]},
+    ING('chicken breast (raw)',350), ING('frozen spinach',83), ING('4 bean mix (drained)',80), ING('white rice (dry)',100), ING('red curry simmer sauce',167), ING('green curry simmer sauce',83)]},
 ];
 function getMealDefs(){
   const v=kget('diet:mealdefs',null);
@@ -6687,6 +6687,12 @@ function getMealDefs(){
       p.ingredients.splice(at<0?p.ingredients.length:at,0,ING('red curry simmer sauce',167),ING('green curry simmer sauce',83));
     }
     kset('diet:mealdefs',v); kset('diet:mig:saucelabel',true);
+  }
+  // one-time: 2 tins of 4 bean mix per batch (~480g drained / 6)
+  if(v && !kget('diet:mig:2tinsbeans',false)){
+    const p=v.find(x=>x.id==='prep'), b=p&&p.ingredients&&p.ingredients.find(i=>/bean/i.test(i.name));
+    if(b) b.grams=80;
+    kset('diet:mealdefs',v); kset('diet:mig:2tinsbeans',true);
   }
   return v || JSON.parse(JSON.stringify(DEFAULT_MEALDEFS));
 }

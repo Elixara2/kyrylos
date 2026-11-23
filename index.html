@@ -3320,7 +3320,7 @@ const ico=(name, cls)=>'<svg class="ico'+(cls?' '+cls:'')+'" aria-hidden="true">
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261123-151734';
+const KOS_BUILD='20261123-152112';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -6650,7 +6650,7 @@ const ING=(name,grams)=>Object.assign({name,grams},FOOD_DB[name]);
 const DEFAULT_MEALDEFS = [
   {id:'shake', emoji:'🥤', name:'Morning shake', ingredients:[
     ING('moo pro greek yoghurt',200), ING('frozen blueberries',50), ING('rolled oats',50),
-    ING('earth protein (bulk nutrients)',30), ING('chia seeds (pro earth)',50), ING('creatine',5)]},
+    ING('earth protein (bulk nutrients)',30), ING('chia seeds (pro earth)',25), ING('creatine',5)]},
   {id:'tunaeggs', emoji:'🍳', name:'Tuna & eggs', ingredients:[
     ING('tuna triple chilli (drained)',70), ING('eggs',200), ING('mayonnaise',15)]},
   {id:'prep', emoji:'🍛', name:'Chicken prep bowl', ingredients:[
@@ -6703,6 +6703,12 @@ function getMealDefs(){
       sh.ingredients.splice(at<0?sh.ingredients.length:at,0,ING('chia seeds (pro earth)',50));
     }
     kset('diet:mealdefs',v); kset('diet:mig:chia',true);
+  }
+  // one-time: chia down to 25g (one serve)
+  if(v && !kget('diet:mig:chia25',false)){
+    const sh=v.find(x=>x.id==='shake'), c=sh&&sh.ingredients&&sh.ingredients.find(i=>/chia/i.test(i.name));
+    if(c) c.grams=25;
+    kset('diet:mealdefs',v); kset('diet:mig:chia25',true);
   }
   return v || JSON.parse(JSON.stringify(DEFAULT_MEALDEFS));
 }

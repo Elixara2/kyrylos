@@ -3320,7 +3320,7 @@ const ico=(name, cls)=>'<svg class="ico'+(cls?' '+cls:'')+'" aria-hidden="true">
    opened or brought back to the foreground, compare against version.txt. If the
    deploy changed, silently reload. Nothing to ever do by hand on the phone.
    KOS_BUILD is rewritten by deploy.sh at publish time. */
-const KOS_BUILD='20261119-172535';
+const KOS_BUILD='20261123-151734';
 (function(){
   if(KOS_BUILD==='DEV') return;              // local file, nothing to check against
   let checking=false;
@@ -6643,13 +6643,14 @@ const FOOD_DB = {
   'white rice (dry)':{kcal:360,pro:7,carb:79,fat:0.6},
   'red curry simmer sauce':{kcal:74,pro:1.5,carb:7.7,fat:3.8},         // label: Aldi Asia Green Garden red (orange jar), 500g
   'green curry simmer sauce':{kcal:121,pro:1.2,carb:10.2,fat:8.2},      // label: Aldi Asia Green Garden green jar, 500g
+  'chia seeds (pro earth)':{kcal:516,pro:20.4,carb:30,fat:32.9},       // label: Pro Earth organic, per 100g (30.5g fibre, 19g omega-3)
   '4 bean mix (drained)':{kcal:100,pro:7,carb:13,fat:0.6},            // est: typical AU 4 bean mix, drained (~240g per 400g can)
 };
 const ING=(name,grams)=>Object.assign({name,grams},FOOD_DB[name]);
 const DEFAULT_MEALDEFS = [
   {id:'shake', emoji:'🥤', name:'Morning shake', ingredients:[
     ING('moo pro greek yoghurt',200), ING('frozen blueberries',50), ING('rolled oats',50),
-    ING('earth protein (bulk nutrients)',30), ING('creatine',5)]},
+    ING('earth protein (bulk nutrients)',30), ING('chia seeds (pro earth)',50), ING('creatine',5)]},
   {id:'tunaeggs', emoji:'🍳', name:'Tuna & eggs', ingredients:[
     ING('tuna triple chilli (drained)',70), ING('eggs',200), ING('mayonnaise',15)]},
   {id:'prep', emoji:'🍛', name:'Chicken prep bowl', ingredients:[
@@ -6693,6 +6694,15 @@ function getMealDefs(){
     const p=v.find(x=>x.id==='prep'), b=p&&p.ingredients&&p.ingredients.find(i=>/bean/i.test(i.name));
     if(b) b.grams=80;
     kset('diet:mealdefs',v); kset('diet:mig:2tinsbeans',true);
+  }
+  // one-time: 50g chia in the shake
+  if(v && !kget('diet:mig:chia',false)){
+    const sh=v.find(x=>x.id==='shake');
+    if(sh && sh.ingredients && !sh.ingredients.some(i=>/chia/i.test(i.name))){
+      const at=sh.ingredients.findIndex(i=>/creatine/i.test(i.name));
+      sh.ingredients.splice(at<0?sh.ingredients.length:at,0,ING('chia seeds (pro earth)',50));
+    }
+    kset('diet:mealdefs',v); kset('diet:mig:chia',true);
   }
   return v || JSON.parse(JSON.stringify(DEFAULT_MEALDEFS));
 }
